@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const path = require('path');
 const http = require('http');
@@ -20,15 +21,20 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
 // Multer setup
-// Multer setup for memory storage (for serverless)
-const upload = multer({ storage: multer.memoryStorage() });
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
 
-// Connect to MongoDB
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
