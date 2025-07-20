@@ -5,7 +5,6 @@
       "destination": "/api/app.js"
     }
   ],
-  "framework": "other",
   "functions": {
     "api/app.js": {
       "maxDuration": 30
