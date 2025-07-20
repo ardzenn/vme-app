@@ -1,10 +1,9 @@
 {
   "name": "vme-app",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "api/app.js", 
   "scripts": {
-    "start": "node app.js",
-    "build": "echo No build step needed for Node.js"
+    "start": "node api/app.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -2,11 +2,12 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/app.js"
+      "destination": "/api/app.js"
     }
   ],
+  "framework": "other",
   "functions": {
-    "app.js": {
+    "api/app.js": {
       "maxDuration": 30
     }
   }
