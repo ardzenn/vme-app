@@ -34,7 +34,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 mongoose.connect(process.env.MONGO_URI, {
   serverSelectionTimeoutMS: 30000,  // 30 seconds for server selection
   socketTimeoutMS: 45000,  // 45 seconds for socket timeout
-  connectTimeoutMS: 30000  // 30 seconds for connection
+  connectTimeoutMS: 30000,  // 30 seconds for connection
+  bufferCommands: false  // Disable buffering to prevent timeout on queued operations
 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
