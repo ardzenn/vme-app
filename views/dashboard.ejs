@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VME Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+  <script src="/js/script.js" defer></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <%- include('partials/navbar') %>
+  <div class="container">
+    <h1>Welcome, <%= user.username %> (<%= user.role %>)</h1>
+    <a href="/order/book" class="btn btn-primary">Book Order</a>
+    <a href="/collection" class="btn btn-primary">Collection & Deposit</a>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkInModal">Check In</button>
+    
+    <h2>Check-In History</h2>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Time, Date and Year</th>
+            <th>MSR/KAS Name</th>
+            <th>Selfie/Doctor Sign</th>
+            <th>Activity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (checkins && checkins.length > 0) { %>
+            <% checkins.forEach(checkin => { %>
+              <tr>
+                <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
+                <td><%= checkin.user.username %></td>
+                <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="100"><% } else { %>No Proof<% } %></td>
+                <td><%= checkin.activity %></td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr><td colspan="4">No check-ins yet</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Sales</h2>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% orders.forEach(order => { %>
+            <tr>
+              <td><%= order.reference %></td>
+              <td><%= order.customerName %></td>
+              <td><%= order.status %></td>
+              <td><a href="/order/<%= order._id %>" class="btn btn-secondary">View & Communicate</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+  <%- include('partials/checkin-modal.ejs') %>
+  <script>
+    const socket = io();
+    socket.emit('join', '<%= user.id %>');
+    // Real-time location send
+    setInterval(() => {
+      navigator.geolocation.getCurrentPosition(pos => {
+        socket.emit('updateLocation', { userId: '<%= user.id %>', lat: pos.coords.latitude, lng: pos.coords.longitude });
+      });
+    }, 30000); // Every 30s
+  </script>
+</body>
+</html>

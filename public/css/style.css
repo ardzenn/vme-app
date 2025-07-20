@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+body { 
+  font-family: 'Roboto', sans-serif; 
+  background-color: #f8f9fa; 
+}
+
+.container { max-width: 1200px; margin: 20px auto; }
+.hero-card { background-color: #28a745; color: white; padding: 60px 0; text-align: center; }
+.hero-card h1 { font-weight: 700; }
+.card { border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: transform 0.2s; }
+.card:hover { transform: translateY(-5px); }
+.btn-primary { background-color: #28a745; border-color: #28a745; }
+.btn-primary:hover { background-color: #218838; border-color: #1e7e34; }
+.table { margin-top: 20px; }
+.navbar { background-color: #28a745; }
+.navbar-brand { color: white !important; }
+.nav-link { color: white !important; }
+.nav-link:hover { color: #e9ecef !important; }
+.form-group label { font-weight: bold; }
+.product-row input { width: 100%; }
+#chat-messages { max-height: 300px; overflow-y: auto; }
+#chat-search { margin-bottom: 10px; }
+.invoice-section { border: 1px solid #dee2e6; padding: 20px; border-radius: 8px; }
+
+.table th, .table td { vertical-align: middle; text-align: center; }
+
+@media (max-width: 768px) {
+  .container { max-width: 100%; padding: 0 10px; }
+  h1 { font-size: 1.5rem; }
+  .btn { width: 100%; margin-bottom: 10px; }
+  table { font-size: 0.8rem; }
+  .table-responsive { overflow-x: auto; }
+  #map { height: 300px; }
+  canvas { width: 100% !important; height: auto; }
+  .modal-dialog { max-width: 100%; margin: 1.75rem auto; }
+  .modal-body { padding: 1rem; }
+  .form-control, textarea { font-size: 0.9rem; }
+  #videoPreview, #photoPreview { width: 100% !important; }
+  img.img-fluid { max-width: 100%; height: auto; }
+  .navbar { min-height: 56px; }
+  .navbar-toggler { border-color: white; }
+  .navbar-collapse { background-color: #28a745; padding: 10px; }
+  .navbar-collapse.show { display: block !important; } /* Ensure it shows when toggled */
+}

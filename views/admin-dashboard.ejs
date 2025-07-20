@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>VME Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/script.js" defer></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+  <%- include('partials/navbar') %>  <!-- Add this for navbar with logout -->
+  <div class="container">
+    <h1>Admin Dashboard</h1>
+    <h2 data-bs-toggle="collapse" data-bs-target="#userManagement" style="cursor: pointer;">User Management <span class="badge bg-primary">Click to Toggle</span></h2>
+    <div id="userManagement" class="collapse show">
+      <input type="text" id="userSearch" class="form-control mb-2" placeholder="Search User by Username">
+      <table class="table" id="userTable">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach(user => { %>
+            <tr data-username="<%= user.username.toLowerCase() %>">
+              <td><%= user.username %></td>
+              <td><%= user.role %></td>
+              <td>
+                <form action="/admin/assign-role" method="POST">
+                  <input type="hidden" name="userId" value="<%= user._id %>">
+                  <select name="role" class="form-control">
+                    <option value="Pending" <%= user.role === 'Pending' ? 'selected' : '' %>>Pending</option>
+                    <option value="MSR" <%= user.role === 'MSR' ? 'selected' : '' %>>MSR</option>
+                    <option value="KAS" <%= user.role === 'KAS' ? 'selected' : '' %>>KAS</option>
+                    <option value="Accounting" <%= user.role === 'Accounting' ? 'selected' : '' %>>Accounting</option>
+                  </select>
+                  <button type="submit" class="btn btn-primary">Assign</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+     <h2>Check-Ins of MSR and KAS</h2>
+    <div class="table-responsive">
+    <input type="text" id="checkinSearch" class="form-control mb-2" placeholder="Search Check-Ins by User or Activity">
+    <table class="table" id="checkinTable">
+      <thead>
+        <tr>
+          <th>Profile Picture</th>
+          <th>User</th>
+          <th>Hospital</th>
+          <th>Doctor</th>
+          <th>Activity</th>
+          <th>Proof</th>
+          <th>Location</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% checkins.forEach(checkin => { %>
+          <tr data-search="<%= checkin.user.username.toLowerCase() %> <%= checkin.activity.toLowerCase() %>">
+            <td><img src="<%= checkin.user.profilePicture || '/default-profile.png' %>" alt="Profile" width="50" class="rounded-circle"></td>
+            <td><%= checkin.user.username %></td>
+            <td><%= checkin.hospital.name %></td>
+            <td><%= checkin.doctor.name %></td>
+            <td><%= checkin.activity %></td>
+            <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" width="100"><% } else { %>No Proof<% } %></td>
+            <td>Lat <%= checkin.location.lat %>, Lng <%= checkin.location.lng %></td>
+            <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    </div>
+    <h2>Orders of MSR and KAS</h2>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Customer</th>
+            <th>Status</th>
+            <th>Timestamp</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% orders.forEach(order => { %>
+            <tr>
+              <td><%= order.user.username %></td>
+              <td><%= order.customerName %></td>
+              <td><%= order.status %></td>
+              <td><%= new Date(order.timestamp).toLocaleString() %></td>
+              <td><a href="/order/<%= order._id %>">View</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <h2>Collections of MSR and KAS</h2>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Type</th>
+            <th>File</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% collections.forEach(col => { %>
+            <tr>
+              <td><%= col.user.username %></td>
+              <td><%= col.type %></td>
+              <td><a href="<%= col.file %>">View</a></td>
+              <td><%= new Date(col.timestamp).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+   <h2>Real-Time Locations</h2>
+    <div id="map" style="height: 400px;"></div>
+    <ul id="locations">
+      <% users.forEach(user => { %>
+        <li id="user-<%= user._id %>"><%= user.username %>: Lat <%= user.location?.lat || 'N/A' %>, Lng <%= user.location?.lng || 'N/A' %></li>
+      <% }) %>
+    </ul>
+  </div>
+  <script>
+
+const socket = io();
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    const markers = {};
+    socket.on('locationUpdate', ({ userId, lat, lng }) => {
+      document.getElementById(`user-${userId}`).innerText = `User: Lat ${lat}, Lng ${lng}`;
+      if (markers[userId]) markers[userId].setLatLng([lat, lng]);
+      else markers[userId] = L.marker([lat, lng]).addTo(map);
+    });
+
+
+  document.getElementById('userSearch').addEventListener('input', e => {
+      const filter = e.target.value.toLowerCase();
+      Array.from(document.getElementById('userTable').querySelectorAll('tbody tr')).forEach(tr => {
+        tr.style.display = tr.dataset.username.includes(filter) ? '' : 'none';
+      });
+    });
+
+
+    document.getElementById('checkinSearch').addEventListener('input', e => {
+      const filter = e.target.value.toLowerCase();
+      Array.from(document.getElementById('checkinTable').querySelectorAll('tbody tr')).forEach(tr => {
+        tr.style.display = tr.dataset.search.includes(filter) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>

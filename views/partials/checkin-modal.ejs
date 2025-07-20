@@ -1,0 +1,32 @@
+<div class="modal fade" id="checkInModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Check In</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form action="/checkin" method="POST" enctype="multipart/form-data">
+          <input type="text" name="hospitalName" placeholder="Hospital Name" class="form-control" required>
+          <input type="text" name="doctorName" placeholder="Doctor Name" class="form-control mt-3" required>
+          <textarea name="activity" placeholder="Activity" class="form-control mt-3" required></textarea>
+          <div class="mt-3">
+            <button type="button" id="captureSelfie" class="btn btn-secondary">Capture Selfie</button>
+            <input type="file" accept="image/*" capture="user" name="proof" id="selfieInput" class="d-none">
+            <video id="videoPreview" width="300" height="200" autoplay class="mt-2 d-none"></video>
+            <button type="button" id="takePhoto" class="btn btn-secondary d-none mt-2">Take Photo</button>
+            <img id="photoPreview" width="300" class="mt-2 d-none">
+            <p>Or Upload Image</p>
+            <input type="file" accept="image/*" name="proofUpload" id="proofUpload">
+            <p>Or Sign</p>
+            <canvas id="signatureCanvas" width="300" height="150" style="border:1px solid #000;"></canvas>
+            <button type="button" onclick="window.clearCanvas()" class="btn btn-secondary mt-2">Clear</button>
+          </div>
+          <input type="hidden" name="lat" id="lat">
+          <input type="hidden" name="lng" id="lng">
+          <button type="submit" class="btn btn-primary mt-2">Submit</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
