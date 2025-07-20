@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ storage: multer.memoryStorage() });
 const { authMiddleware, roleMiddleware } = require('./auth');
 const Hospital = require('../models/Hospital.js');
 const Doctor = require('../models/Doctor.js');
@@ -29,12 +29,11 @@ router.post('/', upload.single('proof'), async (req, res) => {
 
     if (!activity) throw new Error('Activity required');
 
-    const proof = req.file ? `/uploads/${req.file.filename}` : null;
+    const proof = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null; // Save as base64
     const location = { lat: parseFloat(lat) || 0, lng: parseFloat(lng) || 0 };
 
     const checkin = new CheckIn({ user: req.user.id, hospital: hospital._id, doctor: doctor._id, proof, activity, location });
     await checkin.save();
-    console.log('Check-in saved:', checkin); // Debug to confirm
     res.redirect('/dashboard');
   } catch (err) {
     console.error('CheckIn error:', err);

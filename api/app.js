@@ -25,11 +25,8 @@ app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
 // Multer setup
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
-});
-const upload = multer({ storage });
+// Multer setup for memory storage (for serverless)
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)

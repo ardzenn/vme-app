@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ storage: multer.memoryStorage() });
 const { authMiddleware } = require('./auth');
 const User = require('../models/User.js');
 
@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', upload.single('profilePicture'), async (req, res) => {
-  const profilePicture = req.file ? `/uploads/${req.file.filename}` : null;
+  const profilePicture = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null; // Save as base64
   await User.findByIdAndUpdate(req.user.id, { profilePicture });
   res.redirect('/profile');
 });
