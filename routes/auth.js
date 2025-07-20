@@ -1,4 +1,3 @@
-// routes/auth.js
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User.js');
@@ -6,23 +5,35 @@ const User = require('../models/User.js');
 const router = express.Router();
 
 router.get('/login', (req, res) => res.render('login', { error: null }));
+
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = await User.findOne({ username });
-  if (!user || !(await user.comparePassword(password))) {
-    return res.render('login', { error: 'Invalid credentials' });
+  console.log('Login attempt:', { username, password }); // Debug log
+  try {
+    const user = await User.findOne({ username });
+    console.log('Found user:', user); // Debug log
+    if (!user || !(await user.comparePassword(password))) {
+      console.log('Invalid credentials'); // Debug log
+      return res.render('login', { error: 'Invalid credentials' });
+    }
+    if (user.role === 'Pending') {
+      console.log('User pending approval'); // Debug log
+      return res.render('waiting', { user });
+    }
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    console.log('Token generated:', token); // Debug log
+    res.cookie('token', token, { httpOnly: true });
+    res.redirect('/dashboard');
+  } catch (err) {
+    console.error('Login error:', err); // Debug log
+    res.status(500).render('login', { error: 'Internal Server Error' });
   }
-  if (user.role === 'Pending') return res.render('waiting', { user });
-  const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  res.cookie('token', token, { httpOnly: true });
-  res.redirect('/dashboard');
 });
 
 router.get('/signup', (req, res) => res.render('signup', { error: null }));
 router.post('/signup', async (req, res) => {
   const { firstName, lastName, birthdate, area, address, username, password } = req.body;
   try {
-    // Validate and parse birthdate
     const birthdateObj = new Date(birthdate);
     if (isNaN(birthdateObj.getTime())) {
       throw new Error('Invalid birthdate format');
