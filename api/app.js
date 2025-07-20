@@ -16,6 +16,8 @@ const orderRoutes = require('../routes/order');
 const collectionRoutes = require('../routes/collection');
 const accountingRoutes = require('../routes/accounting');
 const adminRoutes = require('../routes/admin');
+const profileRoutes = require('../routes/profile');
+
 
 const app = express();
 const server = http.createServer(app);
