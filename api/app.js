@@ -1,3 +1,4 @@
+import dbConnect from './dbConnect';
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -32,14 +33,16 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
-  serverSelectionTimeoutMS: 30000,  // 30 seconds for server selection
-  socketTimeoutMS: 45000,  // 45 seconds for socket timeout
-  connectTimeoutMS: 30000,  // 30 seconds for connection
-  bufferCommands: false  // Disable buffering to prevent timeout on queued operations
+  serverSelectionTimeoutMS: 30000, // 30 seconds for server selection
+  socketTimeoutMS: 45000, // 45 seconds for socket timeout
+  connectTimeoutMS: 30000, // 30 seconds for connection
+  bufferCommands: false // Disable buffering to prevent timeout on queued operations
 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
-
+dbConnect().then(() => {
+  console.log('MongoDB connection established successfully.');
+});
 // Routes
 app.use('/', authRoutes);
 app.use('/dashboard', dashboardRoutes);
@@ -48,6 +51,7 @@ app.use('/order', orderRoutes);
 app.use('/collection', collectionRoutes);
 app.use('/accounting', accountingRoutes);
 app.use('/admin', adminRoutes);
+app.use('/profile', profileRoutes);
 
 // Root redirect
 app.get('/', (req, res) => res.redirect('/login'));
