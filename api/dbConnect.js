@@ -1,5 +1,6 @@
 // /api/dbConnect.js
 import mongoose from 'mongoose';
+console.log('The test variable is:', process.env.TEST_VAR); // <-- ADD THIS LINE
 
 const MONGO_URI = process.env.MONGO_URI;
 
