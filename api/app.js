@@ -8,31 +8,27 @@ const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
 
-const authRoutes = require('../routes/auth'); // Change to '../routes/auth'
-const dashboardRoutes = require('../routes/dashboard'); // Change to '../routes/dashboard'
-const checkinRoutes = require('../routes/checkin'); // Change to '../routes/checkin'
-const orderRoutes = require('../routes/order'); // Change to '../routes/order'
-const collectionRoutes = require('../routes/collection'); // Change to '../routes/collection'
-const accountingRoutes = require('../routes/accounting'); // Change to '../routes/accounting'
-const adminRoutes = require('../routes/admin'); // Change to '../routes/admin'
+const authRoutes = require('../routes/auth');
+const dashboardRoutes = require('../routes/dashboard');
+const checkinRoutes = require('../routes/checkin');
+const orderRoutes = require('../routes/order');
+const collectionRoutes = require('../routes/collection');
+const accountingRoutes = require('../routes/accounting');
+const adminRoutes = require('../routes/admin');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(__dirname, '../views')); // Adjusted to find views from api folder
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
+app.use(express.static(path.join(__dirname, '../public'))); // Serve static files from root public
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'))); // Serve uploads from root
 
-// Multer setup
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
-});
-const upload = multer({ storage });
+// Multer setup (memory storage for Vercel)
+const upload = multer({ storage: multer.memoryStorage() });
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
@@ -48,30 +44,32 @@ app.use('/collection', collectionRoutes);
 app.use('/accounting', accountingRoutes);
 app.use('/admin', adminRoutes);
 
+// Root redirect
+app.get('/', (req, res) => res.redirect('/login'));
+
 // Socket.io setup
-const connectedUsers = {}; // Track user sockets by userId
+const connectedUsers = {};
 io.on('connection', (socket) => {
   socket.on('join', (userId) => {
     connectedUsers[userId] = socket.id;
   });
 
-  // Real-time location update
   socket.on('updateLocation', async ({ userId, lat, lng }) => {
-    const User = require('../models/User'); // Change to '../models/User'
+    const User = require('../models/User');
     await User.findByIdAndUpdate(userId, { location: { lat, lng, timestamp: Date.now() } });
     io.emit('locationUpdate', { userId, lat, lng });
   });
 
-  // Order chat
   socket.on('joinOrder', (orderId) => {
     socket.join(orderId);
   });
   socket.on('sendMessage', async ({ orderId, userId, text, attachment }) => {
-    const Message = require('../models/Message'); // Change to '../models/Message'
+    const Message = require('../models/Message');
     const newMsg = new Message({ order: orderId, user: userId, text, attachment });
     await newMsg.save();
     io.to(orderId).emit('newMessage', newMsg);
   });
 });
 
+app.get('/', (req, res) => res.redirect('/login')); 
 server.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
