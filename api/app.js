@@ -31,7 +31,11 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads'))); // Serv
 const upload = multer({ storage: multer.memoryStorage() });
 
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 30000,  // 30 seconds for server selection
+  socketTimeoutMS: 45000,  // 45 seconds for socket timeout
+  connectTimeoutMS: 30000  // 30 seconds for connection
+})
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
 
