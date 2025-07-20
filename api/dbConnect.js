@@ -1,6 +1,4 @@
-// /api/dbConnect.js
-import mongoose from 'mongoose';
-console.log('The test variable is:', process.env.TEST_VAR); // <-- ADD THIS LINE
+const mongoose = require('mongoose');
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -10,11 +8,6 @@ if (!MONGO_URI) {
   );
 }
 
-/**
- * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections from growing exponentially
- * during API Route usage.
- */
 let cached = global.mongoose;
 
 if (!cached) {
@@ -39,4 +32,4 @@ async function dbConnect() {
   return cached.conn;
 }
 
-export default dbConnect;
+module.exports = dbConnect;
