@@ -16,11 +16,14 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
+const session = require('express-session'); // NEW
+const flash = require('connect-flash');     // NEW
 
 // --- 1. INITIAL APP, SERVER, and SOCKET.IO SETUP ---
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+
 
 // --- 2. MODELS ---
 const User = require('../models/User');
@@ -38,6 +41,24 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '../public')));
 const upload = multer({ storage: multer.memoryStorage() });
+
+// I PUT SESSION AND FLASH MIDDLEWARE HERE - ARDON
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
+app.use(flash());
+
+// Middleware to make flash messages available to all templates
+app.use((req, res, next) => {
+    res.locals.success_msg = req.flash('success_msg');
+    res.locals.error_msg = req.flash('error_msg');
+    res.locals.error = req.flash('error'); // For login errors
+    next();
+});
+
 
 // --- 4. MIDDLEWARE FUNCTIONS ---
 const authMiddleware = (req, res, next) => {
@@ -71,6 +92,23 @@ mongoose.connect(process.env.MONGO_URI)
   });
 
 // --- 7. DEFINE ALL APPLICATION ROUTES ---
+// ADMIN ROUTE I MADE ANOTHER ROUTE HERE - ARDON
+app.post('/admin/assign-role', authMiddleware, roleMiddleware(['Admin']), async (req, res) => {
+    try {
+        const { userId, role } = req.body;
+        await User.findByIdAndUpdate(userId, { role: role });
+        
+        // THIS IS THE FIX: Create a success flash message
+        req.flash('success_msg', 'User role has been updated successfully!');
+        
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error('Error assigning role:', err);
+        req.flash('error_msg', 'An error occurred while updating the role.');
+        res.redirect('/dashboard'); 
+    }
+});
+
 
 // ROOT ROUTE
 app.get('/', authMiddleware, (req, res) => res.redirect('/dashboard'));
@@ -118,6 +156,8 @@ app.get('/forgot-password', (req, res) => res.render('forgot-password', { error:
 app.post('/forgot-password', async (req, res) => { /* ... password reset logic ... */ });
 app.get('/reset-password/:token', async (req, res) => { /* ... password reset logic ... */ });
 app.post('/reset-password/:token', async (req, res) => { /* ... password reset logic ... */ });
+
+
 
 // DASHBOARD ROUTE
 app.get('/dashboard', authMiddleware, async (req, res) => {
