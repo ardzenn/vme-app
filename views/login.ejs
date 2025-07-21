@@ -14,9 +14,12 @@
                     <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Welcome Back</h2>
                     <p style="margin-bottom: 2rem;">Please enter your details to sign in.</p>
                     
-                    <% if (typeof error !== 'undefined' && error) { %>
-                        <div class="alert alert-danger" style="background-color: #FEE2E2; color: #B91C1C; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;"><%= error %></div>
-                    <% } %>
+                    <% if (typeof error !== 'undefined' && error && error.length > 0) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert" style="background-color: #FEE2E2; color: #B91C1C; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+        <%= error %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<% } %>
 
                     <form action="/login" method="POST">
                         <div style="margin-bottom: 1.5rem;">
@@ -39,7 +42,10 @@
                     </p>
                 </div>
             </div>
-            <div class="login-image-container"></div>
+           <div class="login-image-container">
+    <img src="/images/logo.png" alt="VME Logo" class="login-logo-img">
+    <h2 class="login-brand-title">VINTEL MED ENTERPRISES</h2>
+</div>
         </div>
     </div>
 </body>

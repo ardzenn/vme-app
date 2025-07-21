@@ -438,6 +438,34 @@ app.get('/profile', authMiddleware, checkApprovalMiddleware, async (req, res) =>
     res.render('profile', { user });
 });
 
+app.post('/profile', authMiddleware, upload.single('profilePicture'), async (req, res) => {
+    try {
+        if (!req.file) {
+            req.flash('error_msg', 'Please select a file to upload.');
+            return res.redirect('/profile');
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            req.flash('error_msg', 'User not found.');
+            return res.redirect('/profile');
+        }
+
+        const profilePictureBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+        user.profilePicture = profilePictureBase64;
+        await user.save();
+
+        req.flash('success_msg', 'Profile picture updated successfully!');
+        res.redirect('/profile');
+
+    } catch (err) {
+        console.error("Error updating profile picture:", err);
+        req.flash('error_msg', 'An error occurred while updating your profile.');
+        res.redirect('/profile');
+    }
+});
+
 // --- 9. SOCKET.IO EVENT HANDLERS ---
 io.on('connection', (socket) => {
     socket.on('joinOrder', (orderId) => socket.join(orderId));

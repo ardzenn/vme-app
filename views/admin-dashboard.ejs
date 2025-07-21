@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - VME App</title>
+    <link rel="icon" href="/images/logo.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="/css/style.css">
@@ -21,9 +22,39 @@
 
             <% if (typeof stats !== 'undefined') { %>
             <div class="row g-4 mb-5">
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Users</div><div class="stat-value"><%= stats.totalUsers %></div></div></div>
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Pending Approvals</div><div class="stat-value"><%= stats.pendingUsers %></div></div></div>
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Check-ins</div><div class="stat-value"><%= stats.totalCheckins %></div></div></div>
+                <div class="col-lg-4">
+                    <div class="card stat-card">
+                        <div class="stat-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        </div>
+                        <div>
+                            <div class="stat-title">Total Users</div>
+                            <div class="stat-value"><%= stats.totalUsers %></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card stat-card">
+                        <div class="stat-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M12 18v-6"></path><path d="m9 15 3 3 3-3"></path></svg>
+                        </div>
+                        <div>
+                            <div class="stat-title">Pending Approvals</div>
+                            <div class="stat-value"><%= stats.pendingUsers %></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card stat-card">
+                        <div class="stat-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </div>
+                        <div>
+                            <div class="stat-title">Total Check-ins</div>
+                            <div class="stat-value"><%= stats.totalCheckins %></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <% } %>
 
@@ -37,22 +68,52 @@
             <div class="tab-content" id="adminTabContent">
                 <div class="tab-pane fade show active" id="users-tab-pane" role="tabpanel">
                     <div class="card">
-                        <div class="card-header"><input type="text" id="userSearch" class="form-control" placeholder="Search users by name or username..."></div>
-                        <div class="card-body p-0"><div class="table-responsive">
-                        <table class="table" id="userTable">
-                            <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th style="width: 350px;">Actions</th></tr></thead>
-                            <tbody><% users.forEach(u => { %>
-                                <tr data-search="<%= (u.username || '').toLowerCase() %> <%= (u.firstName || '').toLowerCase() %> <%= (u.lastName || '').toLowerCase() %>">
-                                <td><strong><%= u.username || 'N/A' %></strong></td>
-                                <td><%= u.firstName || '' %> <%= u.lastName || '' %></td>
-                                <td><%= u.role %></td>
-                                <td><form action="/admin/assign-role" method="POST" style="display: flex; gap: 10px;"><input type="hidden" name="userId" value="<%= u._id %>"><select name="role" class="form-control form-control-sm"><option value="Pending" <%= u.role === 'Pending' ? 'selected' : '' %>>Pending</option><option value="MSR" <%= u.role === 'MSR' ? 'selected' : '' %>>MSR</option><option value="KAS" <%= u.role === 'KAS' ? 'selected' : '' %>>KAS</option><option value="Accounting" <%= u.role === 'Accounting' ? 'selected' : '' %>>Accounting</option><option value="Admin" <%= u.role === 'Admin' ? 'selected' : '' %>>Admin</option></select><button type="submit" class="btn btn-primary btn-sm">Assign</button></form></td>
-                            </tr><% }) %></tbody>
-                        </table>
-                    </div></div></div>
+                        <div class="card-header">
+                            <input type="text" id="userSearch" class="form-control" placeholder="Search users by name or username...">
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table" id="userTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Full Name</th>
+                                            <th>Role</th>
+                                            <th style="width: 350px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% users.forEach(u => { %>
+                                        <tr data-search="<%= (u.username || '').toLowerCase() %> <%= (u.firstName || '').toLowerCase() %> <%= (u.lastName || '').toLowerCase() %>">
+                                            <td><strong><%= u.username || 'N/A' %></strong></td>
+                                            <td><%= u.firstName || '' %> <%= u.lastName || '' %></td>
+                                            <td><%= u.role %></td>
+                                            <td>
+                                                <form action="/admin/assign-role" method="POST" style="display: flex; gap: 10px;">
+                                                    <input type="hidden" name="userId" value="<%= u._id %>">
+                                                    <select name="role" class="form-select form-select-sm" style="width: 150px;">
+                                                        <option value="Pending" <%= u.role === 'Pending' ? 'selected' : '' %>>Pending</option>
+                                                        <option value="MSR" <%= u.role === 'MSR' ? 'selected' : '' %>>MSR</option>
+                                                        <option value="KAS" <%= u.role === 'KAS' ? 'selected' : '' %>>KAS</option>
+                                                        <option value="Accounting" <%= u.role === 'Accounting' ? 'selected' : '' %>>Accounting</option>
+                                                        <option value="Admin" <%= u.role === 'Admin' ? 'selected' : '' %>>Admin</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-primary btn-sm">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                                        <span>Assign</span>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="tab-pane fade" id="checkins-tab-pane" role="tabpanel">
-                    <div class="card">
+                     <div class="card">
                         <div class="card-header"><input type="text" id="checkinSearch" class="form-control" placeholder="Search check-ins..."></div>
                         <div class="card-body p-0"><div class="table-responsive">
                         <table class="table" id="checkinTable">
@@ -62,8 +123,8 @@
                                 <td><%= checkin.user?.username || 'N/A' %></td>
                                 <td><%= checkin.hospital?.name || 'N/A' %></td>
                                 <td><%= checkin.activity %></td>
-                                <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %>N/A<% } %></td>
-                                <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %>N/A<% } %></td>
+                                <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" onclick="showImageInModal('<%= checkin.proof %>')" style="border-radius: 0.25rem;"><% } else { %>N/A<% } %></td>
+                                <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %>N/A<% } %></td>
                                 <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
                             </tr><% })} else { %><tr><td colspan="6" class="text-center p-5">No check-in history found.</td></tr><% } %></tbody>
                         </table>
@@ -71,22 +132,28 @@
                 </div>
                 <div class="tab-pane fade" id="orders-tab-pane" role="tabpanel">
                      <div class="card">
-                         <div class="card-header"><input type="text" id="orderSearch" class="form-control" placeholder="Search orders..."></div>
-                         <div class="card-body p-0"><div class="table-responsive">
-                         <table class="table" id="orderTable">
-                             <thead><tr><th>User</th><th>Reference</th><th>Customer</th><th>Status</th><th>Actions</th></tr></thead>
-                             <tbody id="order-table-body">
+                        <div class="card-header"><input type="text" id="orderSearch" class="form-control" placeholder="Search orders by customer, reference, or user..."></div>
+                        <div class="card-body p-0"><div class="table-responsive">
+                        <table class="table" id="orderTable">
+                            <thead><tr><th>User</th><th>Reference</th><th>Customer</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="order-table-body">
                                 <% if(orders.length > 0) { orders.forEach(order => { %>
-                                 <tr data-search="<%= (order.user?.username || '').toLowerCase() %> <%= (order.user?.firstName || '').toLowerCase() %> <%= (order.user?.lastName || '').toLowerCase() %> <%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
-                                 <td><%= order.user?.username || 'N/A' %></td>
-                                 <td><strong><%= order.reference %></strong></td>
-                                 <td><%= order.customerName %></td>
-                                 <td><span class="badge <%= order.status.includes('Processed') || order.status.includes('Shipped') || order.status.includes('Delivered') ? 'badge-success' : 'badge-warning' %>"><%= order.status %></span></td>
-                                 <td><button class="btn btn-sm btn-info view-order-btn" data-order-id="<%= order._id %>">View</button></td>
-                             </tr><% })} else { %><tr><td colspan="5" class="text-center p-5">No sales orders found.</td></tr><% } %>
+                                <tr data-search="<%= (order.user?.username || '').toLowerCase() %> <%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
+                                    <td><%= order.user?.username || 'N/A' %></td>
+                                    <td><strong><%= order.reference %></strong></td>
+                                    <td><%= order.customerName %></td>
+                                    <td><span class="badge <%= order.status.includes('Delivered') ? 'badge-success' : 'badge-warning' %>"><%= order.status %></span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-secondary view-order-btn" data-order-id="<%= order._id %>">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                            <span>View</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <% })} else { %><tr><td colspan="5" class="text-center p-5">No sales orders found.</td></tr><% } %>
                             </tbody>
-                         </table>
-                     </div></div></div>
+                        </table>
+                    </div></div></div>
                 </div>
                 <div class="tab-pane fade" id="map-tab-pane" role="tabpanel">
                     <div class="card"><div class="card-body">
@@ -103,7 +170,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         // --- INITIAL SETUP ---
@@ -118,8 +185,9 @@
         let map;
         const markers = {};
 
-        // --- MODAL AND MAP FUNCTIONS ---
-        function showImageInModal(src) {
+        // --- GLOBAL FUNCTIONS ---
+        // Expose showImageInModal globally so inline onclick can find it
+        window.showImageInModal = function(src) {
             if (modalZoomImage) {
                 modalZoomImage.src = src;
                 imageZoomModal.show();
@@ -132,21 +200,27 @@
             const isSent = msg.user._id === currentUserId;
             const messageClass = isSent ? 'chat-message-sent' : 'chat-message-received';
             const profilePic = msg.user.profilePicture || 'https://via.placeholder.com/150';
-            chatBox.innerHTML += `<div class="chat-message ${messageClass}"><img src="${profilePic}" class="chat-profile-pic"><div class="chat-bubble"><div class="username">${msg.user.username}</div>${msg.text}<div class="timestamp">${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div></div></div>`;
+            const timestamp = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            const messageHTML = `
+                <div class="chat-message ${messageClass}">
+                    <img src="${profilePic}" class="chat-profile-pic">
+                    <div class="chat-bubble">
+                        <div class="username">${msg.user.username}</div>
+                        ${msg.text}
+                        <div class="timestamp">${timestamp}</div>
+                    </div>
+                </div>`;
+            chatBox.innerHTML += messageHTML;
             chatBox.scrollTop = chatBox.scrollHeight;
         }
         
         async function viewOrder(orderId) {
             try {
                 const response = await fetch(`/order/${orderId}`);
-                if (!response.ok) {
-                    throw new Error(`Server responded with status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
                 const data = await response.json();
-                
                 orderDetailModalEl.dataset.orderData = JSON.stringify(data);
                 orderDetailModal.show();
-
             } catch (error) {
                 console.error("Failed to fetch order data:", error);
                 alert("Could not load order details. Check the console for more info.");
@@ -157,7 +231,6 @@
         orderDetailModalEl.addEventListener('shown.bs.modal', function (event) {
             const data = JSON.parse(event.currentTarget.dataset.orderData);
             const { order, messages, currentUser: modalCurrentUser } = data;
-            
             currentOrderId = order._id;
 
             document.getElementById('orderUpdateForm').action = `/order/${order._id}/update`;
@@ -174,40 +247,14 @@
             if (modalCurrentUser.role === 'Accounting') {
                 let productFields = '';
                 order.products.forEach((p, index) => {
-                    productFields += `
-                        <div class="row g-2 mb-2 align-items-center">
-                            <div class="col-sm-7"><input type="text" class="form-control form-control-sm" name="products[${index}][product]" value="${p.product || ''}"></div>
-                            <div class="col-sm-2"><input type="number" class="form-control form-control-sm" name="products[${index}][quantity]" value="${p.quantity || 0}"></div>
-                            <div class="col-sm-3"><input type="number" step="0.01" class="form-control form-control-sm" name="products[${index}][price]" value="${(p.price || 0).toFixed(2)}"></div>
-                        </div>`;
+                    productFields += `<div class="row g-2 mb-2 align-items-center"><div class="col-sm-7"><input type="text" class="form-control form-control-sm" name="products[${index}][product]" value="${p.product || ''}"></div><div class="col-sm-2"><input type="number" class="form-control form-control-sm" name="products[${index}][quantity]" value="${p.quantity || 0}"></div><div class="col-sm-3"><input type="number" step="0.01" class="form-control form-control-sm" name="products[${index}][price]" value="${(p.price || 0).toFixed(2)}"></div></div>`;
                 });
-                invoiceContainer.innerHTML = `
-                    <h6>Order Status</h6><select name="status" class="form-select mb-3">
-                        <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                        <option value="Awaiting Approval" ${order.status === 'Awaiting Approval' ? 'selected' : ''}>Awaiting Approval</option>
-                        <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
-                        <option value="Order Shipped" ${order.status === 'Order Shipped' ? 'selected' : ''}>Order Shipped</option>
-                        <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                        <option value="Rejected" ${order.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-                        <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                    </select>
-                    <h6>Payment Status</h6><select name="paymentStatus" class="form-select mb-4">
-                        <option value="Unpaid" ${order.paymentStatus === 'Unpaid' ? 'selected' : ''}>Unpaid</option>
-                        <option value="Paid" ${order.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option>
-                    </select>
-                    <h6>Products</h6>${productFields}`;
+                invoiceContainer.innerHTML = `<h6>Order Status</h6><select name="status" class="form-select mb-3"><option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option><option value="Awaiting Approval" ${order.status === 'Awaiting Approval' ? 'selected' : ''}>Awaiting Approval</option><option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option><option value="Order Shipped" ${order.status === 'Order Shipped' ? 'selected' : ''}>Order Shipped</option><option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option><option value="Rejected" ${order.status === 'Rejected' ? 'selected' : ''}>Rejected</option><option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option></select><h6>Payment Status</h6><select name="paymentStatus" class="form-select mb-4"><option value="Unpaid" ${order.paymentStatus === 'Unpaid' ? 'selected' : ''}>Unpaid</option><option value="Paid" ${order.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option></select><h6>Products</h6>${productFields}`;
                 footerContainer.innerHTML += '<button type="submit" class="btn btn-primary">Save Changes</button>';
             } else {
                 let productsTableRows = '';
                 order.products.forEach(p => { productsTableRows += `<tr><td>${p.product}</td><td>${p.quantity}</td><td>₱${(p.price || 0).toFixed(2)}</td><td>₱${(p.total || 0).toFixed(2)}</td></tr>`; });
-                invoiceContainer.innerHTML = `
-                    <p><strong>Status:</strong> <span class="badge ${order.status.includes('Processed') || order.status.includes('Shipped') || order.status.includes('Delivered') ? 'badge-success' : 'badge-warning'}">${order.status}</span></p>
-                    <p><strong>Payment:</strong> <span class="badge ${order.paymentStatus === 'Paid' ? 'badge-success' : 'badge-danger'}">${order.paymentStatus}</span></p>
-                    <div class="table-responsive"><table class="table table-sm">
-                        <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-                        <tbody>${productsTableRows}</tbody>
-                        <tfoot><tr><th colspan="3" class="text-end">Total:</th><th class="text-nowrap">₱${(order.subtotal || 0).toFixed(2)}</th></tr></tfoot>
-                    </table></div>`;
+                invoiceContainer.innerHTML = `<p><strong>Status:</strong> <span class="badge ${order.status.includes('Delivered') ? 'badge-success' : 'badge-warning'}">${order.status}</span></p><p><strong>Payment:</strong> <span class="badge ${order.paymentStatus === 'Paid' ? 'badge-success' : 'badge-danger'}">${order.paymentStatus}</span></p><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${productsTableRows}</tbody><tfoot><tr><th colspan="3" class="text-end">Total:</th><th class="text-nowrap">₱${(order.subtotal || 0).toFixed(2)}</th></tr></tfoot></table></div>`;
             }
             
             const chatBox = document.getElementById('modal_chatMessages');
@@ -218,7 +265,7 @@
             document.getElementById('modal_messageForm').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const messageInput = document.getElementById('modal_messageText');
-                if (messageInput.value && currentOrderId) {
+                if (messageInput.value && currentOrderId && currentUser && currentUser.id) {
                     socket.emit('sendMessage', { orderId: currentOrderId, userId: currentUser.id, text: messageInput.value });
                     messageInput.value = '';
                 }
@@ -227,7 +274,7 @@
         });
         
         socket.on('newMessage', (msg) => {
-            if (msg.order === currentOrderId) {
+            if (msg.order === currentOrderId && currentUser && currentUser.id) {
                 appendMessage(msg, currentUser.id);
             }
         });
@@ -238,15 +285,13 @@
                 const viewButton = event.target.closest('.view-order-btn');
                 if (viewButton) {
                     const orderId = viewButton.dataset.orderId;
-                    if (orderId) {
-                        viewOrder(orderId);
-                    }
+                    if (orderId) viewOrder(orderId);
                 }
             });
         }
 
         const mapTab = document.querySelector('button[data-bs-target="#map-tab-pane"]');
-        if (mapTab) {
+        if (mapTab && typeof initialUsers !== 'undefined') {
             mapTab.addEventListener('shown.bs.tab', event => {
                 if (!map) {
                     map = L.map('map').setView([12.8797, 121.7740], 6);
@@ -261,6 +306,7 @@
         }
         
         socket.on('locationUpdate', ({ userId, lat, lng }) => {
+            if (typeof initialUsers === 'undefined') return;
             const user = initialUsers.find(u => u._id === userId);
             if (!user) return;
             if (markers[userId]) {
@@ -270,6 +316,7 @@
             }
         });
 
+        // --- TABLE FILTERS ---
         const addTableFilter = (inputId, tableId) => {
             const searchInput = document.getElementById(inputId);
             if (searchInput) {
@@ -286,6 +333,5 @@
         addTableFilter('orderSearch', 'orderTable');
     });
     </script>
-    
 </body>
 </html>
