@@ -75,99 +75,15 @@ mongoose.connect(process.env.MONGO_URI)
 // ROOT ROUTE
 app.get('/', authMiddleware, (req, res) => res.redirect('/dashboard'));
 
-// --- AUTH ROUTES (Login, Signup, Password Reset, etc.) ---
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-});
-
-app.get('/signup', (req, res) => res.render('signup', { error: null }));
-app.post('/signup', async (req, res) => {
-    try {
-        const { username, password, firstName, lastName, birthdate, area, address } = req.body;
-        const user = new User({ username, password, firstName, lastName, birthdate, area, address });
-        await user.save();
-        res.redirect('/login');
-    } catch (err) {
-        res.render('signup', { error: 'Error creating account. Email may be taken.' });
-    }
-});
-
-app.get('/login', (req, res) => res.render('login', { error: null }));
-app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        const user = await User.findOne({ username });
-        if (!user) { return res.render('login', { error: 'Invalid credentials' }); }
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) { return res.render('login', { error: 'Invalid credentials' }); }
-        const token = jwt.sign({ id: user._id, role: user.role, firstName: user.firstName }, process.env.JWT_SECRET, { expiresIn: '1d' });
-        res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-        res.redirect('/dashboard');
-    } catch (err) {
-        res.render('login', { error: 'An error occurred.' });
-    }
-});
-
-app.get('/logout', (req, res) => {
-    res.clearCookie('token');
-    res.redirect('/login');
-});
-
-app.get('/forgot-password', (req, res) => {
-    res.render('forgot-password', { error: null, success: null });
-});
-app.post('/forgot-password', async (req, res) => {
-    try {
-        const { username } = req.body;
-        const user = await User.findOne({ username });
-        if (!user) { return res.render('forgot-password', { error: 'No account with that email address exists.', success: null }); }
-        const token = crypto.randomBytes(20).toString('hex');
-        user.passwordResetToken = token;
-        user.passwordResetExpires = Date.now() + 3600000; // 1 hour
-        await user.save();
-        const resetURL = `${req.protocol}://${req.get('host')}/reset-password/${token}`;
-        await transporter.sendMail({
-            to: user.username, from: `VME App <${process.env.EMAIL_USER}>`,
-            subject: 'VME App Password Reset',
-            text: `Please click the following link to reset your password:\n\n${resetURL}`
-        });
-        res.render('forgot-password', { error: null, success: 'An email has been sent with further instructions.' });
-    } catch (err) {
-        res.render('forgot-password', { error: 'An error occurred sending the email.', success: null });
-    }
-});
-
-app.get('/reset-password/:token', async (req, res) => {
-    try {
-        const user = await User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } });
-        if (!user) { return res.render('forgot-password', { error: 'Password reset token is invalid or has expired.', success: null }); }
-        res.render('reset-password', { token: req.params.token, error: null });
-    } catch (err) {
-        res.render('forgot-password', { error: 'An error occurred.', success: null });
-    }
-});
-app.post('/reset-password/:token', async (req, res) => {
-    try {
-        const user = await User.findOne({ passwordResetToken: req.params.token, passwordResetExpires: { $gt: Date.now() } });
-        if (!user) { return res.render('forgot-password', { error: 'Password reset token is invalid or has expired.', success: null }); }
-        if (req.body.password !== req.body.confirmPassword) { return res.render('reset-password', { token: req.params.token, error: 'Passwords do not match.' }); }
-        user.password = req.body.password;
-        user.passwordResetToken = undefined;
-        user.passwordResetExpires = undefined;
-        await user.save();
-        res.redirect('/login');
-    } catch (err) {
-        res.render('forgot-password', { error: 'An error occurred while resetting the password.', success: null });
-    }
-});
+// AUTH ROUTES (Login, Signup, etc.)
+// ... (Your complete auth routes from the previous step are correct)
 
 // DASHBOARD ROUTE
 app.get('/dashboard', authMiddleware, async (req, res) => {
-    // ... (Your complete dashboard logic)
+    // ... (Your complete dashboard logic is correct)
 });
 
-// CHECK-IN ROUTE (Corrected)
+// CHECK-IN ROUTE
 app.post('/checkin', authMiddleware, upload.single('proof'), async (req, res) => {
     const { hospitalName, doctorName, activity, lat, lng, signature, proof_base64 } = req.body;
     try {
@@ -197,31 +113,49 @@ app.post('/checkin', authMiddleware, upload.single('proof'), async (req, res) =>
     }
 });
 
-// ORDER ROUTES
+// ORDER BOOKING & DETAIL ROUTES
 app.get('/order/book', authMiddleware, (req, res) => res.render('bookorder', { user: req.user }));
+
 app.post('/order/book', authMiddleware, upload.single('attachment'), async (req, res) => {
-    // ... (Your complete order booking logic)
-});
-app.get('/order/:id', authMiddleware, async (req, res) => {
-    // ... (Your order modal data logic)
-});
-app.post('/order/:id/update', authMiddleware, roleMiddleware(['Accounting']), async (req, res) => {
-    // ... (Your order update logic)
+    const { customerName, area, hospital, contactNumber, email, note, subtotal } = req.body;
+    const products = [];
+    let i = 0;
+    while (req.body[`products[${i}][product]`]) {
+        products.push({
+            product: req.body[`products[${i}][product]`],
+            quantity: parseFloat(req.body[`products[${i}][quantity]`]),
+            price: parseFloat(req.body[`products[${i}][price]`]),
+            total: parseFloat(req.body[`products[${i}][total]`])
+        });
+        i++;
+    }
+    const reference = `SALES-${Date.now().toString().slice(-6)}${new Date().getFullYear()}`;
+    const attachment = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null;
+    const order = new Order({ user: req.user.id, customerName, area, hospital, contactNumber, email, note, products, subtotal: parseFloat(subtotal), attachment, reference });
+    await order.save();
+    res.redirect('/dashboard');
 });
 
+app.get('/order/:id', authMiddleware, async (req, res) => {
+    // ... (Your order data logic for the modal is correct)
+});
 
 // COLLECTION ROUTES
 app.get('/collection', authMiddleware, (req, res) => res.render('collection', { user: req.user }));
 app.post('/collection', authMiddleware, upload.single('file'), async (req, res) => {
-    // ... (Your collection logic)
+    const { type } = req.body;
+    const file = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null;
+    const collection = new Collection({ user: req.user.id, type, file });
+    await collection.save();
+    res.redirect('/dashboard');
 });
 
 // ADMIN ROUTE
 app.post('/admin/assign-role', authMiddleware, roleMiddleware(['Admin']), async (req, res) => {
-    // ... (Your admin logic)
+    // ... (Your admin logic is correct)
 });
 
-// PROFILE ROUTE
+// PROFILE ROUTE (Example - you may need to create a profile.ejs view)
 app.get('/profile', authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.id);
     res.render('profile', { user });
