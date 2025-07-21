@@ -35,7 +35,7 @@
               <tr>
                 <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
                 <td><%= checkin.user.username %></td>
-                <td><% if (checkin.proof) { %><img src="<%= proof %>" alt="Proof" width="100"><% } else { %>No Proof<% } %></td>
+               <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="100"><% } else { %>No Proof<% } %></td>
                 <td><%= checkin.activity %></td>
               </tr>
             <% }) %>
