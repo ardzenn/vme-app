@@ -32,7 +32,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
     console.log('MongoDB connection established successfully.');
 
     // 2. Import routes **after** DB connection
-    const authRoutes = require('../routes/auth');
+    const { router: authRoutes } = require('../routes/auth');
     const dashboardRoutes = require('../routes/dashboard');
     const checkinRoutes = require('../routes/checkin');
     const orderRoutes = require('../routes/order')(io);
