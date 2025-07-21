@@ -1,89 +1,121 @@
 require('dotenv').config();
-const dbConnect = require('./dbConnect');
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-const multer = require('multer');
 const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
+const dbConnect = require('./dbConnect');
 
-const authRoutes = require('../routes/auth');
-const dashboardRoutes = require('../routes/dashboard');
-const checkinRoutes = require('../routes/checkin');
-const orderRoutes = require('../routes/order');
-const collectionRoutes = require('../routes/collection');
-const accountingRoutes = require('../routes/accounting');
-const adminRoutes = require('../routes/admin');
-const profileRoutes = require('../routes/profile');
-
-
+// --- Server and Socket.IO Setup ---
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// This object will hold our connected users
+const connectedUsers = {};
+
+// --- View Engine and Middleware ---
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '../views')); // Adjusted to find views from api folder
+app.set('views', path.join(__dirname, '../views'));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, '../public'))); // Serve static files from root public
-app.use('/uploads', express.static(path.join(__dirname, '../uploads'))); // Serve uploads from root
+app.use(express.static(path.join(__dirname, '../public')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Multer setup (memory storage for Vercel)
-const upload = multer({ storage: multer.memoryStorage() });
+// This structure ensures the DB connects before the server starts
+(async () => {
+  try {
+    // 1. Wait for the database to connect
+    await dbConnect();
+    console.log('MongoDB connection established successfully.');
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  serverSelectionTimeoutMS: 30000, // 30 seconds for server selection
-  socketTimeoutMS: 45000, // 45 seconds for socket timeout
-  connectTimeoutMS: 30000, // 30 seconds for connection
-  bufferCommands: false // Disable buffering to prevent timeout on queued operations
-})
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
-dbConnect().then(() => {
-  console.log('MongoDB connection established successfully.');
-});
-// Routes
-app.use('/', authRoutes);
-app.use('/dashboard', dashboardRoutes);
-app.use('/checkin', checkinRoutes);
-app.use('/order', orderRoutes);
-app.use('/collection', collectionRoutes);
-app.use('/accounting', accountingRoutes);
-app.use('/admin', adminRoutes);
-app.use('/profile', profileRoutes);
+    // 2. Import routes **after** DB connection
+    const authRoutes = require('../routes/auth');
+    const dashboardRoutes = require('../routes/dashboard');
+    const checkinRoutes = require('../routes/checkin');
+    const orderRoutes = require('../routes/order')(io);
+    const collectionRoutes = require('../routes/collection');
+    const accountingRoutes = require('../routes/accounting');
+    const adminRoutes = require('../routes/admin');
+    const profileRoutes = require('../routes/profile');
+    const chatRoutes = require('../routes/chat');
+    
+    // 3. Use the routes
+    app.use('/', authRoutes);
+    app.use('/dashboard', dashboardRoutes);
+    app.use('/checkin', checkinRoutes);
+    app.use('/order', orderRoutes);
+    app.use('/collection', collectionRoutes);
+    app.use('/accounting', accountingRoutes);
+    app.use('/admin', adminRoutes);
+    app.use('/profile', profileRoutes);
+    app.use('/chat', chatRoutes);
 
-// Root redirect
-app.get('/', (req, res) => res.redirect('/login'));
+    // Redirect root URL to the login page
+    app.get('/', (req, res) => {
+      res.redirect('/login');
+    });
 
-// Socket.io setup
-const connectedUsers = {};
-io.on('connection', (socket) => {
-  socket.on('join', (userId) => {
-    connectedUsers[userId] = socket.id;
-  });
+    // --- Socket.IO Event Handlers ---
+    io.on('connection', (socket) => {
+      const userId = socket.handshake.query.userId;
+      if (userId) {
+        console.log(`A user connected: ${userId} with socket ID: ${socket.id}`);
+        connectedUsers[userId] = socket.id;
+      }
 
-  socket.on('updateLocation', async ({ userId, lat, lng }) => {
-    const User = require('../models/User');
-    await User.findByIdAndUpdate(userId, { location: { lat, lng, timestamp: Date.now() } });
-    io.emit('locationUpdate', { userId, lat, lng });
-  });
+      // Listener for the Order-specific chat
+      socket.on('sendMessage', async ({ orderId, userId, text }) => {
+        const Message = require('../models/Message');
+        try {
+          if (!userId || !text) return; 
+          const newMsg = new Message({ order: orderId, user: userId, text: text });
+          await newMsg.save();
+          const populatedMsg = await Message.findById(newMsg._id).populate('user', 'username');
+          io.to(orderId).emit('newMessage', populatedMsg);
+        } catch (error) {
+          console.error("Error in sendMessage handler:", error);
+        }
+      });
 
-  socket.on('joinOrder', (orderId) => {
-    socket.join(orderId);
-  });
-  socket.on('sendMessage', async ({ orderId, userId, text, attachment }) => {
-    const Message = require('../models/Message');
-    const newMsg = new Message({ order: orderId, user: userId, text, attachment });
-    await newMsg.save();
-    io.to(orderId).emit('newMessage', newMsg);
-  });
-});
+      // Listener for the new Messenger-style chat
+      socket.on('sendDirectMessage', async ({ recipientId, text }) => {
+        const senderId = userId;
+        if (!senderId || !recipientId || !text) return;
+        try {
+          const DirectMessage = require('../models/DirectMessage');
+          const newMessage = new DirectMessage({ sender: senderId, recipient: recipientId, text });
+          await newMessage.save();
+          const populatedMessage = await DirectMessage.findById(newMessage._id).populate('sender', 'username profilePicture');
+          
+          const recipientSocketId = connectedUsers[recipientId];
+          if (recipientSocketId) {
+            io.to(recipientSocketId).emit('newDirectMessage', populatedMessage);
+          }
+          socket.emit('newDirectMessage', populatedMessage);
+        } catch (error) {
+          console.error('Error sending direct message:', error);
+        }
+      });
 
-app.get('/', (req, res) => res.redirect('/login')); 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+      socket.on('disconnect', () => {
+        if (userId) {
+          console.log(`User ${userId} disconnected.`);
+          delete connectedUsers[userId];
+        }
+      });
+    });
+
+    // 4. Start the server
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+      console.log(`>>>>>> SERVER IS RUNNING ON PORT ${PORT} <<<<<<`);
+    });
+
+  } catch (err) {
+    console.error("Failed to start the server", err);
+    process.exit(1);
+  }
+})();

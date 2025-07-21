@@ -1,86 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VME Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
-  <script src="/js/script.js" defer></script>
-  <script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - VME App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <%- include('partials/navbar') %>
-  <div class="container">
-    <h1>Welcome, <%= user.username %> (<%= user.role %>)</h1>
-    <a href="/order/book" class="btn btn-primary">Book Order</a>
-    <a href="/collection" class="btn btn-primary">Collection & Deposit</a>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkInModal">Check In</button>
+    <%- include('partials/navbar') %>
+
+    <main style="padding: 0 2rem;">
+        <div class="container-fluid">
+            <header class="page-header">
+                <div>
+                    <h1 style="font-size: 1.875rem;">Dashboard</h1>
+                    <p style="margin: 0;">Here's your activity overview.</p>
+                </div>
+                <div>
+                    <a href="/order/book" class="btn btn-secondary">Book New Order</a>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkinModal">New Check-In</button>
+                </div>
+            </header>
+
+            <div class="row g-4 mb-4">
+                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Check-ins Today</div><div class="stat-value"><%= stats.checkinsToday %></div></div></div>
+                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Pending Orders</div><div class="stat-value"><%= stats.pendingOrders %></div></div></div>
+                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Sales</div><div class="stat-value"><%= stats.totalSales %></div></div></div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><h3>Your Sales Orders</h3></div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody>
+                                <% if(orders.length > 0) { orders.forEach(order => { %>
+                                    <tr>
+                                        <td><strong><%= order.reference %></strong></td>
+                                        <td><%= order.customerName %></td>
+                                        <td><span class="badge <%= order.status === 'Processed' ? 'badge-success' : 'badge-warning' %>"><%= order.status %></span></td>
+                                        <td><button class="btn btn-secondary btn-sm" onclick="viewOrder('<%= order._id %>')">View</button></td>
+                                    </tr>
+                                <% })} else { %>
+                                    <tr><td colspan="4" style="text-align: center; padding: 3rem;">No sales orders found.</td></tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>Your Check-in History</h3></div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead><tr><th>Hospital</th><th>Doctor</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Timestamp</th></tr></thead>
+                            <tbody>
+                                <% if(checkins.length > 0) { checkins.forEach(checkin => { %>
+                                    <tr>
+                                        <td><%= checkin.hospital.name %></td>
+                                        <td><%= checkin.doctor.name %></td>
+                                        <td><%= checkin.activity %></td>
+                                        <td>
+                                            <% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %>N/A<% } %>
+                                        </td>
+                                        <td>
+                                            <% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %>N/A<% } %>
+                                        </td>
+                                        <td style="color: var(--text-light);"><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
+                                    </tr>
+                                <% })} else { %>
+                                    <tr><td colspan="6" style="text-align: center; padding: 3rem;">No check-in history found.</td></tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <%- include('partials/checkin-modal.ejs') %>
+    <%- include('partials/order-detail-modal.ejs') %>
+    <div class="modal fade" id="imageZoomModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center"><img src="" id="modalZoomImage" class="img-fluid"></div></div></div></div>
     
-    <h2>Check-In History</h2>
-    <div class="table-responsive">
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Time, Date and Year</th>
-            <th>MSR/KAS Name</th>
-            <th>Selfie/Doctor Sign</th>
-            <th>Activity</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (checkins && checkins.length > 0) { %>
-            <% checkins.forEach(checkin => { %>
-              <tr>
-                <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
-                <td><%= checkin.user.username %></td>
-               <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="100"><% } else { %>No Proof<% } %></td>
-                <td><%= checkin.activity %></td>
-              </tr>
-            <% }) %>
-          <% } else { %>
-            <tr><td colspan="4">No check-ins yet</td></tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
+        const modalZoomImage = document.getElementById('modalZoomImage');
+        function showImageInModal(src) {
+            modalZoomImage.src = src;
+            imageZoomModal.show();
+        }
 
-    <h2>Sales</h2>
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Reference</th>
-            <th>Customer</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% orders.forEach(order => { %>
-            <tr>
-              <td><%= order.reference %></td>
-              <td><%= order.customerName %></td>
-              <td><%= order.status %></td>
-              <td><a href="/order/<%= order._id %>" class="btn btn-secondary">View & Communicate</a></td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
+        const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+        const socket = io();
+        let currentOrderId = null;
 
-  </div>
-  <%- include('partials/checkin-modal.ejs') %>
-  <script>
-    const socket = io();
-    socket.emit('join', '<%= user.id %>');
-    // Real-time location send
-    setInterval(() => {
-      navigator.geolocation.getCurrentPosition(pos => {
-        socket.emit('updateLocation', { userId: '<%= user.id %>', lat: pos.coords.latitude, lng: pos.coords.longitude });
-      });
-    }, 30000); // Every 30s
-  </script>
+        async function viewOrder(orderId) {
+            currentOrderId = orderId;
+            const response = await fetch(`/order/${orderId}`);
+            const { order, messages, currentUser } = await response.json();
+
+            document.getElementById('modal_customerName').innerText = order.customerName;
+            document.getElementById('modal_reference').innerText = order.reference;
+            document.getElementById('modal_status').innerHTML = `<span class="badge ${order.status === 'Processed' ? 'badge-success' : 'badge-warning'}">${order.status}</span>`;
+            
+            const productsTable = document.getElementById('modal_productsTable');
+            productsTable.innerHTML = '';
+            order.products.forEach(p => {
+                productsTable.innerHTML += `<tr><td>${p.product}</td><td>${p.quantity}</td><td>₱${p.price.toFixed(2)}</td><td>₱${p.total.toFixed(2)}</td></tr>`;
+            });
+
+            document.getElementById('modal_subtotal').innerText = '₱' + order.subtotal.toFixed(2);
+            
+            const chatBox = document.getElementById('modal_chatMessages');
+            chatBox.innerHTML = '';
+            messages.forEach(msg => appendMessage(msg, currentUser._id));
+            
+            socket.emit('joinOrder', orderId);
+            orderDetailModal.show();
+        }
+        
+        function appendMessage(msg, currentUserId) {
+            const chatBox = document.getElementById('modal_chatMessages');
+            if (!msg.user) return;
+            const isSent = msg.user._id === currentUserId;
+            const messageClass = isSent ? 'chat-message-sent' : 'chat-message-received';
+            const profilePic = msg.user.profilePicture || 'https://via.placeholder.com/150';
+            
+            chatBox.innerHTML += `
+                <div class="chat-message ${messageClass}">
+                    <img src="${profilePic}" class="chat-profile-pic">
+                    <div class="chat-bubble">
+                        <div class="username">${msg.user.username}</div>
+                        ${msg.text}
+                        <div class="timestamp">${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                </div>
+            `;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        document.getElementById('modal_messageForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const messageInput = document.getElementById('modal_messageText');
+            if (messageInput.value && currentOrderId) {
+                socket.emit('sendMessage', {
+                    orderId: currentOrderId,
+                    userId: '<%= user.id %>',
+                    text: messageInput.value
+                });
+                messageInput.value = '';
+            }
+        });
+
+        socket.on('newMessage', (msg) => {
+            if (msg.order === currentOrderId) {
+                appendMessage(msg, '<%= user.id %>');
+            }
+        });
+    </script>
 </body>
 </html>

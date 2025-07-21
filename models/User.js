@@ -8,11 +8,12 @@ const userSchema = new mongoose.Schema({
   birthdate: { type: Date, required: true },
   area: { type: String, required: true },
   address: { type: String, required: true },
-  username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['Pending', 'Admin', 'MSR', 'KAS', 'Accounting'], default: 'Pending' },
   profilePicture: { type: String },
   location: { lat: Number, lng: Number, timestamp: Date }
+}, {
+  timestamps: true // This automatically adds createdAt and updatedAt fields
 });
 
 userSchema.pre('save', async function(next) {

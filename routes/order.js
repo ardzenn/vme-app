@@ -1,50 +1,41 @@
 const express = require('express');
-const multer = require('multer');
-const upload = multer({ storage: multer.memoryStorage() });
-const { authMiddleware, roleMiddleware } = require('./auth');
+const { authMiddleware } = require('./auth');
 const Order = require('../models/Order.js');
 const Message = require('../models/Message.js');
+const User = require('../models/User.js');
 
-const router = express.Router();
+// This function now returns a router that doesn't need the `io` object,
+// as real-time is handled on the main app socket.
+module.exports = function(io) {
+    const router = express.Router();
+    router.use(authMiddleware);
 
-router.use(authMiddleware, roleMiddleware(['MSR', 'KAS', 'Accounting', 'Admin']));
+    // This route now fetches order/message data and returns it as JSON
+    router.get('/:id', async (req, res) => {
+        try {
+            const order = await Order.findById(req.params.id).populate('user');
+            if (!order) {
+                return res.status(404).json({ message: "Order not found" });
+            }
 
-router.get('/book', (req, res) => res.render('bookorder', { user: req.user }));
+            // Also fetch the full user object for the currently logged-in user
+            const currentUser = await User.findById(req.user.id);
+            
+            // Find messages and populate the user details, including profilePicture
+            const messages = await Message.find({ order: req.params.id })
+                .sort({ createdAt: 'asc' })
+                .populate('user', 'username profilePicture'); // <-- Make sure to get the profile picture
 
-router.post('/book', upload.single('attachment'), async (req, res) => {
-  const { customerName, area, hospital, contactNumber, email, note, subtotal } = req.body;
-  const products = [];
-  let i = 0;
-  while (req.body[`products[${i}][product]`]) {
-    products.push({
-      product: req.body[`products[${i}][product]`],
-      quantity: parseFloat(req.body[`products[${i}][quantity]`]),
-      price: parseFloat(req.body[`products[${i}][price]`]),
-      total: parseFloat(req.body[`products[${i}][total]`])
+            res.json({ order, messages, currentUser });
+        } catch (err) {
+            console.error("Error fetching order details:", err);
+            res.status(500).json({ message: "Error loading order details." });
+        }
     });
-    i++;
-  }
-  const reference = `SALES-${Date.now().toString().slice(-6)}${new Date().getFullYear()}`;
-  const attachment = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null; // Save as base64
-  const order = new Order({ user: req.user.id, customerName, area, hospital, contactNumber, email, note, products, subtotal: parseFloat(subtotal), attachment, reference });
-  await order.save();
-  res.redirect('/dashboard');
-});
+    
+    // The book order routes can remain here if you have them
+    // router.get('/book', ...)
+    // router.post('/book', ...)
 
-router.get('/:id', async (req, res) => {
-  const order = await Order.findById(req.params.id).populate('user');
-  const messages = await Message.find({ order: req.params.id }).populate('user');
-  res.render('order-detail', { order, messages, user: req.user });
-});
-
-router.post('/:id/message', upload.single('attachment'), async (req, res) => {
-  const { text } = req.body;
-  const attachment = req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null; // Save as base64
-  const message = new Message({ order: req.params.id, user: req.user.id, text, attachment });
-  await message.save();
-  const populatedMsg = await Message.findById(message._id).populate('user');
-  io.to(req.params.id.toString()).emit('newMessage', populatedMsg);
-  res.json({ success: true });
-});
-
-module.exports = router;
+    return router;
+};
