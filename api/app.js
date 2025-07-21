@@ -59,12 +59,13 @@ app.get('/', authMiddleware, (req, res) => res.redirect('/dashboard'));
 
 // --- 7. SOCKET.IO EVENT HANDLERS ---
 io.on('connection', (socket) => {
-    // ... your existing socket.io logic ...
+    // ... your socket.io logic ...
 });
 
 // --- 8. START THE SERVER ---
 const PORT = process.env.PORT || 3000;
-// THIS IS THE FIX: Added '0.0.0.0' to bind to all available network interfaces
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`>>>>>> SERVER IS RUNNING ON PORT ${PORT} <<<<<<`);
 });
+
+// THE EXTRA app.listen() LINE HAS BEEN REMOVED FROM HERE
