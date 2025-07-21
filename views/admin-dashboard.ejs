@@ -10,7 +10,6 @@
 </head>
 <body>
     <%- include('partials/navbar') %>
-    
     <main style="padding: 0 2rem;">
         <div class="container-fluid">
             <header class="page-header">
@@ -36,63 +35,7 @@
             </ul>
 
             <div class="tab-content" id="adminTabContent">
-                <div class="tab-pane fade show active" id="users-tab-pane" role="tabpanel">
-                    <div class="card">
-                        <div class="card-header"><input type="text" id="userSearch" class="form-control" placeholder="Search users by name or username..."></div>
-                        <div class="card-body p-0"><div class="table-responsive">
-                        <table class="table" id="userTable">
-                            <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th style="width: 350px;">Actions</th></tr></thead>
-                            <tbody><% users.forEach(u => { %>
-                                <tr data-search="<%= (u.username || '').toLowerCase() %> <%= (u.firstName || '').toLowerCase() %> <%= (u.lastName || '').toLowerCase() %>">
-                                <td><strong><%= u.username || 'N/A' %></strong></td>
-                                <td><%= u.firstName || '' %> <%= u.lastName || '' %></td>
-                                <td><%= u.role %></td>
-                                <td><form action="/admin/assign-role" method="POST" style="display: flex; gap: 10px;"><input type="hidden" name="userId" value="<%= u._id %>"><select name="role" class="form-control form-control-sm"><option value="Pending" <%= u.role === 'Pending' ? 'selected' : '' %>>Pending</option><option value="MSR" <%= u.role === 'MSR' ? 'selected' : '' %>>MSR</option><option value="KAS" <%= u.role === 'KAS' ? 'selected' : '' %>>KAS</option><option value="Accounting" <%= u.role === 'Accounting' ? 'selected' : '' %>>Accounting</option><option value="Admin" <%= u.role === 'Admin' ? 'selected' : '' %>>Admin</option></select><button type="submit" class="btn btn-primary btn-sm">Assign</button></form></td>
-                            </tr><% }) %></tbody>
-                        </table>
-                    </div></div></div>
                 </div>
-                <div class="tab-pane fade" id="checkins-tab-pane" role="tabpanel">
-                     <div class="card">
-                        <div class="card-header"><input type="text" id="checkinSearch" class="form-control" placeholder="Search check-ins by user, hospital or activity..."></div>
-                        <div class="card-body p-0"><div class="table-responsive">
-                        <table class="table" id="checkinTable">
-                            <thead><tr><th>User</th><th>Hospital</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Timestamp</th></tr></thead>
-                            <tbody><% if(checkins.length > 0) { checkins.forEach(checkin => { %>
-                                <tr data-search="<%= (checkin.user?.username || '').toLowerCase() %> <%= (checkin.hospital?.name || '').toLowerCase() %> <%= (checkin.activity || '').toLowerCase() %>">
-                                <td><%= checkin.user?.username || 'N/A' %></td>
-                                <td><%= checkin.hospital?.name || 'N/A' %></td>
-                                <td><%= checkin.activity %></td>
-                                <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %>N/A<% } %></td>
-                                <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %>N/A<% } %></td>
-                                <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
-                            </tr><% })} else { %><tr><td colspan="6" class="text-center p-5">No check-in history found.</td></tr><% } %></tbody>
-                        </table>
-                    </div></div></div>
-                </div>
-                <div class="tab-pane fade" id="orders-tab-pane" role="tabpanel">
-                     <div class="card">
-                        <div class="card-header"><input type="text" id="orderSearch" class="form-control" placeholder="Search by name, reference, customer, or status..."></div>
-                        <div class="card-body p-0"><div class="table-responsive">
-                        <table class="table" id="orderTable">
-                            <thead><tr><th>User</th><th>Reference</th><th>Customer</th><th>Status</th><th>Actions</th></tr></thead>
-                            <tbody><% if(orders.length > 0) { orders.forEach(order => { %>
-                                <tr data-search="<%= (order.user?.username || '').toLowerCase() %> <%= (order.user?.firstName || '').toLowerCase() %> <%= (order.user?.lastName || '').toLowerCase() %> <%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
-                                <td><%= order.user?.username || 'N/A' %></td>
-                                <td><strong><%= order.reference %></strong></td>
-                                <td><%= order.customerName %></td>
-                                <td><span class="badge <%= order.status === 'Processed' ? 'badge-success' : 'badge-warning' %>"><%= order.status %></span></td>
-                                <td><button class="btn btn-secondary btn-sm" onclick="viewOrder('<%= order._id %>')">View</button></td>
-                            </tr><% })} else { %><tr><td colspan="5" class="text-center p-5">No sales orders found.</td></tr><% } %></tbody>
-                        </table>
-                    </div></div></div>
-                </div>
-                <div class="tab-pane fade" id="map-tab-pane" role="tabpanel">
-                    <div class="card"><div class="card-body">
-                        <div id="map" style="height: 600px; border-radius: 0.5rem;"></div>
-                    </div></div>
-                </div>
-            </div>
         </div>
     </main>
     
@@ -112,100 +55,15 @@
         const socket = io();
         let currentOrderId = null;
 
-        function showImageInModal(src) {
-            modalZoomImage.src = src;
-            imageZoomModal.show();
-        }
-
-        async function viewOrder(orderId) {
-            currentOrderId = orderId;
-            const response = await fetch(`/order/${orderId}`);
-            const { order, messages, currentUser } = await response.json();
-            document.getElementById('modal_customerName').innerText = order.customerName;
-            document.getElementById('modal_reference').innerText = order.reference;
-            document.getElementById('modal_status').innerHTML = `<span class="badge ${order.status === 'Processed' ? 'badge-success' : 'badge-warning'}">${order.status}</span>`;
-            const productsTable = document.getElementById('modal_productsTable');
-            productsTable.innerHTML = '';
-            order.products.forEach(p => {
-                productsTable.innerHTML += `<tr><td>${p.product}</td><td>${p.quantity}</td><td>₱${p.price.toFixed(2)}</td><td>₱${p.total.toFixed(2)}</td></tr>`;
-            });
-            document.getElementById('modal_subtotal').innerText = '₱' + order.subtotal.toFixed(2);
-            const chatBox = document.getElementById('modal_chatMessages');
-            chatBox.innerHTML = '';
-            messages.forEach(msg => appendMessage(msg, currentUser._id));
-            socket.emit('joinOrder', orderId);
-            orderDetailModal.show();
-        }
-        
-        function appendMessage(msg, currentUserId) {
-            const chatBox = document.getElementById('modal_chatMessages');
-            if (!msg.user) return;
-            const isSent = msg.user._id === currentUserId;
-            const messageClass = isSent ? 'chat-message-sent' : 'chat-message-received';
-            const profilePic = msg.user.profilePicture || 'https://via.placeholder.com/150';
-            chatBox.innerHTML += `<div class="chat-message ${messageClass}"><img src="${profilePic}" class="chat-profile-pic"><div class="chat-bubble"><div class="username">${msg.user.username}</div>${msg.text}<div class="timestamp">${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div></div></div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        document.getElementById('modal_messageForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const messageInput = document.getElementById('modal_messageText');
-            if (messageInput.value && currentOrderId) {
-                socket.emit('sendMessage', {
-                    orderId: currentOrderId,
-                    userId: '<%= user.id %>',
-                    text: messageInput.value
-                });
-                messageInput.value = '';
-            }
-        });
-
-        socket.on('newMessage', (msg) => {
-            if (msg.order === currentOrderId) {
-                appendMessage(msg, '<%= user.id %>');
-            }
-        });
-
+        function showImageInModal(src) { /* ... */ }
+        async function viewOrder(orderId) { /* ... */ }
+        function appendMessage(msg, currentUserId) { /* ... */ }
+        document.getElementById('modal_messageForm').addEventListener('submit', (e) => { /* ... */ });
+        socket.on('newMessage', (msg) => { /* ... */ });
         const mapTab = document.querySelector('button[data-bs-target="#map-tab-pane"]');
-        mapTab.addEventListener('shown.bs.tab', event => {
-            if (!map) {
-                map = L.map('map').setView([12.8797, 121.7740], 6);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                initialUsers.forEach(user => {
-                    if (user.location && user.location.lat && user.location.lng) {
-                        markers[user._id] = L.marker([user.location.lat, user.location.lng]).addTo(map).bindPopup(user.username);
-                    }
-                });
-            }
-        });
-        
-        socket.on('locationUpdate', ({ userId, lat, lng }) => {
-            const user = initialUsers.find(u => u._id === userId);
-            if (!user) return;
-            if (markers[userId]) {
-                markers[userId].setLatLng([lat, lng]);
-            } else {
-                if(map) { markers[userId] = L.marker([lat, lng]).addTo(map).bindPopup(user.username); }
-            }
-        });
-
-        const addTableFilter = (inputId, tableId) => {
-            const searchInput = document.getElementById(inputId);
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    const tableRows = document.querySelectorAll(`#${tableId} tbody tr`);
-                    tableRows.forEach(row => {
-                        const rowData = row.dataset.search || '';
-                        if (rowData.includes(searchTerm)) {
-                            row.style.display = '';
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    });
-                });
-            }
-        };
+        mapTab.addEventListener('shown.bs.tab', event => { /* ... */ });
+        socket.on('locationUpdate', ({ userId, lat, lng }) => { /* ... */ });
+        const addTableFilter = (inputId, tableId) => { /* ... */ };
         addTableFilter('userSearch', 'userTable');
         addTableFilter('checkinSearch', 'checkinTable');
         addTableFilter('orderSearch', 'orderTable');

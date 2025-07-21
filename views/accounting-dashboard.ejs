@@ -27,17 +27,55 @@
 
             <div class="tab-content" id="accTabContent">
                 <div class="tab-pane fade show active" id="orders-tab-pane" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header"><input type="text" id="orderSearch" class="form-control" placeholder="Search orders..."></div>
+                        <div class="card-body p-0"><div class="table-responsive">
+                            <table class="table" id="orderTable">
+                               <thead><tr><th>User</th><th>Reference</th><th>Customer</th><th>Status</th><th>Actions</th></tr></thead>
+                               <tbody><% if(orders.length > 0) { orders.forEach(order => { %>
+                                    <tr data-search="<%= (order.user?.username || '').toLowerCase() %> <%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
+                                        <td><%= order.user?.username || 'N/A' %></td>
+                                        <td><strong><%= order.reference %></strong></td>
+                                        <td><%= order.customerName %></td>
+                                        <td><span class="badge <%= order.status === 'Processed' || order.status === 'Delivered' ? 'badge-success' : 'badge-warning' %>"><%= order.status %></span></td>
+                                        <td><button class="btn btn-secondary btn-sm" onclick="viewOrder('<%= order._id %>')">View / Edit</button></td>
+                                    </tr>
+                                <% })} else { %><tr><td colspan="5" class="text-center p-5">No sales orders found.</td></tr><% } %></tbody>
+                            </table>
+                        </div></div>
                     </div>
+                </div>
                 <div class="tab-pane fade" id="checkins-tab-pane" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header"><input type="text" id="checkinSearch" class="form-control" placeholder="Search check-ins..."></div>
+                        <div class="card-body p-0"><div class="table-responsive">
+                            <table class="table" id="checkinTable">
+                               <thead><tr><th>User</th><th>Hospital</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Timestamp</th></tr></thead>
+                               <tbody><% if(checkins.length > 0) { checkins.forEach(checkin => { %>
+                                    <tr data-search="<%= (checkin.user?.username || '').toLowerCase() %> <%= (checkin.hospital?.name || '').toLowerCase() %> <%= (checkin.activity || '').toLowerCase() %>">
+                                        <td><%= checkin.user?.username || 'N/A' %></td>
+                                        <td><%= checkin.hospital?.name || 'N/A' %></td>
+                                        <td><%= checkin.activity %></td>
+                                        <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %>N/A<% } %></td>
+                                        <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %>N/A<% } %></td>
+                                        <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
+                                    </tr>
+                                <% })} else { %><tr><td colspan="6" class="text-center p-5">No check-in history found.</td></tr><% } %></tbody>
+                            </table>
+                        </div></div>
                     </div>
+                </div>
                 <div class="tab-pane fade" id="map-tab-pane" role="tabpanel">
-                    </div>
+                    <div class="card"><div class="card-body">
+                        <div id="map" style="height: 600px; border-radius: 0.5rem;"></div>
+                    </div></div>
+                </div>
             </div>
         </div>
     </main>
     
     <%- include('partials/order-detail-modal.ejs') %>
-    <div class="modal fade" id="imageZoomModal"></div>
+    <div class="modal fade" id="imageZoomModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center"><img src="" id="modalZoomImage" class="img-fluid"></div></div></div></div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
