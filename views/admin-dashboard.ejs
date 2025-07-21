@@ -149,22 +149,47 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  
+  <script>
+  const initialUsers = <%- JSON.stringify(users) %>;
+
+  </script>
+
   <script>
     // --- MAP JAVASCRIPT ---
     const socket = io();
-    
-    // Set the map view to the Philippines
-    const map = L.map('map').setView([12.8, 121.7], 6); 
-
+    const map = L.map('map').setView([12.8, 121.7], 6); // Centered on the Philippines
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     const markers = {};
+
+    // ** NEW **: Add markers for users with existing locations on page load
+    initialUsers.forEach(user => {
+      if (user.location && user.location.lat && user.location.lng) {
+        const lat = user.location.lat;
+        const lng = user.location.lng;
+        // Create marker and add a popup with the username
+        markers[user._id] = L.marker([lat, lng])
+          .addTo(map)
+          .bindPopup(user.username);
+      }
+    });
     
+    // Listen for real-time updates
     socket.on('locationUpdate', ({ userId, lat, lng }) => {
-      document.getElementById(`user-${userId}`).innerText = `User: Lat ${lat}, Lng ${lng}`;
+      const userListItem = document.getElementById(`user-${userId}`);
+      if (userListItem) {
+        userListItem.innerHTML = `${userListItem.innerText.split(':')[0]}: Lat ${lat}, Lng ${lng}`;
+      }
+
       if (markers[userId]) {
         markers[userId].setLatLng([lat, lng]);
       } else {
-        markers[userId] = L.marker([lat, lng]).addTo(map);
+        // Find username from the initial list to create a new marker
+        const user = initialUsers.find(u => u._id === userId);
+        const username = user ? user.username : 'New User';
+        markers[userId] = L.marker([lat, lng])
+          .addTo(map)
+          .bindPopup(username);
       }
     });
 
