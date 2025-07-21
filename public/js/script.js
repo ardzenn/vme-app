@@ -88,3 +88,57 @@ document.addEventListener('DOMContentLoaded', () => {
   window.clearCanvas = function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
+  document.addEventListener('DOMContentLoaded', () => {
+    // Use a more specific selector if you have multiple tables
+    const orderTableBody = document.querySelector('#order-table-body'); // Make sure your <tbody> has this ID
+
+    if (orderTableBody) {
+        orderTableBody.addEventListener('click', async (event) => {
+            // Target only the view buttons
+            const viewButton = event.target.closest('.view-order-btn');
+            if (!viewButton) {
+                return;
+            }
+
+            const orderId = viewButton.dataset.orderId;
+            if (!orderId) {
+                console.error('View button is missing a data-order-id attribute!');
+                return;
+            }
+
+            console.log(`Fetching details for order: ${orderId}`);
+
+            try {
+                // 1. Fetch data from the server
+                const response = await fetch(`/order/${orderId}`);
+
+                if (!response.ok) {
+                    // This will catch server errors like 404 or 500
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const { order, messages, currentUser } = data;
+
+                // 2. Populate the modal with the fetched data
+                // (Ensure your modal's element IDs match these)
+                document.getElementById('modal-order-reference').textContent = order.reference || 'N/A';
+                document.getElementById('modal-order-customer').textContent = order.customerName || 'N/A';
+                document.getElementById('modal-order-status').textContent = order.status || 'N/A';
+                document.getElementById('modal-order-payment').textContent = order.paymentStatus || 'N/A';
+                document.getElementById('modal-order-subtotal').textContent = `₱${parseFloat(order.subtotal || 0).toLocaleString()}`;
+                
+                // Add more fields as needed...
+
+                // 3. Show the modal using Bootstrap's JavaScript API
+                const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+                orderModal.show();
+
+            } catch (error) {
+                // 4. Log any errors to the console for easy debugging
+                console.error('Failed to fetch order details:', error);
+                alert('Could not load order details. Please check the console for more information.');
+            }
+        });
+    }
+});
