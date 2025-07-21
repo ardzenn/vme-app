@@ -43,3 +43,7 @@ body {
   .navbar-collapse { background-color: #28a745; padding: 10px; }
   .navbar-collapse.show { display: block !important; } /* Ensure it shows when toggled */
 }
+.table-scroll-container {
+  max-height: 700px;
+  overflow-y: auto;
+}
