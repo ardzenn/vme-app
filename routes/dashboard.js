@@ -17,10 +17,8 @@ router.get('/', authMiddleware, async (req, res) => {
                 Order.find({}).populate('user').sort({ timestamp: -1 })
             ]);
 
-            // Filter out any records that have missing populated data
             allCheckins = allCheckins.filter(c => c.user && c.hospital && c.doctor);
             allOrders = allOrders.filter(o => o.user);
-
             const pendingUsers = users.filter(u => u.role === 'Pending').length;
             
             return res.render('admin-dashboard', {
@@ -28,27 +26,20 @@ router.get('/', authMiddleware, async (req, res) => {
                 users,
                 checkins: allCheckins,
                 orders: allOrders,
-                stats: { 
-                    totalUsers: users.length,
-                    pendingUsers: pendingUsers,
-                    totalCheckins: allCheckins.length
-                }
+                stats: { totalUsers: users.length, pendingUsers: pendingUsers, totalCheckins: allCheckins.length }
             });
         }
 
-        // --- Logic for MSR / KAS Users ---
         let [orders, checkins] = await Promise.all([
             Order.find({ user: userId }).populate('user').sort({ timestamp: -1 }),
             CheckIn.find({ user: userId }).populate('user hospital doctor').sort({ 'location.timestamp': -1 })
         ]);
 
-        // Also filter here for safety
         checkins = checkins.filter(c => c.user && c.hospital && c.doctor);
         orders = orders.filter(o => o.user);
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
         const checkinsToday = checkins.filter(c => c.location.timestamp >= today).length;
         const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
         const totalSales = orders.reduce((sum, order) => sum + order.subtotal, 0);

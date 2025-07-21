@@ -43,7 +43,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connection established successfully.'))
   .catch(err => {
     console.error("CRITICAL: Failed to connect to MongoDB", err);
-    process.exit(1);
+    process.exit(1); // Exit if the database connection fails
   });
 
 // --- 6. DEFINE ROUTES ---
@@ -55,6 +55,7 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/order', orderRoutes);
 app.use('/profile', profileRoutes);
 
+// Root redirect for logged-in users
 app.get('/', authMiddleware, (req, res) => res.redirect('/dashboard'));
 
 // --- 7. SOCKET.IO EVENT HANDLERS ---
