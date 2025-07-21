@@ -1,108 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Accounting Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounting Dashboard - VME App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Accounting Dashboard</h1>
-    <h2>Check-Ins of MSR and KAS</h2>
-    <input type="text" id="checkinSearch" class="form-control mb-2" placeholder="Search Check-Ins by User or Activity">
-    <table class="table" id="checkinTable">
-      <thead>
-        <tr>
-          <th>Profile Picture</th>
-          <th>User</th>
-          <th>Hospital</th>
-          <th>Doctor</th>
-          <th>Activity</th>
-          <th>Proof</th>
-          <th>Location</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% checkins.forEach(checkin => { %>
-          <tr data-search="<%= checkin.user.username.toLowerCase() %> <%= checkin.activity.toLowerCase() %>">
-            <td><%= checkin.user.username %></td>
-            <td><%= checkin.hospital.name %></td>
-            <th>Doctor</th>
-            <th>Activity</th>
-            <th>Proof</th>
-            <th>Location</th>
-            <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% checkins.forEach(checkin => { %>
-          <tr data-search="<%= checkin.user.username.toLowerCase() %> <%= checkin.activity.toLowerCase() %>">
-            <td><img src="<%= checkin.user.profilePicture || '/default-profile.png' %>"
-            <td><%= checkin.user.username %></td>
-            <td><%= checkin.hospital.name %></td>
-            <td><%= checkin.doctor.name %></td>
-            <td><%= checkin.activity %></td>
-            <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof"><% } else { %>No Proof<% } %></td>
-            <td>Lat <%= checkin.location.lat %>, Lng <%= checkin.location.lng %></td>
-            <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-    <h2>Orders of MSR and KAS</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Customer</th>
-          <th>Status</th>
-          <th>Timestamp</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% orders.forEach(order => { %>
-          <tr>
-            <td><%= order.user.username %></td>
-            <td><%= order.customerName %></td>
-            <td><%= order.status %></td>
-            <td><%= new Date(order.timestamp).toLocaleString() %></td>
-            <td><a href="/order/<%= order._id %>">View</a></td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-    <h2>Collections of MSR and KAS</h2>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Type</th>
-          <th>File</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% collections.forEach(col => { %>
-          <tr>
-            <td><%= col.user.username %></td>
-            <td><%= col.type %></td>
-            <td><a href="<%= col.file %>" target="_blank">View File</a></td>
-            <td><%= new Date(col.timestamp).toLocaleString() %></td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-  </div>
-  <script>
-    document.getElementById('checkinSearch').addEventListener('input', e => {
-      const filter = e.target.value.toLowerCase();
-      Array.from(document.getElementById('checkinTable').querySelectorAll('tbody tr')).forEach(tr => {
-        tr.style.display = tr.dataset.search.includes(filter) ? '' : 'none';
-      });
-    });
-  </script>
+    <%- include('partials/navbar') %>
+    <main style="padding: 0 2rem;">
+        <div class="container-fluid">
+            <header class="page-header">
+                <div>
+                    <h1 style="font-size: 1.875rem;">Accounting Dashboard</h1>
+                    <p style="margin: 0;">System overview and order management.</p>
+                </div>
+            </header>
+
+            <ul class="nav nav-tabs" id="accTab" role="tablist">
+                <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#orders-tab-pane" type="button">Sales Orders</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-tab-pane" type="button">Check-in History</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#map-tab-pane" type="button">Live Map</button></li>
+            </ul>
+
+            <div class="tab-content" id="accTabContent">
+                <div class="tab-pane fade show active" id="orders-tab-pane" role="tabpanel">
+                    </div>
+                <div class="tab-pane fade" id="checkins-tab-pane" role="tabpanel">
+                    </div>
+                <div class="tab-pane fade" id="map-tab-pane" role="tabpanel">
+                    </div>
+            </div>
+        </div>
+    </main>
+    
+    <%- include('partials/order-detail-modal.ejs') %>
+    <div class="modal fade" id="imageZoomModal"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // The complete JavaScript from the final admin-dashboard.ejs is needed here.
+    </script>
 </body>
 </html>

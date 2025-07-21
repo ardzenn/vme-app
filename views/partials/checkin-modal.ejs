@@ -1,7 +1,4 @@
-<!-- Signature Pad Library -->
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-
-<!-- Bootstrap Modal Structure -->
 <div class="modal fade" id="checkinModal" tabindex="-1" aria-labelledby="checkinModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -11,50 +8,32 @@
       </div>
       <form id="checkinForm" action="/checkin" method="POST" enctype="multipart/form-data">
         <div class="modal-body">
-          
+          <div class="mb-3"><label for="hospitalName" class="form-label">Hospital Name</label><input type="text" name="hospitalName" class="form-control" required></div>
+          <div class="mb-3"><label for="doctorName" class="form-label">Doctor's Name</label><input type="text" name="doctorName" class="form-control" required></div>
+          <div class="mb-3"><label for="activity" class="form-label">Activity</label><textarea name="activity" class="form-control" required></textarea></div>
           <div class="mb-3">
-            <label for="hospitalName" class="form-label">Hospital Name</label>
-            <input type="text" name="hospitalName" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label for="doctorName" class="form-label">Doctor's Name</label>
-            <input type="text" name="doctorName" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label for="activity" class="form-label">Activity</label>
-            <textarea name="activity" class="form-control" required></textarea>
-          </div>
-
-          <!-- ** NEW **: Selfie and Proof Section -->
-          <div class="mb-3">
-            <label class="form-label">Proof of Visit</label>
-            <div class="p-3 border rounded">
-              <button type="button" id="start-camera-btn" class="btn btn-secondary">Take Selfie</button>
-              <span class="mx-2">or</span>
-              <input type="file" name="proof" id="proof-upload" class="form-control-sm" accept="image/*">
-              
-              <!-- Video and Canvas for selfie capture -->
-              <div id="camera-container" class="mt-3" style="display: none;">
-                <video id="video-preview" style="width: 100%; border-radius: 8px;" autoplay playsinline></video>
-                <button type="button" id="capture-btn" class="btn btn-danger mt-2">Capture Photo</button>
+              <label class="form-label">Proof of Visit</label>
+              <div class="p-3 border rounded">
+                <button type="button" id="start-camera-btn" class="btn btn-secondary">Take Selfie</button>
+                <span class="mx-2">or</span>
+                <input type="file" name="proof" id="proof-upload" class="form-control-sm" accept="image/*">
+                <div id="camera-container" class="mt-3" style="display: none;">
+                  <video id="video-preview" style="width: 100%; border-radius: 8px;" autoplay playsinline></video>
+                  <button type="button" id="capture-btn" class="btn btn-danger mt-2">Capture Photo</button>
+                </div>
+                <canvas id="photo-canvas" style="display: none;"></canvas>
+                <img id="photo-preview" class="mt-3" style="display: none; max-width: 100%; border-radius: 8px;">
               </div>
-              <canvas id="photo-canvas" style="display: none;"></canvas>
-              <img id="photo-preview" class="mt-3" style="display: none; max-width: 100%; border-radius: 8px;">
-            </div>
           </div>
-
-          <!-- Signature Pad Section -->
           <div class="mb-3">
             <label class="form-label">Signature</label>
-            <div class="signature-pad-container" style="border: 1px solid #ccc; border-radius: .375rem; width: 100%; height: 200px; touch-action: none;">
+            <div style="border: 1px solid #ccc; border-radius: .375rem; width: 100%; height: 200px; touch-action: none;">
               <canvas id="signature-pad" style="width: 100%; height: 100%;"></canvas>
             </div>
             <button type="button" id="clear-signature" class="btn btn-secondary mt-2 btn-sm">Clear</button>
           </div>
-          
-          <!-- Hidden fields -->
           <input type="hidden" name="signature" id="signature-data">
-          <input type="hidden" name="proof_base64" id="proof-base64-data"> <!-- For selfie data -->
+          <input type="hidden" name="proof_base64" id="proof-base64-data">
           <input type="hidden" name="lat" id="lat">
           <input type="hidden" name="lng" id="lng">
         </div>
@@ -66,73 +45,84 @@
     </div>
   </div>
 </div>
-
 <script>
-  // Elements
-  const checkinModal = document.getElementById('checkinModal');
-  const canvas = document.getElementById('signature-pad');
-  const checkinForm = document.getElementById('checkinForm');
-  const clearButton = document.getElementById('clear-signature');
-  const signatureDataInput = document.getElementById('signature-data');
-  let signaturePad;
+    // Self-contained script for the check-in modal
+    document.addEventListener('DOMContentLoaded', () => {
+        const checkinModalEl = document.getElementById('checkinModal');
+        const sigCanvas = document.getElementById('signature-pad');
+        const checkinForm = document.getElementById('checkinForm');
+        const clearSigButton = document.getElementById('clear-signature');
+        const sigDataInput = document.getElementById('signature-data');
+        let signaturePad;
 
-  // Selfie elements
-  const startCameraButton = document.getElementById('start-camera-btn');
-  const cameraContainer = document.getElementById('camera-container');
-  const videoPreview = document.getElementById('video-preview');
-  const captureButton = document.getElementById('capture-btn');
-  const photoCanvas = document.getElementById('photo-canvas');
-  const photoPreview = document.getElementById('photo-preview');
-  const proofBase64Input = document.getElementById('proof-base64-data');
-  const proofUploadInput = document.getElementById('proof-upload');
-  let stream;
+        const startCameraButton = document.getElementById('start-camera-btn');
+        const cameraContainer = document.getElementById('camera-container');
+        const videoPreview = document.getElementById('video-preview');
+        const captureButton = document.getElementById('capture-btn');
+        const photoCanvas = document.getElementById('photo-canvas');
+        const photoPreview = document.getElementById('photo-preview');
+        const proofBase64Input = document.getElementById('proof-base64-data');
+        const proofUploadInput = document.getElementById('proof-upload');
+        let stream;
 
-  // --- SIGNATURE PAD LOGIC ---
-  const resizeSignatureCanvas = () => { /* ... (same as before) ... */ };
-  checkinModal.addEventListener('shown.bs.modal', () => { /* ... (same as before) ... */ });
-  window.addEventListener("resize", resizeSignatureCanvas);
-  clearButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
+        const resizeCanvas = () => {
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            sigCanvas.width = sigCanvas.offsetWidth * ratio;
+            sigCanvas.height = sigCanvas.offsetHeight * ratio;
+            sigCanvas.getContext("2d").scale(ratio, ratio);
+            if (signaturePad) {
+                signaturePad.fromData(signaturePad.toData());
+            }
+        };
+        
+        checkinModalEl.addEventListener('shown.bs.modal', () => {
+            if (!signaturePad) {
+                signaturePad = new SignaturePad(sigCanvas);
+            } else {
+                signaturePad.clear();
+            }
+            resizeCanvas();
+            navigator.geolocation.getCurrentPosition(pos => {
+                document.getElementById('lat').value = pos.coords.latitude;
+                document.getElementById('lng').value = pos.coords.longitude;
+            });
+        });
 
-  // --- SELFIE CAPTURE LOGIC ---
-  startCameraButton.addEventListener('click', async () => {
-    cameraContainer.style.display = 'block';
-    photoPreview.style.display = 'none';
-    proofBase64Input.value = '';
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      videoPreview.srcObject = stream;
-    } catch (err) {
-      console.error("Error accessing camera: ", err);
-      alert("Could not access the camera. Please check permissions.");
-    }
-  });
+        window.addEventListener("resize", resizeCanvas);
+        clearSigButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
 
-  captureButton.addEventListener('click', () => {
-    photoCanvas.width = videoPreview.videoWidth;
-    photoCanvas.height = videoPreview.videoHeight;
-    photoCanvas.getContext('2d').drawImage(videoPreview, 0, 0);
-    
-    const dataUrl = photoCanvas.toDataURL('image/jpeg');
-    photoPreview.src = dataUrl;
-    photoPreview.style.display = 'block';
-    proofBase64Input.value = dataUrl;
+        startCameraButton.addEventListener('click', async () => {
+            cameraContainer.style.display = 'block';
+            photoPreview.style.display = 'none';
+            proofBase64Input.value = '';
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                videoPreview.srcObject = stream;
+            } catch (err) {
+                alert("Could not access the camera. Please check permissions.");
+            }
+        });
 
-    // Stop the camera and hide the video feed
-    stream.getTracks().forEach(track => track.stop());
-    cameraContainer.style.display = 'none';
-    // Clear the file input to prevent submitting both
-    proofUploadInput.value = ''; 
-  });
+        captureButton.addEventListener('click', () => {
+            photoCanvas.width = videoPreview.videoWidth;
+            photoCanvas.height = videoPreview.videoHeight;
+            photoCanvas.getContext('2d').drawImage(videoPreview, 0, 0);
+            const dataUrl = photoCanvas.toDataURL('image/jpeg');
+            photoPreview.src = dataUrl;
+            photoPreview.style.display = 'block';
+            proofBase64Input.value = dataUrl;
+            stream.getTracks().forEach(track => track.stop());
+            cameraContainer.style.display = 'none';
+            proofUploadInput.value = ''; 
+        });
 
-  // --- FORM SUBMISSION LOGIC ---
-  checkinForm.addEventListener('submit', (event) => {
-    // Save signature data
-    if (signaturePad && !signaturePad.isEmpty()) {
-      signatureDataInput.value = signaturePad.toDataURL('image/png');
-    }
-    // Stop camera if it's still running
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-  });
+        checkinForm.addEventListener('submit', (event) => {
+            if (signaturePad && !signaturePad.isEmpty()) {
+                sigDataInput.value = signaturePad.toDataURL('image/png');
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    });
 </script>
