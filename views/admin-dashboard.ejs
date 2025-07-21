@@ -35,7 +35,63 @@
             </ul>
 
             <div class="tab-content" id="adminTabContent">
+                <div class="tab-pane fade show active" id="users-tab-pane" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header"><input type="text" id="userSearch" class="form-control" placeholder="Search users by name or username..."></div>
+                        <div class="card-body p-0"><div class="table-responsive">
+                        <table class="table" id="userTable">
+                            <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th style="width: 350px;">Actions</th></tr></thead>
+                            <tbody><% users.forEach(u => { %>
+                                <tr data-search="<%= (u.username || '').toLowerCase() %> <%= (u.firstName || '').toLowerCase() %> <%= (u.lastName || '').toLowerCase() %>">
+                                <td><strong><%= u.username || 'N/A' %></strong></td>
+                                <td><%= u.firstName || '' %> <%= u.lastName || '' %></td>
+                                <td><%= u.role %></td>
+                                <td><form action="/admin/assign-role" method="POST" style="display: flex; gap: 10px;"><input type="hidden" name="userId" value="<%= u._id %>"><select name="role" class="form-control form-control-sm"><option value="Pending" <%= u.role === 'Pending' ? 'selected' : '' %>>Pending</option><option value="MSR" <%= u.role === 'MSR' ? 'selected' : '' %>>MSR</option><option value="KAS" <%= u.role === 'KAS' ? 'selected' : '' %>>KAS</option><option value="Accounting" <%= u.role === 'Accounting' ? 'selected' : '' %>>Accounting</option><option value="Admin" <%= u.role === 'Admin' ? 'selected' : '' %>>Admin</option></select><button type="submit" class="btn btn-primary btn-sm">Assign</button></form></td>
+                            </tr><% }) %></tbody>
+                        </table>
+                    </div></div></div>
                 </div>
+                <div class="tab-pane fade" id="checkins-tab-pane" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header"><input type="text" id="checkinSearch" class="form-control" placeholder="Search check-ins..."></div>
+                        <div class="card-body p-0"><div class="table-responsive">
+                        <table class="table" id="checkinTable">
+                            <thead><tr><th>User</th><th>Hospital</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Timestamp</th></tr></thead>
+                            <tbody><% if(checkins.length > 0) { checkins.forEach(checkin => { %>
+                                <tr data-search="<%= (checkin.user?.username || '').toLowerCase() %> <%= (checkin.hospital?.name || '').toLowerCase() %> <%= (checkin.activity || '').toLowerCase() %>">
+                                <td><%= checkin.user?.username || 'N/A' %></td>
+                                <td><%= checkin.hospital?.name || 'N/A' %></td>
+                                <td><%= checkin.activity %></td>
+                                <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %>N/A<% } %></td>
+                                <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %>N/A<% } %></td>
+                                <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
+                            </tr><% })} else { %><tr><td colspan="6" class="text-center p-5">No check-in history found.</td></tr><% } %></tbody>
+                        </table>
+                    </div></div></div>
+                </div>
+                <div class="tab-pane fade" id="orders-tab-pane" role="tabpanel">
+                     <div class="card">
+                        <div class="card-header"><input type="text" id="orderSearch" class="form-control" placeholder="Search orders..."></div>
+                        <div class="card-body p-0"><div class="table-responsive">
+                        <table class="table" id="orderTable">
+                            <thead><tr><th>User</th><th>Reference</th><th>Customer</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody><% if(orders.length > 0) { orders.forEach(order => { %>
+                                <tr data-search="<%= (order.user?.username || '').toLowerCase() %> <%= (order.user?.firstName || '').toLowerCase() %> <%= (order.user?.lastName || '').toLowerCase() %> <%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
+                                <td><%= order.user?.username || 'N/A' %></td>
+                                <td><strong><%= order.reference %></strong></td>
+                                <td><%= order.customerName %></td>
+                                <td><span class="badge <%= order.status.includes('Processed') || order.status.includes('Shipped') || order.status.includes('Delivered') ? 'badge-success' : 'badge-warning' %>"><%= order.status %></span></td>
+                                <td><button class="btn btn-secondary btn-sm" onclick="viewOrder('<%= order._id %>')">View</button></td>
+                            </tr><% })} else { %><tr><td colspan="5" class="text-center p-5">No sales orders found.</td></tr><% } %></tbody>
+                        </table>
+                    </div></div></div>
+                </div>
+                <div class="tab-pane fade" id="map-tab-pane" role="tabpanel">
+                    <div class="card"><div class="card-body">
+                        <div id="map" style="height: 600px; border-radius: 0.5rem;"></div>
+                    </div></div>
+                </div>
+            </div>
         </div>
     </main>
     
@@ -46,9 +102,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // The complete JavaScript from the MSR/KAS dashboard is needed here
+        // (pasted again for completeness)
         const initialUsers = <%- JSON.stringify(users) %>;
-        let map;
-        const markers = {};
         const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
         const modalZoomImage = document.getElementById('modalZoomImage');
         const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
@@ -58,8 +114,8 @@
         function showImageInModal(src) { /* ... */ }
         async function viewOrder(orderId) { /* ... */ }
         function appendMessage(msg, currentUserId) { /* ... */ }
-        document.getElementById('modal_messageForm').addEventListener('submit', (e) => { /* ... */ });
         socket.on('newMessage', (msg) => { /* ... */ });
+
         const mapTab = document.querySelector('button[data-bs-target="#map-tab-pane"]');
         mapTab.addEventListener('shown.bs.tab', event => { /* ... */ });
         socket.on('locationUpdate', ({ userId, lat, lng }) => { /* ... */ });
