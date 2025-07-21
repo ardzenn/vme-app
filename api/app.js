@@ -22,12 +22,10 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, '../public'))); // Serve static files like CSS
+app.use(express.static(path.join(__dirname, '../public')));
 
-// --- 3. HEALTH CHECK ROUTE (THIS IS THE FIX) ---
-// This public route is used by Render to verify that the service is live.
+// --- 3. HEALTH CHECK ROUTE ---
 app.get('/health', (req, res) => {
-    // A simple 200 OK response is all that's needed.
     res.status(200).send('OK');
 });
 
@@ -66,6 +64,7 @@ io.on('connection', (socket) => {
 
 // --- 8. START THE SERVER ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+// THIS IS THE FIX: Added '0.0.0.0' to bind to all available network interfaces
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`>>>>>> SERVER IS RUNNING ON PORT ${PORT} <<<<<<`);
 });
