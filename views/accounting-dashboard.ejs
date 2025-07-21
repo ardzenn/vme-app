@@ -44,7 +44,7 @@
             <td><%= checkin.hospital.name %></td>
             <td><%= checkin.doctor.name %></td>
             <td><%= checkin.activity %></td>
-            <td><% if (checkin.proof) { %><img src="<%= proof %>" alt="Proof" width="100"><% } else { %>No Proof<% } %></td>
+            <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof"><% } else { %>No Proof<% } %></td>
             <td>Lat <%= checkin.location.lat %>, Lng <%= checkin.location.lng %></td>
             <td><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
           </tr>
