@@ -1,4 +1,4 @@
-// Load environment variables
+// Load environment variables from .env file
 require('dotenv').config();
 
 // Core Node Modules
@@ -25,11 +25,13 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // --- 3. HEALTH CHECK ROUTE ---
+// This public route is used by Render to verify that the service is live.
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 
 // --- 4. IMPORT ROUTE HANDLERS and MIDDLEWARE ---
+// We now import the router and middleware from auth.js correctly
 const { router: authRoutes, authMiddleware } = require('../routes/auth');
 const adminRoutes = require('../routes/admin');
 const checkinRoutes = require('../routes/checkin');
@@ -43,11 +45,11 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connection established successfully.'))
   .catch(err => {
     console.error("CRITICAL: Failed to connect to MongoDB", err);
-    process.exit(1);
+    process.exit(1); // Exit if the database connection fails
   });
 
 // --- 6. DEFINE ROUTES ---
-app.use('/', authRoutes);
+app.use('/', authRoutes); // Includes login, signup, logout, password reset
 app.use('/admin', adminRoutes);
 app.use('/checkin', checkinRoutes);
 app.use('/collection', collectionRoutes);
@@ -55,11 +57,12 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/order', orderRoutes);
 app.use('/profile', profileRoutes);
 
+// Root redirect for logged-in users
 app.get('/', authMiddleware, (req, res) => res.redirect('/dashboard'));
 
 // --- 7. SOCKET.IO EVENT HANDLERS ---
 io.on('connection', (socket) => {
-    // ... your socket.io logic ...
+    // Your socket.io logic for location updates and chat can go here
 });
 
 // --- 8. START THE SERVER ---
@@ -67,5 +70,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`>>>>>> SERVER IS RUNNING ON PORT ${PORT} <<<<<<`);
 });
-
-// THE EXTRA app.listen() LINE HAS BEEN REMOVED FROM HERE

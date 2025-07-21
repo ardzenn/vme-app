@@ -1,5 +1,5 @@
 const express = require('express');
-const { authMiddleware } = require('./auth');
+const { authMiddleware } = require('../routes/auth');
 const Order = require('../models/Order.js');
 const CheckIn = require('../models/CheckIn.js');
 const User = require('../models/User.js');
@@ -17,7 +17,7 @@ router.get('/', authMiddleware, async (req, res) => {
                 Order.find({}).populate('user').sort({ timestamp: -1 })
             ]);
 
-            // THIS IS THE FIX: Filter out records with missing populated data
+            // Filter out any records that have missing populated data
             allCheckins = allCheckins.filter(c => c.user && c.hospital && c.doctor);
             allOrders = allOrders.filter(o => o.user);
 
@@ -37,13 +37,33 @@ router.get('/', authMiddleware, async (req, res) => {
         }
 
         // --- Logic for MSR / KAS Users ---
-        // (This logic remains the same)
-        const [orders, checkins] = await Promise.all([
-            Order.find({ user: userId }).sort({ timestamp: -1 }),
+        let [orders, checkins] = await Promise.all([
+            Order.find({ user: userId }).populate('user').sort({ timestamp: -1 }),
             CheckIn.find({ user: userId }).populate('user hospital doctor').sort({ 'location.timestamp': -1 })
         ]);
-        // ... (rest of MSR/KAS logic is correct)
+
+        // Also filter here for safety
+        checkins = checkins.filter(c => c.user && c.hospital && c.doctor);
+        orders = orders.filter(o => o.user);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const checkinsToday = checkins.filter(c => c.location.timestamp >= today).length;
+        const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
+        const totalSales = orders.reduce((sum, order) => sum + order.subtotal, 0);
         
+        res.render('dashboard', {
+            user: req.user,
+            checkins,
+            orders,
+            stats: {
+                checkinsToday: checkinsToday,
+                pendingOrders: pendingOrdersCount,
+                totalSales: totalSales.toLocaleString('en-US', { style: 'currency', currency: 'PHP', currencyDisplay: 'code' }).replace('PHP', '₱')
+            }
+        });
+
     } catch (err) {
         console.error('Dashboard loading error:', err);
         res.status(500).send('Error loading dashboard');

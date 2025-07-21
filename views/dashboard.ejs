@@ -1,169 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - VME App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-    <%- include('partials/navbar') %>
+const express = require('express');
+const { authMiddleware } = require('../routes/auth');
+const Order = require('../models/Order.js');
+const CheckIn = require('../models/CheckIn.js');
+const User = require('../models/User.js');
 
-    <main style="padding: 0 2rem;">
-        <div class="container-fluid">
-            <header class="page-header">
-                <div>
-                    <h1 style="font-size: 1.875rem;">Dashboard</h1>
-                    <p style="margin: 0;">Here's your activity overview.</p>
-                </div>
-                <div>
-                    <a href="/order/book" class="btn btn-secondary">Book New Order</a>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkinModal">New Check-In</button>
-                </div>
-            </header>
+const router = express.Router();
 
-            <div class="row g-4 mb-4">
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Check-ins Today</div><div class="stat-value"><%= stats.checkinsToday %></div></div></div>
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Pending Orders</div><div class="stat-value"><%= stats.pendingOrders %></div></div></div>
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Sales</div><div class="stat-value"><%= stats.totalSales %></div></div></div>
-            </div>
+router.get('/', authMiddleware, async (req, res) => {
+    try {
+        const { id: userId, role: userRole } = req.user;
 
-            <div class="card mb-4">
-                <div class="card-header"><h3>Your Sales Orders</h3></div>
-                <div class="card-body" style="padding: 0;">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Actions</th></tr></thead>
-                            <tbody>
-                                <% if(orders.length > 0) { orders.forEach(order => { %>
-                                    <tr>
-                                        <td><strong><%= order.reference %></strong></td>
-                                        <td><%= order.customerName %></td>
-                                        <td><span class="badge <%= order.status === 'Processed' ? 'badge-success' : 'badge-warning' %>"><%= order.status %></span></td>
-                                        <td><button class="btn btn-secondary btn-sm" onclick="viewOrder('<%= order._id %>')">View</button></td>
-                                    </tr>
-                                <% })} else { %>
-                                    <tr><td colspan="4" style="text-align: center; padding: 3rem;">No sales orders found.</td></tr>
-                                <% } %>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        if (userRole === 'Admin') {
+            let [users, allCheckins, allOrders] = await Promise.all([
+                User.find({}).sort({ username: 1 }),
+                CheckIn.find({}).populate('user hospital doctor').sort({ 'location.timestamp': -1 }),
+                Order.find({}).populate('user').sort({ timestamp: -1 })
+            ]);
 
-            <div class="card">
-                <div class="card-header"><h3>Your Check-in History</h3></div>
-                <div class="card-body" style="padding: 0;">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead><tr><th>Hospital</th><th>Doctor</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Timestamp</th></tr></thead>
-                            <tbody>
-                                <% if(checkins.length > 0) { checkins.forEach(checkin => { %>
-                                    <tr>
-                                        <td><%= checkin.hospital.name %></td>
-                                        <td><%= checkin.doctor.name %></td>
-                                        <td><%= checkin.activity %></td>
-                                        <td>
-                                            <% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %>N/A<% } %>
-                                        </td>
-                                        <td>
-                                            <% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %>N/A<% } %>
-                                        </td>
-                                        <td style="color: var(--text-light);"><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
-                                    </tr>
-                                <% })} else { %>
-                                    <tr><td colspan="6" style="text-align: center; padding: 3rem;">No check-in history found.</td></tr>
-                                <% } %>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
+            // Filter out any records that have missing populated data
+            allCheckins = allCheckins.filter(c => c.user && c.hospital && c.doctor);
+            allOrders = allOrders.filter(o => o.user);
 
-    <%- include('partials/checkin-modal.ejs') %>
-    <%- include('partials/order-detail-modal.ejs') %>
-    <div class="modal fade" id="imageZoomModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center"><img src="" id="modalZoomImage" class="img-fluid"></div></div></div></div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
-        const modalZoomImage = document.getElementById('modalZoomImage');
-        function showImageInModal(src) {
-            modalZoomImage.src = src;
-            imageZoomModal.show();
-        }
-
-        const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
-        const socket = io();
-        let currentOrderId = null;
-
-        async function viewOrder(orderId) {
-            currentOrderId = orderId;
-            const response = await fetch(`/order/${orderId}`);
-            const { order, messages, currentUser } = await response.json();
-
-            document.getElementById('modal_customerName').innerText = order.customerName;
-            document.getElementById('modal_reference').innerText = order.reference;
-            document.getElementById('modal_status').innerHTML = `<span class="badge ${order.status === 'Processed' ? 'badge-success' : 'badge-warning'}">${order.status}</span>`;
+            const pendingUsers = users.filter(u => u.role === 'Pending').length;
             
-            const productsTable = document.getElementById('modal_productsTable');
-            productsTable.innerHTML = '';
-            order.products.forEach(p => {
-                productsTable.innerHTML += `<tr><td>${p.product}</td><td>${p.quantity}</td><td>₱${p.price.toFixed(2)}</td><td>₱${p.total.toFixed(2)}</td></tr>`;
+            return res.render('admin-dashboard', {
+                user: req.user,
+                users,
+                checkins: allCheckins,
+                orders: allOrders,
+                stats: { 
+                    totalUsers: users.length,
+                    pendingUsers: pendingUsers,
+                    totalCheckins: allCheckins.length
+                }
             });
-
-            document.getElementById('modal_subtotal').innerText = '₱' + order.subtotal.toFixed(2);
-            
-            const chatBox = document.getElementById('modal_chatMessages');
-            chatBox.innerHTML = '';
-            messages.forEach(msg => appendMessage(msg, currentUser._id));
-            
-            socket.emit('joinOrder', orderId);
-            orderDetailModal.show();
         }
+
+        // --- Logic for MSR / KAS Users ---
+        let [orders, checkins] = await Promise.all([
+            Order.find({ user: userId }).populate('user').sort({ timestamp: -1 }),
+            CheckIn.find({ user: userId }).populate('user hospital doctor').sort({ 'location.timestamp': -1 })
+        ]);
+
+        // Also filter here for safety
+        checkins = checkins.filter(c => c.user && c.hospital && c.doctor);
+        orders = orders.filter(o => o.user);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const checkinsToday = checkins.filter(c => c.location.timestamp >= today).length;
+        const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
+        const totalSales = orders.reduce((sum, order) => sum + order.subtotal, 0);
         
-        function appendMessage(msg, currentUserId) {
-            const chatBox = document.getElementById('modal_chatMessages');
-            if (!msg.user) return;
-            const isSent = msg.user._id === currentUserId;
-            const messageClass = isSent ? 'chat-message-sent' : 'chat-message-received';
-            const profilePic = msg.user.profilePicture || 'https://via.placeholder.com/150';
-            
-            chatBox.innerHTML += `
-                <div class="chat-message ${messageClass}">
-                    <img src="${profilePic}" class="chat-profile-pic">
-                    <div class="chat-bubble">
-                        <div class="username">${msg.user.username}</div>
-                        ${msg.text}
-                        <div class="timestamp">${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                    </div>
-                </div>
-            `;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        document.getElementById('modal_messageForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const messageInput = document.getElementById('modal_messageText');
-            if (messageInput.value && currentOrderId) {
-                socket.emit('sendMessage', {
-                    orderId: currentOrderId,
-                    userId: '<%= user.id %>',
-                    text: messageInput.value
-                });
-                messageInput.value = '';
+        res.render('dashboard', {
+            user: req.user,
+            checkins,
+            orders,
+            stats: {
+                checkinsToday: checkinsToday,
+                pendingOrders: pendingOrdersCount,
+                totalSales: totalSales.toLocaleString('en-US', { style: 'currency', currency: 'PHP', currencyDisplay: 'code' }).replace('PHP', '₱')
             }
         });
 
-        socket.on('newMessage', (msg) => {
-            if (msg.order === currentOrderId) {
-                appendMessage(msg, '<%= user.id %>');
-            }
-        });
-    </script>
-</body>
-</html>
+    } catch (err) {
+        console.error('Dashboard loading error:', err);
+        res.status(500).send('Error loading dashboard');
+    }
+});
+
+module.exports = router;
