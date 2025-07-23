@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="VME App">
-    <meta name="theme-color" content="#2563EB"> <title>Dashboard</title>
+    <meta name="theme-color" content="#2563EB">
+    <title>Dashboard - VME App</title>
     <link rel="icon" href="/images/logo.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
@@ -27,20 +28,21 @@
                     New Check-in
                 </button>
             </div>
+            <div>
+        <a href="/bookorder" class="btn btn-outline-primary">Book New Order</a>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkinModal">New Check-in</button>
+        <a href="/report" class="btn btn-success">Last Call Report</a> </div>
         </header>
 
-        <!-- Flash Messages -->
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
-        <!-- Stats Cards -->
         <div class="row g-4 mb-4">
             <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Check-ins Today</div><div class="stat-value"><%= stats.checkinsToday %></div></div></div>
             <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Pending Orders</div><div class="stat-value"><%= stats.pendingOrders %></div></div></div>
             <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Sales</div><div class="stat-value"><%= stats.totalSales %></div></div></div>
         </div>
 
-        <!-- Tab Navigation for Orders and Check-ins -->
         <ul class="nav nav-tabs mb-3" id="dashboardTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">My Sales Orders</button>
@@ -50,14 +52,12 @@
             </li>
         </ul>
 
-        <!-- Tab Content -->
         <div class="tab-content" id="dashboardTabContent">
-            <!-- Sales Orders Panel -->
             <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
                 <div class="card card-tab">
                     <div class="card-body">
-                        <input type="text" id="userSearch" class="form-control mb-3" placeholder="Search users...">
-                        <div class="table-responsive"> <table class="table table-hover align-middle" id="userTable">
+                        <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search your sales orders...">
+                        <div class="table-responsive">
                             <table class="table table-hover" id="orderTable">
                                 <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
                                 <tbody>
@@ -81,41 +81,50 @@
                 </div>
             </div>
 
-            <!-- Check-in History Panel -->
             <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
                  <div class="card card-tab">
                     <div class="card-body">
                         <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search your check-ins...">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle" id="checkinTable">
-                                <thead><tr><th>Hospital</th><th>Doctor</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Date</th><th>Location</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Hospital</th>
+                                        <th>Doctor</th>
+                                        <th>Activity</th>
+                                        <th>Location</th>
+                                        <th>Proof</th>
+                                        <th>Signature</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
                                 <tbody>
-                                     <% if(checkins.length > 0) { %>
-        <% checkins.forEach(checkin => { %>
-            <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
-                <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
-                <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
-                <td><%= checkin.activity || 'N/A' %></td>
-                <td> <% if (checkin.mapImageUrl) { %>
-                        <a href="https://www.google.com/maps?q=<%= checkin.location.lat %>,<%= checkin.location.lng %>" target="_blank">
-                            <img src="<%= checkin.mapImageUrl %>" alt="Map of check-in location" style="width: 150px; border-radius: 0.25rem; cursor: pointer;">
-                        </a>
-                    <% } else { %><span class="text-muted">No Location</span><% } %>
-                </td>
-                <td> <% if (checkin.proof) { %>
-                        <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
-                    <% } else { %><span class="text-muted">No Proof</span><% } %>
-                </td>
-                <td> <% if (checkin.signature) { %>
-                        <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
-                    <% } else { %><span class="text-muted">No Signature</span><% } %>
-                </td>
-                <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
-            </tr>
-        <% }) %>
-    <% } else { %>
-        <tr><td colspan="7" class="text-center p-4">No check-in history found.</td></tr>
-    <% } %>
+                                    <% if(checkins.length > 0) { %>
+                                        <% checkins.forEach(checkin => { %>
+                                            <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
+                                                <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
+                                                <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
+                                                <td><%= checkin.activity || 'N/A' %></td>
+                                                <td> <% if (checkin.mapImageUrl) { %>
+                                                        <a href="https://maps.google.com/?q=<%= checkin.location.lat %>,<%= checkin.location.lng %>" target="_blank">
+                                                            <img src="<%= checkin.mapImageUrl %>" alt="Map of check-in location" style="width: 150px; border-radius: 0.25rem; cursor: pointer;">
+                                                        </a>
+                                                    <% } else { %><span class="text-muted">No Location</span><% } %>
+                                                </td>
+                                                <td> <% if (checkin.proof) { %>
+                                                        <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
+                                                    <% } else { %><span class="text-muted">No Proof</span><% } %>
+                                                </td>
+                                                <td> <% if (checkin.signature) { %>
+                                                        <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
+                                                    <% } else { %><span class="text-muted">No Signature</span><% } %>
+                                                </td>
+                                                <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr><td colspan="7" class="text-center p-4">No check-in history found.</td></tr>
+                                    <% } %>
                                 </tbody>
                             </table>
                         </div>
@@ -127,14 +136,15 @@
 
     <%- include('partials/checkin-modal.ejs') %>
     <%- include('partials/order-detail-modal.ejs') %>
-     <%- include('partials/image-zoom-modal') %>
+    <%- include('partials/image-zoom-modal.ejs') %>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/dashboard-main.js"></script>
 
     <script>
-          const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
+        // This function is for the image zoom modal, which is used on this page.
+        const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
         const modalZoomImage = document.getElementById('modalZoomImage');
         function showImageInModal(src) {
             if (modalZoomImage) {
@@ -142,97 +152,9 @@
                 imageZoomModal.show();
             }
         }
-
-
+        
+        // Table search functionality
         document.addEventListener('DOMContentLoaded', () => {
-            const currentUser = <%- JSON.stringify(user) %>;
-            const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
-            const modalZoomImage = document.getElementById('modalZoomImage');
-            const orderDetailModalEl = document.getElementById('orderDetailModal');
-            const orderDetailModal = new bootstrap.Modal(orderDetailModalEl);
-            const socket = io();
-            let currentOrderId = null;
-
-            window.showImageInModal = function(src) {
-                if (modalZoomImage) {
-                    modalZoomImage.src = src;
-                    imageZoomModal.show();
-                }
-            }
-
-            function appendMessage(msg, currentUserId) {
-                const chatBox = document.getElementById('modal_chatMessages');
-                if (!chatBox || !msg.user) return;
-                const isSent = msg.user._id === currentUserId;
-                const messageClass = isSent ? 'chat-message-sent' : 'chat-message-received';
-                const profilePic = msg.user.profilePicture || 'https://via.placeholder.com/150';
-                const timestamp = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                const messageHTML = `<div class="chat-message ${messageClass}"><img src="${profilePic}" class="chat-profile-pic"><div class="chat-bubble"><div class="username">${msg.user.username}</div>${msg.text}<div class="timestamp">${timestamp}</div></div></div>`;
-                chatBox.innerHTML += messageHTML;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-            
-            async function viewOrder(orderId) {
-                try {
-                    const response = await fetch(`/order/${orderId}`);
-                    if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
-                    const data = await response.json();
-                    orderDetailModalEl.dataset.orderData = JSON.stringify(data);
-                    orderDetailModal.show();
-                } catch (error) {
-                    console.error("Failed to fetch order data:", error);
-                    alert("Could not load order details.");
-                }
-            }
-
-            orderDetailModalEl.addEventListener('shown.bs.modal', function (event) {
-                const data = JSON.parse(event.currentTarget.dataset.orderData);
-                const { order, messages, currentUser: modalCurrentUser } = data;
-                currentOrderId = order._id;
-                document.getElementById('orderUpdateForm').action = `/order/${order._id}/update`;
-                document.getElementById('modal_customerName_header').innerText = `Invoice for: ${order.customerName}`;
-                document.getElementById('modal_reference').innerText = order.reference;
-                const invoiceContainer = document.getElementById('invoice_details_container');
-                const footerContainer = document.getElementById('modal_footer');
-                const messageInput = document.getElementById('modal_messageText');
-                const sendMessageBtn = document.getElementById('modal_sendMessageBtn');
-                invoiceContainer.innerHTML = '';
-                footerContainer.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
-                
-                let productsTableRows = '';
-                (order.products || []).forEach(p => { productsTableRows += `<tr><td>${p.product}</td><td>${p.quantity}</td><td>₱${(p.price || 0).toFixed(2)}</td><td>₱${(p.total || 0).toFixed(2)}</td></tr>`; });
-                invoiceContainer.innerHTML = `<p><strong>Sales Invoice #:</strong> ${order.salesInvoice || 'N/A'}</p><p><strong>Status:</strong> <span class="badge ${order.status && (order.status.includes('Delivered')) ? 'badge-success' : 'badge-warning'}">${order.status}</span></p><p><strong>Payment:</strong> <span class="badge ${order.paymentStatus === 'Paid' ? 'badge-success' : 'badge-danger'}">${order.paymentStatus}</span></p><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${productsTableRows}</tbody><tfoot><tr><th colspan="3" class="text-end">Total:</th><th class="text-nowrap">₱${(order.subtotal || 0).toFixed(2)}</th></tr></tfoot></table></div>`;
-                
-                const chatBox = document.getElementById('modal_chatMessages');
-                chatBox.innerHTML = '';
-                messages.forEach(msg => appendMessage(msg, modalCurrentUser._id));
-                
-                const handleSendMessage = () => {
-                    if (messageInput.value && currentOrderId) {
-                        socket.emit('sendMessage', { orderId: currentOrderId, userId: currentUser.id, text: messageInput.value });
-                        messageInput.value = '';
-                    }
-                };
-                sendMessageBtn.onclick = handleSendMessage;
-                messageInput.onkeydown = (e) => { if(e.key === 'Enter') { e.preventDefault(); handleSendMessage(); } };
-                socket.emit('joinOrder', order._id);
-            });
-            
-            socket.on('newMessage', (msg) => {
-                if (msg.order === currentOrderId) { appendMessage(msg, currentUser.id); }
-            });
-
-            const orderTableBody = document.getElementById('order-table-body');
-            if (orderTableBody) {
-                orderTableBody.addEventListener('click', (event) => {
-                    const viewButton = event.target.closest('.view-order-btn');
-                    if (viewButton) {
-                        const orderId = viewButton.dataset.orderId;
-                        if (orderId) viewOrder(orderId);
-                    }
-                });
-            }
-
             const addTableFilter = (inputId, tableId) => {
                 const searchInput = document.getElementById(inputId);
                 if (searchInput) {
@@ -248,18 +170,20 @@
             addTableFilter('checkinSearch', 'checkinTable');
         });
     </script>
+    
+    <script>
+        // SW
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered successfully:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(registration => {
-                    console.log('Service Worker registered successfully:', registration);
-                })
-                .catch(error => {
-                    console.log('Service Worker registration failed:', error);
-                });
-        });
-    }
-</script>
 </html>

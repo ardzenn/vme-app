@@ -105,6 +105,8 @@ const collectionRoutes = require('./routes/collection');
 const apiRoutes = require('./routes/api');
 const chatRoutes = require('./routes/chat');
 const userRoutes = require('./routes/users');
+const dailyReportRoutes = require('./routes/dailyReport');
+
 
 // Health Check Route for deployment
 app.get('/health', (req, res) => {
@@ -119,6 +121,8 @@ app.use('/collection', collectionRoutes);
 app.use('/chat', chatRoutes);
 app.use('/api', apiRoutes);
 app.use('/users', userRoutes);
+app.use('/report', dailyReportRoutes);
+
 
 // --- 6. SERVER LISTENING ---
 const PORT = process.env.PORT || 3000;

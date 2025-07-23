@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Report Details - VME App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <main class="container my-5" style="max-width: 900px;">
+        <header class="page-header">
+            <div>
+                <h1>Daily Report for <%= new Date(report.reportDate).toLocaleDateString() %></h1>
+                <p class="text-muted">Submitted by: <strong><%= report.user.firstName %> <%= report.user.lastName %></strong></p>
+            </div>
+            <a href="/report/history" class="btn btn-secondary">Back to History</a>
+        </header>
+
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Last Client Visited:</strong> <%= report.lastClientVisited %></p>
+                <hr>
+                
+                <h5>Visited Hospitals & MDs:</h5>
+                <ul>
+                    <% const hospitals = {}; %>
+                    <% report.visitedCalls.forEach(call => { %>
+                        <% if (!hospitals[call.hospital]) hospitals[call.hospital] = []; %>
+                        <% hospitals[call.hospital].push(call.doctor); %>
+                    <% }); %>
+                    <% for (const hospital in hospitals) { %>
+                        <li><strong><%= hospital %></strong>
+                            <ul>
+                                <% hospitals[hospital].forEach(doctor => { %>
+                                    <li><%= doctor %></li>
+                                <% }); %>
+                            </ul>
+                        </li>
+                    <% } %>
+                </ul>
+                <hr>
+
+                <h5>Accomplishments & Feedback:</h5>
+                <p style="white-space: pre-wrap;"><%= report.accomplishments %></p>
+                <hr>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Sales for the Day:</h5>
+                        <ul class="list-group">
+                            <% report.dailySales.forEach(sale => { %>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <%= sale.client %>
+                                    <span class="badge bg-primary rounded-pill">₱<%= sale.amount.toLocaleString() %></span>
+                                </li>
+                            <% }) %>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Collections for the Day:</h5>
+                        <p>Current: ₱<%= report.dailyCollections.current.toLocaleString() %></p>
+                        <p>Overdue: ₱<%= report.dailyCollections.overdue.toLocaleString() %></p>
+                    </div>
+                </div>
+                <hr>
+
+                <h5>Expense Report:</h5>
+                <p>
+                    Meal: ₱<%= report.expenses.meal.toLocaleString() %> | 
+                    Transportation: ₱<%= report.expenses.transportation.toLocaleString() %> | 
+                    Toll: ₱<%= report.expenses.toll.toLocaleString() %> | 
+                    Parking: ₱<%= report.expenses.parking.toLocaleString() %> | 
+                    Lodging: ₱<%= report.expenses.lodging.toLocaleString() %>
+                </p>
+                <hr>
+
+                <h5>Attachments:</h5>
+                <% if(report.attachments && report.attachments.length > 0) { %>
+                    <div class="d-flex flex-wrap gap-3">
+                        <% report.attachments.forEach(attachment => { %>
+                            <a href="<%= attachment %>" target="_blank">
+                                <img src="<%= attachment %>" alt="Report Attachment" style="height: 150px; width: 150px; object-fit: cover; border-radius: 0.5rem;">
+                            </a>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <p>No attachments were uploaded.</p>
+                <% } %>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

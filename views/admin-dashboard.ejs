@@ -42,6 +42,7 @@
             <li class="nav-item" role="presentation"><button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-panel" type="button" role="tab">User Management</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">Sales Orders</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" id="checkins-tab" data-bs-toggle="tab" data-bs-target="#checkins-panel" type="button" role="tab">Check-in History</button></li>
+            <li class="nav-item" role="presentation"><a href="/report/history" class="nav-link">Report History</a> </li>
             <li class="nav-item" role="presentation"><button class="nav-link" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-panel" type="button" role="tab">Live Map</button></li>
         </ul>
 
@@ -139,10 +140,10 @@
                                         <th>Hospital</th>
                                         <th>Doctor</th>
                                         <th>Activity</th>
-                                        <th>Proof</th>
-                                        <th>Signature</th>
-                                        <th>Date</th>
                                         <th>Location</th>
+                                        <th>Image</th>
+                                        <th>Signature</th>
+                                        <th>Date and Time</th>
                                     </tr>
                                 </thead>
                                   <% checkins.forEach(checkin => { %>
