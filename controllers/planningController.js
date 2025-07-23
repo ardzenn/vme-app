@@ -120,3 +120,38 @@ exports.addComment = async (req, res) => {
         res.redirect('back');
     }
 };
+
+exports.getPlanDetails = async (req, res) => {
+    try {
+        let plan;
+        let planType = req.path.includes('/daily/') ? 'daily' : 'weekly';
+
+        if (planType === 'daily') {
+            plan = await DailyPlan.findById(req.params.id).populate('user').populate('comments.user');
+        } else {
+            plan = await WeeklyItinerary.findById(req.params.id).populate('user').populate('comments.user');
+        }
+
+        if (!plan) {
+            req.flash('error_msg', 'Plan not found.');
+            return res.redirect('/planning/history');
+        }
+
+        res.render('planning-detail', { plan, planType });
+    } catch (err) {
+        console.error("Error getting plan details:", err);
+        req.flash('error_msg', 'Could not load the plan details.');
+        res.redirect('/planning/history');
+    }
+};
+exports.getMyPlans = async (req, res) => {
+    try {
+        const dailyPlans = await DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 });
+        const weeklyItineraries = await WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 });
+        res.render('my-plans', { dailyPlans, weeklyItineraries });
+    } catch (err) {
+        console.error("Error getting user's plans:", err);
+        req.flash('error_msg', 'Could not load your plan history.');
+        res.redirect('/dashboard');
+    }
+};

@@ -3,6 +3,10 @@ const express = require('express');
 const router = express.Router();
 const planningController = require('../controllers/planningController');
 const { ensureAuthenticated } = require('../middleware/auth'); // Assuming you have middleware
+// In routes/planning.js
+router.get('/daily/:id', ensureAuthenticated, planningController.getPlanDetails);
+router.get('/weekly/:id', ensureAuthenticated, planningController.getPlanDetails);
+router.get('/my-plans', ensureAuthenticated, planningController.getMyPlans);
 
 // User-facing forms
 router.get('/daily', ensureAuthenticated, planningController.getDailyPlanForm);
