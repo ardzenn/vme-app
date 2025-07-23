@@ -77,7 +77,7 @@ exports.updateOrder = async (req, res) => {
 exports.getOrderDetailsAndMessages = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id)
-            .populate('user', 'firstName lastName role')
+            .populate('user', 'firstName lastName role profilePicture')
             .populate({
                 path: 'messages',
                 populate: { path: 'user', select: 'firstName lastName profilePicture' }
