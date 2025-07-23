@@ -40,7 +40,7 @@ exports.addHospital = async (req, res) => {
         if (existingHospital) {
             return res.status(409).json({ success: false, message: 'Hospital already exists.' });
         }
-        const newHospital = new Hospital({ name });
+        const newHospital = new Hospital({ name, createdBy: req.user.id });
         await newHospital.save();
         res.status(201).json({ success: true, hospital: newHospital });
     } catch (err) {
@@ -54,9 +54,38 @@ exports.addDoctor = async (req, res) => {
         if (!name || !hospitalId) {
             return res.status(400).json({ success: false, message: 'Doctor name and hospital are required.' });
         }
-        const newDoctor = new Doctor({ name, hospital: hospitalId });
+        // UPDATED: Assigns the creator's ID when saving
+        const newDoctor = new Doctor({ name, hospital: hospitalId, createdBy: req.user.id });
         await newDoctor.save();
         res.status(201).json({ success: true, doctor: newDoctor });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error.' });
+    }
+};
+
+
+exports.deleteHospital = async (req, res) => {
+    try {
+        const hospital = await Hospital.findById(req.params.id);
+        if (!hospital || hospital.createdBy.toString() !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Permission denied.' });
+        }
+        await Doctor.deleteMany({ hospital: req.params.id, createdBy: req.user.id });
+        await Hospital.findByIdAndDelete(req.params.id);
+        res.status(200).json({ success: true, message: 'Hospital and its doctors deleted.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error.' });
+    }
+};
+
+exports.deleteDoctor = async (req, res) => {
+    try {
+        const doctor = await Doctor.findById(req.params.id);
+        if (!doctor || doctor.createdBy.toString() !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Permission denied.' });
+        }
+        await Doctor.findByIdAndDelete(req.params.id);
+        res.status(200).json({ success: true, message: 'Doctor deleted.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error.' });
     }

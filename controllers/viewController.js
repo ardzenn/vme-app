@@ -4,6 +4,22 @@ const CheckIn = require('../models/CheckIn');
 const Collection = require('../models/Collection');
 const DailyPlan = require('../models/DailyPlan');
 const WeeklyItinerary = require('../models/WeeklyItinerary');
+const Hospital = require('../models/Hospital');
+const Doctor = require('../models/Doctor');
+
+// --- Helper function to avoid repeating map URL code ---
+const processCheckInsForMap = (checkIns) => {
+    if (process.env.MAPBOX_TOKEN) {
+        return checkIns.map(checkin => {
+            if (checkin.location && checkin.location.lat && checkin.location.lng) {
+                const [lng, lat] = [checkin.location.lng, checkin.location.lat];
+                checkin.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${lng},${lat})/${lng},${lat},14,0/400x200?access_token=${process.env.MAPBOX_TOKEN}`;
+            }
+            return checkin;
+        });
+    }
+    return checkIns; // Return original if no token
+};
 
 // --- Authentication Page Renderers ---
 exports.getLoginPage = (req, res) => {
@@ -49,22 +65,16 @@ exports.getDashboard = async (req, res) => {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            let [orders, checkIns, checkinsTodayCount, pendingOrdersCount] = await Promise.all([
+            let [orders, checkIns, checkinsTodayCount, pendingOrdersCount, allHospitals, allDoctors] = await Promise.all([
                 Order.find({ user: req.user.id }).sort({ createdAt: -1 }),
                 CheckIn.find({ user: req.user.id }).populate('hospital doctor').sort({ createdAt: -1 }),
                 CheckIn.countDocuments({ user: req.user.id, createdAt: { $gte: today } }),
-                Order.countDocuments({ user: req.user.id, status: 'Pending' })
+                Order.countDocuments({ user: req.user.id, status: 'Pending' }),
+                Hospital.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }).sort({ name: 1 }),
+                Doctor.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }).sort({ name: 1 })
             ]);
 
-            if (process.env.MAPBOX_TOKEN) {
-                checkIns = checkIns.map(checkin => {
-                    if (checkin.location && checkin.location.lat && checkin.location.lng) {
-                        const [lng, lat] = [checkin.location.lng, checkin.location.lat];
-                        checkin.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${lng},${lat})/${lng},${lat},14,0/400x200?access_token=${process.env.MAPBOX_TOKEN}`;
-                    }
-                    return checkin;
-                });
-            }
+            checkIns = processCheckInsForMap(checkIns);
 
             const totalSales = orders.reduce((sum, order) => {
                 if (['Delivered', 'Order Shipped', 'Processing'].includes(order.status)) {
@@ -83,7 +93,9 @@ exports.getDashboard = async (req, res) => {
                 user: req.user,
                 orders,
                 checkins: checkIns,
-                stats: stats
+                stats: stats,
+                allHospitals,
+                allDoctors
             });
         }
     } catch (err) {
@@ -98,7 +110,6 @@ exports.getAdminDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // FIXED: Changed const to let
         let [users, orders, checkIns, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
             User.find().sort({ createdAt: -1 }),
             Order.find().populate('user', 'firstName lastName profilePicture').sort({ createdAt: -1 }),
@@ -109,15 +120,7 @@ exports.getAdminDashboard = async (req, res) => {
             WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 })
         ]);
 
-        if (process.env.MAPBOX_TOKEN) {
-            checkIns = checkIns.map(checkin => {
-                if (checkin.location && checkin.location.lat && checkin.location.lng) {
-                    const [lng, lat] = [checkin.location.lng, checkin.location.lat];
-                    checkin.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${lng},${lat})/${lng},${lat},14,0/400x200?access_token=${process.env.MAPBOX_TOKEN}`;
-                }
-                return checkin;
-            });
-        }
+        checkIns = processCheckInsForMap(checkIns);
         
         const stats = {
             totalUsers: users.length,
@@ -146,7 +149,6 @@ exports.getAccountingDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // FIXED: Changed const to let
         let [orders, collections, checkIns, users, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Collection.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
@@ -158,15 +160,7 @@ exports.getAccountingDashboard = async (req, res) => {
             WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 })
         ]);
 
-        if (process.env.MAPBOX_TOKEN) {
-            checkIns = checkIns.map(checkin => {
-                if (checkin.location && checkin.location.lat && checkin.location.lng) {
-                    const [lng, lat] = [checkin.location.lng, checkin.location.lat];
-                    checkin.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${lng},${lat})/${lng},${lat},14,0/400x200?access_token=${process.env.MAPBOX_TOKEN}`;
-                }
-                return checkin;
-            });
-        }
+        checkIns = processCheckInsForMap(checkIns);
 
         const stats = {
             totalUsers: users.length,
@@ -203,6 +197,17 @@ exports.getChatPage = async (req, res) => {
     } catch (err) {
         console.error("Chat Page Error:", err);
         req.flash('error_msg', 'Could not load chat.');
+        res.redirect('/dashboard');
+    }
+};
+
+exports.getManageEntriesPage = async (req, res) => {
+    try {
+        const myHospitals = await Hospital.find({ createdBy: req.user.id });
+        const myDoctors = await Doctor.find({ createdBy: req.user.id }).populate('hospital');
+        res.render('manage-entries', { myHospitals, myDoctors });
+    } catch (err) {
+        req.flash('error_msg', 'Could not load your entries.');
         res.redirect('/dashboard');
     }
 };

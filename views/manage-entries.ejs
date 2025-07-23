@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <%- include('partials/navbar') %>
+    <main class="container my-5">
+        <header class="page-header">
+            <h1>Manage My Entries</h1>
+            <p class="text-muted">View and delete the private hospitals and doctors you have added.</p>
+        </header>
+        <div class="row g-5">
+            <div class="col-md-6">
+                <h4>My Hospitals</h4>
+                <ul class="list-group" id="hospital-list">
+                    <% myHospitals.forEach(h => { %>
+                        <li class="list-group-item d-flex justify-content-between align-items-center" data-id="<%= h._id %>">
+                            <%= h.name %>
+                            <button class="btn btn-sm btn-danger delete-hospital-btn">Delete</button>
+                        </li>
+                    <% }) %>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h4>My Doctors</h4>
+                <ul class="list-group" id="doctor-list">
+                    <% myDoctors.forEach(d => { %>
+                        <li class="list-group-item d-flex justify-content-between align-items-center" data-id="<%= d._id %>">
+                            <div><%= d.name %><br><small class="text-muted"><%= d.hospital.name %></small></div>
+                            <button class="btn btn-sm btn-danger delete-doctor-btn">Delete</button>
+                        </li>
+                    <% }) %>
+                </ul>
+            </div>
+        </div>
+    </main>
+    <script>
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-hospital-btn')) {
+                const li = e.target.closest('li');
+                const id = li.dataset.id;
+                if (confirm('Are you sure? This will also delete all doctors you added for this hospital.')) {
+                    const res = await fetch(`/api/hospitals/${id}`, { method: 'DELETE' });
+                    if (res.ok) li.remove(); else alert('Failed to delete.');
+                }
+            }
+            if (e.target.classList.contains('delete-doctor-btn')) {
+                const li = e.target.closest('li');
+                const id = li.dataset.id;
+                if (confirm('Are you sure?')) {
+                    const res = await fetch(`/api/doctors/${id}`, { method: 'DELETE' });
+                    if (res.ok) li.remove(); else alert('Failed to delete.');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
