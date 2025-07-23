@@ -93,7 +93,7 @@
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Data & Elements ---
+    // --- Data & All UI Elements ---
     let allDoctors = <%- JSON.stringify(locals.allDoctors || []) %>;
     
     const hospitalSelectUI = document.getElementById('hospital-selection-ui');
@@ -111,6 +111,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNewDoctorBtn = document.getElementById('save-new-doctor-btn');
     const doctorSelect = document.getElementById('doctor-select');
     const newDoctorNameInput = document.getElementById('new-doctor-name-input');
+
+    const checkinModalEl = document.getElementById('checkinModal');
+    const sigCanvas = document.getElementById('signature-pad');
+    const checkinForm = document.getElementById('checkinForm');
+    const clearSigButton = document.getElementById('clear-signature');
+    const sigDataInput = document.getElementById('signature-data');
+    let signaturePad;
+
+    const startCameraButton = document.getElementById('start-camera-btn');
+    const cameraContainer = document.getElementById('camera-container');
+    const videoPreview = document.getElementById('video-preview');
+    const captureButton = document.getElementById('capture-btn');
+    const photoCanvas = document.getElementById('photo-canvas');
+    const photoPreview = document.getElementById('photo-preview');
+    const proofBase64Input = document.getElementById('proof-base64-data');
+    const proofUploadInput = document.getElementById('proof-upload');
+    let stream;
 
     // --- Toggle UI Functions ---
     const toggleHospitalUI = (showCreate) => {
@@ -137,9 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedHospitalId) {
             const doctorsInHospital = allDoctors.filter(doc => doc.hospital === selectedHospitalId);
             if (doctorsInHospital.length > 0) {
-                doctorsInHospital.forEach(doc => {
-                    doctorSelect.appendChild(new Option(doc.name, doc.name));
-                });
+                doctorsInHospital.forEach(doc => doctorSelect.appendChild(new Option(doc.name, doc.name)));
             } else {
                 doctorSelect.innerHTML = '<option value="" selected>-- No doctors found --</option>';
             }
@@ -163,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ name })
             });
             const result = await response.json();
-
             if (result.success) {
                 const newOption = new Option(result.hospital.name, result.hospital.name, true, true);
                 newOption.dataset.hospitalId = result.hospital._id;
@@ -171,12 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 hospitalSelect.dispatchEvent(new Event('change'));
                 newHospitalNameInput.value = '';
                 toggleHospitalUI(false);
-            } else {
-                alert(result.message);
-            }
-        } catch (err) {
-            alert('An error occurred. Please try again.');
-        }
+            } else { alert(result.message); }
+        } catch (err) { alert('An error occurred. Please try again.'); }
     });
 
     // --- Logic to Save New Doctor ---
@@ -193,46 +203,105 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ name, hospitalId: selectedHospitalId })
             });
             const result = await response.json();
-            
             if (result.success) {
                 allDoctors.push(result.doctor);
-                hospitalSelect.dispatchEvent(new Event('change')); // Re-filter the doctor list
-                setTimeout(() => { // Select the newly added doctor
-                  doctorSelect.value = result.doctor.name;
-                }, 0);
+                hospitalSelect.dispatchEvent(new Event('change'));
+                setTimeout(() => { doctorSelect.value = result.doctor.name; }, 0);
                 newDoctorNameInput.value = '';
                 toggleDoctorUI(false);
-            } else {
-                alert(result.message);
-            }
+            } else { alert(result.message); }
+        } catch (err) { alert('An error occurred. Please try again.'); }
+    });
+
+    // --- FULLY IMPLEMENTED Camera, Signature, and Form Submission Logic ---
+    const resizeCanvas = () => {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        sigCanvas.width = sigCanvas.offsetWidth * ratio;
+        sigCanvas.height = sigCanvas.offsetHeight * ratio;
+        sigCanvas.getContext("2d").scale(ratio, ratio);
+        if (signaturePad) {
+            signaturePad.fromData(signaturePad.toData());
+        }
+    };
+    
+    checkinModalEl.addEventListener('shown.bs.modal', () => {
+        if (!signaturePad) {
+            signaturePad = new SignaturePad(sigCanvas);
+        } else {
+            signaturePad.clear();
+        }
+        resizeCanvas();
+        navigator.geolocation.getCurrentPosition(pos => {
+            document.getElementById('lat').value = pos.coords.latitude;
+            document.getElementById('lng').value = pos.coords.longitude;
+        });
+    });
+
+    window.addEventListener("resize", resizeCanvas);
+    clearSigButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
+
+    startCameraButton.addEventListener('click', async () => {
+        cameraContainer.style.display = 'block';
+        photoPreview.style.display = 'none';
+        proofBase64Input.value = '';
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            videoPreview.srcObject = stream;
         } catch (err) {
-            alert('An error occurred. Please try again.');
+            alert("Could not access the camera. Please check permissions.");
         }
     });
 
-    // --- Existing Logic for Camera, Signature, and Form Submission ---
-    const checkinModalEl = document.getElementById('checkinModal');
-    const sigCanvas = document.getElementById('signature-pad');
-    const checkinForm = document.getElementById('checkinForm');
-    const clearSigButton = document.getElementById('clear-signature');
-    const sigDataInput = document.getElementById('signature-data');
-    let signaturePad;
-    const startCameraButton = document.getElementById('start-camera-btn');
-    const cameraContainer = document.getElementById('camera-container');
-    const videoPreview = document.getElementById('video-preview');
-    const captureButton = document.getElementById('capture-btn');
-    const photoCanvas = document.getElementById('photo-canvas');
-    const photoPreview = document.getElementById('photo-preview');
-    const proofBase64Input = document.getElementById('proof-base64-data');
-    const proofUploadInput = document.getElementById('proof-upload');
-    let stream;
+    captureButton.addEventListener('click', () => {
+        photoCanvas.width = videoPreview.videoWidth;
+        photoCanvas.height = videoPreview.videoHeight;
+        photoCanvas.getContext('2d').drawImage(videoPreview, 0, 0);
+        const dataUrl = photoCanvas.toDataURL('image/jpeg');
+        photoPreview.src = dataUrl;
+        photoPreview.style.display = 'block';
+        proofBase64Input.value = dataUrl;
+        if(stream) { stream.getTracks().forEach(track => track.stop()); }
+        cameraContainer.style.display = 'none';
+        proofUploadInput.value = ''; 
+    });
     
-    const resizeCanvas = () => { /* ... resize logic ... */ };
-    checkinModalEl.addEventListener('shown.bs.modal', () => { /* ... modal open logic ... */ });
-    window.addEventListener("resize", resizeCanvas);
-    clearSigButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
-    startCameraButton.addEventListener('click', async () => { /* ... start camera logic ... */ });
-    captureButton.addEventListener('click', () => { /* ... capture photo logic ... */ });
-    checkinForm.addEventListener('submit', (event) => { /* ... form submit logic from service worker step ... */ });
+    checkinForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (signaturePad && !signaturePad.isEmpty()) {
+            sigDataInput.value = signaturePad.toDataURL('image/png');
+        }
+        const formData = new FormData(checkinForm);
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'alert';
+        checkinForm.prepend(statusDiv);
+        
+        fetch('/checkin', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                statusDiv.classList.add('alert-success');
+                statusDiv.textContent = 'Check-in submitted successfully!';
+                setTimeout(() => window.location.href = '/dashboard', 1000);
+            } else {
+                throw new Error('Server error.');
+            }
+        })
+        .catch(error => {
+            statusDiv.classList.add('alert-warning');
+            statusDiv.textContent = 'You appear to be offline. Your check-in has been saved and will be sent automatically when you reconnect.';
+            setTimeout(() => {
+                if (signaturePad) signaturePad.clear();
+                checkinForm.reset();
+                photoPreview.style.display = 'none';
+                const modal = bootstrap.Modal.getInstance(checkinModalEl);
+                if(modal) modal.hide();
+                statusDiv.remove();
+            }, 4000);
+        });
+
+        if (stream) { stream.getTracks().forEach(track => track.stop()); }
+    });
 });
 </script>
