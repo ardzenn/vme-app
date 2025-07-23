@@ -57,6 +57,23 @@ exports.bookOrder = async (req, res) => {
     }
 };
 
+exports.updateOrder = async (req, res) => {
+    try {
+        const { salesInvoice, status, paymentStatus } = req.body;
+        await Order.findByIdAndUpdate(req.params.id, {
+            salesInvoice,
+            status,
+            paymentStatus
+        });
+        req.flash('success_msg', 'Order updated successfully!');
+        res.redirect('/accounting-dashboard');
+    } catch (err) {
+        console.error("Order update error:", err);
+        req.flash('error_msg', 'Failed to update order.');
+        res.redirect('/accounting-dashboard');
+    }
+};
+
 exports.getOrderDetailsAndMessages = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id)

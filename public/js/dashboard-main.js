@@ -25,28 +25,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     orderDetailModalEl.addEventListener('shown.bs.modal', function (event) {
-        const data = JSON.parse(event.currentTarget.dataset.orderData || '{}');
-        if (!data.order) return;
+    const data = JSON.parse(event.currentTarget.dataset.orderData || '{}');
+    if (!data.order) {
+        console.error("Modal opened without order data.");
+        return;
+    }
 
-        const { order, messages, currentUser } = data;
-        currentOrderId = order._id;
+    const { order, messages, currentUser } = data;
+    currentOrderId = order._id;
 
-        const invoiceContainer = document.getElementById('invoice_details_container');
-        const attachmentSection = document.getElementById('attachment_section');
-        const messageInput = document.getElementById('modal_messageText');
-        const sendMessageBtn = document.getElementById('modal_sendMessageBtn');
-        const attachBtn = document.getElementById('chat_attach_btn');
-        const fileInput = document.getElementById('chat_file_input');
-        const attachmentPreview = document.getElementById('chat_attachment_preview');
-        
-        document.getElementById('modal_customerName_header').innerText = `Order for: ${order.customerName}`;
-        
+    // --- Get all the modal elements we need to work with ---
+    const orderUpdateForm = document.getElementById('orderUpdateForm');
+    const invoiceContainer = document.getElementById('invoice_details_container');
+    const modalFooter = document.querySelector('#orderDetailModal .modal-footer');
+    const attachmentSection = document.getElementById('attachment_section');
+    const messageInput = document.getElementById('modal_messageText');
+    const sendMessageBtn = document.getElementById('modal_sendMessageBtn');
+    const chatBox = document.getElementById('modal_chatMessages');
+    
+    document.getElementById('modal_customerName_header').innerText = `Order Details for: ${order.customerName}`;
+    
+    if (currentUser.role === 'Accounting' || currentUser.role === 'Admin') {
+        // If user is Accounting or Admin, build an EDITABLE FORM.
+        orderUpdateForm.action = `/orders/${order._id}/update`;
+
+        invoiceContainer.innerHTML = `
+            <h5 class="mb-3">Update Order Details</h5>
+            <div class="mb-3">
+                <label class="form-label">Sales Invoice Number</label>
+                <input type="text" name="salesInvoice" class="form-control" value="${order.salesInvoice || ''}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Order Status</label>
+                <select name="status" class="form-select">
+                    <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                    <option value="Awaiting Approval" ${order.status === 'Awaiting Approval' ? 'selected' : ''}>Awaiting Approval</option>
+                    <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
+                    <option value="Order Shipped" ${order.status === 'Order Shipped' ? 'selected' : ''}>Order Shipped</option>
+                    <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                    <option value="Rejected" ${order.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                    <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Payment Status</label>
+                <select name="paymentStatus" class="form-select">
+                    <option value="Unpaid" ${order.paymentStatus === 'Unpaid' ? 'selected' : ''}>Unpaid</option>
+                    <option value="Paid" ${order.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option>
+                </select>
+            </div>
+        `;
+                modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="submit" form="orderUpdateForm" class="btn btn-primary">Save Changes</button>';
+} else {
         let productsTableRows = '';
         (order.products || []).forEach(p => {
             productsTableRows += `<tr><td>${p.product||'N/A'}</td><td>${p.quantity||0}</td><td>₱${(p.price||0).toFixed(2)}</td><td>₱${(p.total||0).toFixed(2)}</td></tr>`;
         });
 
         invoiceContainer.innerHTML = `<div class="row"><div class="col-md-6"><p><strong>Sales Rep:</strong> ${order.user ? order.user.firstName + ' ' + order.user.lastName : 'N/A'} (${order.user ? order.user.role : ''})</p><p><strong>Customer:</strong> ${order.customerName||'N/A'}</p><p><strong>Email:</strong> ${order.email||'N/A'}</p><p><strong>Contact:</strong> ${order.contactNumber||'N/A'}</p><p><strong>Hospital:</strong> ${order.hospital||'N/A'}</p></div><div class="col-md-6 text-md-end"><p><strong>Invoice Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p><p><strong>Reference #:</strong> ${order.reference}</p><p><strong>Status:</strong> <span class="badge bg-primary">${order.status}</span></p><p><strong>Payment:</strong> <span class="badge bg-warning text-dark">${order.paymentStatus}</span></p></div></div><div class="table-responsive mt-3"><table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${productsTableRows}</tbody><tfoot><tr><th colspan="3" class="text-end">Subtotal:</th><th class="text-nowrap">₱${(order.subtotal||0).toFixed(2)}</th></tr></tfoot></table></div>${order.note ? `<p><strong>Notes:</strong> ${order.note}</p>` : ''}`;
+        modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
 
         if (order.attachment) {
             attachmentSection.innerHTML = `<a href="${order.attachment}" target="_blank"><img src="${order.attachment}" class="img-fluid rounded" style="max-height: 150px;" alt="Attachment Preview"></a>`;

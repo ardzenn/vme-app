@@ -20,7 +20,7 @@ module.exports.ensureAdmin = (req, res, next) => {
 
 // This middleware checks if the logged-in user has the 'Accounting' role.
 module.exports.ensureAccounting = (req, res, next) => {
-    if (req.isAuthenticated() && (req.user.role === 'Accounting' || req.user.role === 'Admin')) {
+    if (req.user.role === 'Accounting' || req.user.role === 'Admin') {
         return next();
     }
     req.flash('error_msg', 'You do not have permission to view this page.');
