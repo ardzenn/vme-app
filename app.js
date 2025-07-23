@@ -30,7 +30,7 @@ const User = require('./models/User');
 
 // --- 3. INITIALIZATION ---
 dbConnect();
-const app = express(); // <<< 'app' is created here, BEFORE it is used.
+const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
@@ -44,18 +44,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// This is the correct session configuration for production
+const sessionStore = MongoStore.create({ 
+    mongoUrl: process.env.MONGO_URI,
+    collectionName: 'sessions' // Optional: name of the collection for sessions
+});
+
+// Log any errors from the session store
+sessionStore.on('error', function(error) {
+    console.error('Session Store Error:', error);
+});
+
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ 
-        mongoUrl: process.env.MONGO_URI
-    }),
+    store: sessionStore, // Use the persistent MongoStore
     cookie: { 
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 // 1 day
+        maxAge: 1000 * 60 * 60 * 24 // Cookie lasts for 1 day
     }
 }));
+
 app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
@@ -87,7 +97,6 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
-// These must come AFTER 'app' is created and middleware is set up.
 app.use('/', authRoutes);
 app.use('/', viewRoutes);
 app.use('/orders', orderRoutes);
