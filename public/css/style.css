@@ -118,3 +118,12 @@ p { color: var(--text-light); line-height: 1.6; }
 #invoice_details_container p {
     margin-bottom: 0.75rem;
 }
+.page-header {
+    display: flex;
+    flex-wrap: wrap; /* Allows items to wrap to the next line */
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem 0;
+    gap: 1rem; /* Adds spacing between items when they wrap */
+}
