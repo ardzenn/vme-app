@@ -24,8 +24,11 @@
                 <h1 style="font-size: 1.875rem;">Admin Dashboard</h1>
                 <p style="margin: 0;">System overview and management.</p>
             </div>
-            <a href="/products" class="btn btn-dark">View Product Gallery</a> </div>
-             <a href="/analytics" class="btn btn-warning">View Analytics</a>
+             <div class="d-flex align-items-center gap-2">
+                <a href="/products" class="btn btn-dark">View Product Gallery</a>
+                  <a href="/analytics" class="btn btn-warning">View Analytics</a>
+            </div>
+            
         </header>
 
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
