@@ -92,3 +92,19 @@ p { color: var(--text-light); line-height: 1.6; }
 .chat-attachment-img { max-width: 100%; height: auto; border-radius: 0.5rem; margin-top: 5px; display: block; cursor: pointer; }
 .chat-attachment-file { display: block; padding: 8px 12px; background-color: rgba(0,0,0,0.05); border-radius: 0.5rem; margin-top: 5px; text-decoration: none; color: inherit; font-weight: 500; }
 .chat-attachment-file:hover { background-color: rgba(0, 0, 0, 0.1); }
+
+#orderDetailModal .modal-body .row > div {
+    padding: 1rem; 
+}
+
+
+@media (max-width: 991px) {
+    #orderDetailModal .modal-body .row {
+        flex-direction: column;
+    }
+}
+
+
+#invoice_details_container p {
+    margin-bottom: 0.75rem;
+}

@@ -44,19 +44,27 @@ exports.getDashboard = async (req, res) => {
         } else if (userRole === 'Pending') {
             return res.render('pending');
         } else {
-            // Default dashboard for MSR, KAS, etc.
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // Fetch all data for the logged-in user in parallel
-            const [orders, checkIns, checkinsTodayCount, pendingOrdersCount] = await Promise.all([
+            let [orders, checkIns, checkinsTodayCount, pendingOrdersCount] = await Promise.all([
                 Order.find({ user: req.user.id }).sort({ createdAt: -1 }),
                 CheckIn.find({ user: req.user.id }).populate('hospital doctor').sort({ createdAt: -1 }),
                 CheckIn.countDocuments({ user: req.user.id, createdAt: { $gte: today } }),
                 Order.countDocuments({ user: req.user.id, status: 'Pending' })
             ]);
 
-            // Calculate total sales from the orders that have been processed or delivered
+            // NEW: Add map image URL to each check-in
+            if (process.env.MAPBOX_TOKEN) {
+                checkIns = checkIns.map(checkin => {
+                    if (checkin.location && checkin.location.lat && checkin.location.lng) {
+                        const [lng, lat] = [checkin.location.lng, checkin.location.lat];
+                        checkin.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${lng},${lat})/${lng},${lat},14,0/400x200?access_token=${process.env.MAPBOX_TOKEN}`;
+                    }
+                    return checkin;
+                });
+            }
+
             const totalSales = orders.reduce((sum, order) => {
                 if (['Delivered', 'Order Shipped', 'Processing'].includes(order.status)) {
                     return sum + (order.subtotal || 0);
@@ -64,14 +72,12 @@ exports.getDashboard = async (req, res) => {
                 return sum;
             }, 0);
 
-            // Create the stats object to pass to the template
             const stats = {
                 checkinsToday: checkinsTodayCount,
                 pendingOrders: pendingOrdersCount,
                 totalSales: totalSales.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })
             };
 
-            // Render the dashboard and pass all necessary data
             res.render('dashboard', {
                 user: req.user,
                 orders,
@@ -91,7 +97,7 @@ exports.getAdminDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const [users, orders, checkIns, pendingUsersCount, checkInsTodayCount] = await Promise.all([
+        let [users, orders, checkIns, pendingUsersCount, checkInsTodayCount] = await Promise.all([
             User.find().sort({ createdAt: -1 }),
             Order.find().populate('user', 'firstName lastName profilePicture').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
@@ -99,21 +105,33 @@ exports.getAdminDashboard = async (req, res) => {
             CheckIn.countDocuments({ createdAt: { $gte: today } })
         ]);
 
+        // NEW: Add map image URL to each check-in
+        if (process.env.MAPBOX_TOKEN) {
+            checkIns = checkIns.map(checkin => {
+                if (checkin.location && checkin.location.lat && checkin.location.lng) {
+                    const [lng, lat] = [checkin.location.lng, checkin.location.lat];
+                    checkin.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${lng},${lat})/${lng},${lat},14,0/400x200?access_token=${process.env.MAPBOX_TOKEN}`;
+                }
+                return checkin;
+            });
+        }
+        
+        const stats = {
+            totalUsers: users.length,
+            pendingUsers: pendingUsersCount,
+            checkInsToday: checkInsTodayCount
+        };
+
         res.render('admin-dashboard', {
             user: req.user,
             users,
             orders,
             checkins: checkIns,
-            stats: {
-                totalUsers: users.length,
-                pendingUsers: pendingUsersCount,
-                checkInsToday: checkInsTodayCount
-            }
+            stats: stats
         });
     } catch (err) {
         console.error("Admin Dashboard Error:", err);
         req.flash('error_msg', 'A critical error occurred while loading the admin dashboard.');
-        // FIX: Redirect to a safe page that won't cause a redirect loop.
         res.redirect('/profile');
     }
 };
@@ -123,17 +141,26 @@ exports.getAccountingDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Fetch all data and calculate stats in parallel
-        const [orders, collections, checkins, users, pendingUsersCount, checkInsTodayCount] = await Promise.all([
+        let [orders, collections, checkIns, users, pendingUsersCount, checkInsTodayCount] = await Promise.all([
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Collection.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
             User.find().sort({ createdAt: -1 }),
-            User.countDocuments({ role: 'Pending' }), // Calculates pending users
-            CheckIn.countDocuments({ createdAt: { $gte: today } }) // Calculates today's check-ins
+            User.countDocuments({ role: 'Pending' }),
+            CheckIn.countDocuments({ createdAt: { $gte: today } })
         ]);
 
-        // Create the 'stats' object that the template needs
+        // NEW: Add map image URL to each check-in
+        if (process.env.MAPBOX_TOKEN) {
+            checkIns = checkIns.map(checkin => {
+                if (checkin.location && checkin.location.lat && checkin.location.lng) {
+                    const [lng, lat] = [checkin.location.lng, checkin.location.lat];
+                    checkin.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${lng},${lat})/${lng},${lat},14,0/400x200?access_token=${process.env.MAPBOX_TOKEN}`;
+                }
+                return checkin;
+            });
+        }
+
         const stats = {
             totalUsers: users.length,
             pendingUsers: pendingUsersCount,
@@ -144,9 +171,9 @@ exports.getAccountingDashboard = async (req, res) => {
             user: req.user, 
             orders, 
             collections,
-            checkins,
+            checkins: checkIns,
             users,
-            stats // Now passing the stats object to the template
+            stats
         });
 
     } catch (err) {

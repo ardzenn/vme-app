@@ -133,48 +133,48 @@
                         <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search check-ins by user, hospital, or doctor...">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle" id="checkinTable">
-                                <thead><tr><th>User</th><th>Hospital</th><th>Doctor</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Date</th></tr></thead>
-                                <tbody>
-                                    <% checkins.forEach(checkin => { %>
-                                        <tr data-search="<%= (checkin.user ? checkin.user.firstName + ' ' + checkin.user.lastName : '').toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
-                                            <td>
-                                                <% if (checkin.user) { %>
-                                                    <div class="d-flex align-items-center">
-                                                        <img src="<%= checkin.user.profilePicture || '/images/default-profile.png' %>" alt="Avatar" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
-                                                        <div>
-                                                            <strong><%= checkin.user.firstName %> <%= checkin.user.lastName %></strong>
-                                                        </div>
-                                                    </div>
-                                                <% } else { %>
-                                                    N/A
-                                                <% } %>
-                                            </td>
-                                            <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
-                                            <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
-                                            <td><%= checkin.activity || 'N/A' %></td>
-                                            <td>
-                                                <% if (checkin.proof) { %>
-                                                    <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
-                                                <% } else { %>
-                                                    N/A
-                                                <% } %>
-                                            </td>
-                                            <td>
-                                                <% if (checkin.signature) { %>
-                                                    <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
-                                                <% } else { %>
-                                                    N/A
-                                                <% } %>
-                                            </td>
-                                            <td>
-                                                <% if (checkin.createdAt && !isNaN(new Date(checkin.createdAt))) { %>
-                                                    <%= new Date(checkin.createdAt).toLocaleString() %>
-                                                <% } else { %>
-                                                    Invalid Date
-                                                <% } %>
-                                            </td>
-                                        </tr>
-                                    <% }) %>
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Hospital</th>
+                                        <th>Doctor</th>
+                                        <th>Activity</th>
+                                        <th>Proof</th>
+                                        <th>Signature</th>
+                                        <th>Date</th>
+                                        <th>Location</th>
+                                    </tr>
+                                </thead>
+                                  <% checkins.forEach(checkin => { %>
+                                 <tr data-search="<%= (checkin.user ? checkin.user.firstName + ' ' + checkin.user.lastName : '').toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %>">
+            <td>
+                <% if (checkin.user) { %>
+                    <div class="d-flex align-items-center">
+                        <img src="<%= checkin.user.profilePicture || '/images/default-profile.png' %>" alt="Avatar" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
+                        <div><strong><%= checkin.user.firstName %> <%= checkin.user.lastName %></strong></div>
+                    </div>
+                <% } else { %> N/A <% } %>
+            </td>
+            <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
+            <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
+            <td><%= checkin.activity || 'N/A' %></td>
+            <td> <% if (checkin.mapImageUrl) { %>
+                    <a href="https://www.google.com/maps?q=<%= checkin.location.lat %>,<%= checkin.location.lng %>" target="_blank">
+                        <img src="<%= checkin.mapImageUrl %>" alt="Map of check-in location" style="width: 150px; border-radius: 0.25rem; cursor: pointer;">
+                    </a>
+                <% } else { %><span class="text-muted">No Location</span><% } %>
+            </td>
+            <td> <% if (checkin.proof) { %>
+                    <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
+                <% } else { %><span class="text-muted">No Proof</span><% } %>
+            </td>
+            <td> <% if (checkin.signature) { %>
+                    <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
+                <% } else { %><span class="text-muted">No Signature</span><% } %>
+            </td>
+            <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+        </tr>
+    <% }) %>
                                 </tbody>
                             </table>
                         </div>

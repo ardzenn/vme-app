@@ -88,40 +88,34 @@
                         <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search your check-ins...">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle" id="checkinTable">
-                                <thead><tr><th>Hospital</th><th>Doctor</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Date</th></tr></thead>
+                                <thead><tr><th>Hospital</th><th>Doctor</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Date</th><th>Location</th></tr></thead>
                                 <tbody>
-                                    <% if(checkins.length > 0) { %>
-                                        <% checkins.forEach(checkin => { %>
-                                            <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
-                                                <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
-                                                <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
-                                                <td><%= checkin.activity || 'N/A' %></td>
-                                                <td>
-                                                    <% if (checkin.proof) { %>
-                                                        <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
-                                                    <% } else { %>
-                                                        N/A
-                                                    <% } %>
-                                                </td>
-                                                <td>
-                                                    <% if (checkin.signature) { %>
-                                                        <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
-                                                    <% } else { %>
-                                                        N/A
-                                                    <% } %>
-                                                </td>
-                                                <td>
-                                                    <% if (checkin.createdAt && !isNaN(new Date(checkin.createdAt))) { %>
-                                                        <%= new Date(checkin.createdAt).toLocaleString() %>
-                                                    <% } else { %>
-                                                        Invalid Date
-                                                    <% } %>
-                                                </td>
-                                            </tr>
-                                        <% }) %>
-                                    <% } else { %>
-                                        <tr><td colspan="6" class="text-center p-4">No check-in history found.</td></tr>
-                                    <% } %>
+                                     <% if(checkins.length > 0) { %>
+        <% checkins.forEach(checkin => { %>
+            <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
+                <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
+                <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
+                <td><%= checkin.activity || 'N/A' %></td>
+                <td> <% if (checkin.mapImageUrl) { %>
+                        <a href="https://www.google.com/maps?q=<%= checkin.location.lat %>,<%= checkin.location.lng %>" target="_blank">
+                            <img src="<%= checkin.mapImageUrl %>" alt="Map of check-in location" style="width: 150px; border-radius: 0.25rem; cursor: pointer;">
+                        </a>
+                    <% } else { %><span class="text-muted">No Location</span><% } %>
+                </td>
+                <td> <% if (checkin.proof) { %>
+                        <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
+                    <% } else { %><span class="text-muted">No Proof</span><% } %>
+                </td>
+                <td> <% if (checkin.signature) { %>
+                        <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
+                    <% } else { %><span class="text-muted">No Signature</span><% } %>
+                </td>
+                <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+            </tr>
+        <% }) %>
+    <% } else { %>
+        <tr><td colspan="7" class="text-center p-4">No check-in history found.</td></tr>
+    <% } %>
                                 </tbody>
                             </table>
                         </div>
@@ -255,4 +249,17 @@
         });
     </script>
 </body>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered successfully:', registration);
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        });
+    }
+</script>
 </html>

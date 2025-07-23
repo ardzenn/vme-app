@@ -46,83 +46,123 @@
   </div>
 </div>
 <script>
-  // Self-contained script for the check-in modal
-  document.addEventListener('DOMContentLoaded', () => {
-      const checkinModalEl = document.getElementById('checkinModal');
-      const sigCanvas = document.getElementById('signature-pad');
-      const checkinForm = document.getElementById('checkinForm');
-      const clearSigButton = document.getElementById('clear-signature');
-      const sigDataInput = document.getElementById('signature-data');
-      let signaturePad;
+document.addEventListener('DOMContentLoaded', () => {
+    const checkinModalEl = document.getElementById('checkinModal');
+    const sigCanvas = document.getElementById('signature-pad');
+    const checkinForm = document.getElementById('checkinForm');
+    const clearSigButton = document.getElementById('clear-signature');
+    const sigDataInput = document.getElementById('signature-data');
+    let signaturePad;
 
-      const startCameraButton = document.getElementById('start-camera-btn');
-      const cameraContainer = document.getElementById('camera-container');
-      const videoPreview = document.getElementById('video-preview');
-      const captureButton = document.getElementById('capture-btn');
-      const photoCanvas = document.getElementById('photo-canvas');
-      const photoPreview = document.getElementById('photo-preview');
-      const proofBase64Input = document.getElementById('proof-base64-data');
-      const proofUploadInput = document.getElementById('proof-upload');
-      let stream;
+    const startCameraButton = document.getElementById('start-camera-btn');
+    const cameraContainer = document.getElementById('camera-container');
+    const videoPreview = document.getElementById('video-preview');
+    const captureButton = document.getElementById('capture-btn');
+    const photoCanvas = document.getElementById('photo-canvas');
+    const photoPreview = document.getElementById('photo-preview');
+    const proofBase64Input = document.getElementById('proof-base64-data');
+    const proofUploadInput = document.getElementById('proof-upload');
+    let stream;
 
-      const resizeCanvas = () => {
-          const ratio = Math.max(window.devicePixelRatio || 1, 1);
-          sigCanvas.width = sigCanvas.offsetWidth * ratio;
-          sigCanvas.height = sigCanvas.offsetHeight * ratio;
-          sigCanvas.getContext("2d").scale(ratio, ratio);
-          if (signaturePad) {
-              signaturePad.fromData(signaturePad.toData());
-          }
-      };
-      
-      checkinModalEl.addEventListener('shown.bs.modal', () => {
-          if (!signaturePad) {
-              signaturePad = new SignaturePad(sigCanvas);
-          } else {
-              signaturePad.clear();
-          }
-          resizeCanvas();
-          navigator.geolocation.getCurrentPosition(pos => {
-              document.getElementById('lat').value = pos.coords.latitude;
-              document.getElementById('lng').value = pos.coords.longitude;
-          });
-      });
+    // This is your existing camera and signature pad logic - no changes needed here.
+    const resizeCanvas = () => {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        sigCanvas.width = sigCanvas.offsetWidth * ratio;
+        sigCanvas.height = sigCanvas.offsetHeight * ratio;
+        sigCanvas.getContext("2d").scale(ratio, ratio);
+        if (signaturePad) {
+            signaturePad.fromData(signaturePad.toData());
+        }
+    };
+    
+    checkinModalEl.addEventListener('shown.bs.modal', () => {
+        if (!signaturePad) {
+            signaturePad = new SignaturePad(sigCanvas);
+        } else {
+            signaturePad.clear();
+        }
+        resizeCanvas();
+        navigator.geolocation.getCurrentPosition(pos => {
+            document.getElementById('lat').value = pos.coords.latitude;
+            document.getElementById('lng').value = pos.coords.longitude;
+        });
+    });
 
-      window.addEventListener("resize", resizeCanvas);
-      clearSigButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
+    window.addEventListener("resize", resizeCanvas);
+    clearSigButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
 
-      startCameraButton.addEventListener('click', async () => {
-          cameraContainer.style.display = 'block';
-          photoPreview.style.display = 'none';
-          proofBase64Input.value = '';
-          try {
-              stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-              videoPreview.srcObject = stream;
-          } catch (err) {
-              alert("Could not access the camera. Please check permissions.");
-          }
-      });
+    startCameraButton.addEventListener('click', async () => {
+        cameraContainer.style.display = 'block';
+        photoPreview.style.display = 'none';
+        proofBase64Input.value = '';
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            videoPreview.srcObject = stream;
+        } catch (err) {
+            alert("Could not access the camera. Please check permissions.");
+        }
+    });
 
-      captureButton.addEventListener('click', () => {
-          photoCanvas.width = videoPreview.videoWidth;
-          photoCanvas.height = videoPreview.videoHeight;
-          photoCanvas.getContext('2d').drawImage(videoPreview, 0, 0);
-          const dataUrl = photoCanvas.toDataURL('image/jpeg');
-          photoPreview.src = dataUrl;
-          photoPreview.style.display = 'block';
-          proofBase64Input.value = dataUrl;
-          stream.getTracks().forEach(track => track.stop());
-          cameraContainer.style.display = 'none';
-          proofUploadInput.value = ''; 
-      });
+    captureButton.addEventListener('click', () => {
+        photoCanvas.width = videoPreview.videoWidth;
+        photoCanvas.height = videoPreview.videoHeight;
+        photoCanvas.getContext('2d').drawImage(videoPreview, 0, 0);
+        const dataUrl = photoCanvas.toDataURL('image/jpeg');
+        photoPreview.src = dataUrl;
+        photoPreview.style.display = 'block';
+        proofBase64Input.value = dataUrl;
+        if(stream) { stream.getTracks().forEach(track => track.stop()); }
+        cameraContainer.style.display = 'none';
+        proofUploadInput.value = ''; 
+    });
 
-      checkinForm.addEventListener('submit', (event) => {
-          if (signaturePad && !signaturePad.isEmpty()) {
-              sigDataInput.value = signaturePad.toDataURL('image/png');
-          }
-          if (stream) {
-              stream.getTracks().forEach(track => track.stop());
-          }
-      });
-  });
+    // --- THIS IS THE ONLY PART THAT HAS CHANGED ---
+    // This new function handles the form submission for both online and offline cases.
+    checkinForm.addEventListener('submit', (event) => {
+        event.preventDefault(); // Stop the default browser submission
+
+        // Save signature data if it exists
+        if (signaturePad && !signaturePad.isEmpty()) {
+            sigDataInput.value = signaturePad.toDataURL('image/png');
+        }
+
+        const formData = new FormData(checkinForm);
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'alert';
+        checkinForm.prepend(statusDiv); // Add a message area to the top of the form
+
+        fetch('/checkin', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            // This runs if the user is ONLINE and the submission is successful.
+            if (response.ok) {
+                statusDiv.classList.add('alert-success');
+                statusDiv.textContent = 'Check-in submitted successfully!';
+                // Redirect on success
+                setTimeout(() => window.location.href = '/dashboard', 1000);
+            } else {
+                throw new Error('Server returned an error.');
+            }
+        })
+        .catch(error => {
+            // This runs if the user is OFFLINE. The service worker will handle the submission.
+            statusDiv.classList.add('alert-warning');
+            statusDiv.textContent = 'You appear to be offline. Your check-in has been saved and will be sent automatically when you reconnect.';
+            
+            // Clear the form and close the modal after showing the message
+            setTimeout(() => {
+                if (signaturePad) signaturePad.clear();
+                checkinForm.reset();
+                photoPreview.style.display = 'none';
+                const modal = bootstrap.Modal.getInstance(checkinModalEl);
+                if(modal) modal.hide();
+                statusDiv.remove();
+            }, 4000); // 4 seconds
+        });
+
+        if (stream) { stream.getTracks().forEach(track => track.stop()); }
+    });
+});
 </script>
