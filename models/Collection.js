@@ -1,8 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose_Collection = require('mongoose');
+const { Schema: Schema_Collection } = mongoose_Collection;
 
-module.exports = mongoose.model('Collection', new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+const collectionSchema = new Schema_Collection({
+  user: { type: Schema_Collection.Types.ObjectId, ref: 'User', required: true },
   file: { type: String, required: true },
-  type: { type: String, enum: ['Invoice', 'Bill', 'Other'], required: true },
-  timestamp: { type: Date, default: Date.now }
-}));
+  type: { type: String, enum: ['Invoice', 'Bill', 'Other'], required: true }
+}, { timestamps: true });
+
+module.exports = mongoose_Collection.models.Collection || mongoose_Collection.model('Collection', collectionSchema);

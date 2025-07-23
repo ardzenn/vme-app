@@ -46,83 +46,83 @@
   </div>
 </div>
 <script>
-    // Self-contained script for the check-in modal
-    document.addEventListener('DOMContentLoaded', () => {
-        const checkinModalEl = document.getElementById('checkinModal');
-        const sigCanvas = document.getElementById('signature-pad');
-        const checkinForm = document.getElementById('checkinForm');
-        const clearSigButton = document.getElementById('clear-signature');
-        const sigDataInput = document.getElementById('signature-data');
-        let signaturePad;
+  // Self-contained script for the check-in modal
+  document.addEventListener('DOMContentLoaded', () => {
+      const checkinModalEl = document.getElementById('checkinModal');
+      const sigCanvas = document.getElementById('signature-pad');
+      const checkinForm = document.getElementById('checkinForm');
+      const clearSigButton = document.getElementById('clear-signature');
+      const sigDataInput = document.getElementById('signature-data');
+      let signaturePad;
 
-        const startCameraButton = document.getElementById('start-camera-btn');
-        const cameraContainer = document.getElementById('camera-container');
-        const videoPreview = document.getElementById('video-preview');
-        const captureButton = document.getElementById('capture-btn');
-        const photoCanvas = document.getElementById('photo-canvas');
-        const photoPreview = document.getElementById('photo-preview');
-        const proofBase64Input = document.getElementById('proof-base64-data');
-        const proofUploadInput = document.getElementById('proof-upload');
-        let stream;
+      const startCameraButton = document.getElementById('start-camera-btn');
+      const cameraContainer = document.getElementById('camera-container');
+      const videoPreview = document.getElementById('video-preview');
+      const captureButton = document.getElementById('capture-btn');
+      const photoCanvas = document.getElementById('photo-canvas');
+      const photoPreview = document.getElementById('photo-preview');
+      const proofBase64Input = document.getElementById('proof-base64-data');
+      const proofUploadInput = document.getElementById('proof-upload');
+      let stream;
 
-        const resizeCanvas = () => {
-            const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            sigCanvas.width = sigCanvas.offsetWidth * ratio;
-            sigCanvas.height = sigCanvas.offsetHeight * ratio;
-            sigCanvas.getContext("2d").scale(ratio, ratio);
-            if (signaturePad) {
-                signaturePad.fromData(signaturePad.toData());
-            }
-        };
-        
-        checkinModalEl.addEventListener('shown.bs.modal', () => {
-            if (!signaturePad) {
-                signaturePad = new SignaturePad(sigCanvas);
-            } else {
-                signaturePad.clear();
-            }
-            resizeCanvas();
-            navigator.geolocation.getCurrentPosition(pos => {
-                document.getElementById('lat').value = pos.coords.latitude;
-                document.getElementById('lng').value = pos.coords.longitude;
-            });
-        });
+      const resizeCanvas = () => {
+          const ratio = Math.max(window.devicePixelRatio || 1, 1);
+          sigCanvas.width = sigCanvas.offsetWidth * ratio;
+          sigCanvas.height = sigCanvas.offsetHeight * ratio;
+          sigCanvas.getContext("2d").scale(ratio, ratio);
+          if (signaturePad) {
+              signaturePad.fromData(signaturePad.toData());
+          }
+      };
+      
+      checkinModalEl.addEventListener('shown.bs.modal', () => {
+          if (!signaturePad) {
+              signaturePad = new SignaturePad(sigCanvas);
+          } else {
+              signaturePad.clear();
+          }
+          resizeCanvas();
+          navigator.geolocation.getCurrentPosition(pos => {
+              document.getElementById('lat').value = pos.coords.latitude;
+              document.getElementById('lng').value = pos.coords.longitude;
+          });
+      });
 
-        window.addEventListener("resize", resizeCanvas);
-        clearSigButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
+      window.addEventListener("resize", resizeCanvas);
+      clearSigButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
 
-        startCameraButton.addEventListener('click', async () => {
-            cameraContainer.style.display = 'block';
-            photoPreview.style.display = 'none';
-            proofBase64Input.value = '';
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                videoPreview.srcObject = stream;
-            } catch (err) {
-                alert("Could not access the camera. Please check permissions.");
-            }
-        });
+      startCameraButton.addEventListener('click', async () => {
+          cameraContainer.style.display = 'block';
+          photoPreview.style.display = 'none';
+          proofBase64Input.value = '';
+          try {
+              stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+              videoPreview.srcObject = stream;
+          } catch (err) {
+              alert("Could not access the camera. Please check permissions.");
+          }
+      });
 
-        captureButton.addEventListener('click', () => {
-            photoCanvas.width = videoPreview.videoWidth;
-            photoCanvas.height = videoPreview.videoHeight;
-            photoCanvas.getContext('2d').drawImage(videoPreview, 0, 0);
-            const dataUrl = photoCanvas.toDataURL('image/jpeg');
-            photoPreview.src = dataUrl;
-            photoPreview.style.display = 'block';
-            proofBase64Input.value = dataUrl;
-            stream.getTracks().forEach(track => track.stop());
-            cameraContainer.style.display = 'none';
-            proofUploadInput.value = ''; 
-        });
+      captureButton.addEventListener('click', () => {
+          photoCanvas.width = videoPreview.videoWidth;
+          photoCanvas.height = videoPreview.videoHeight;
+          photoCanvas.getContext('2d').drawImage(videoPreview, 0, 0);
+          const dataUrl = photoCanvas.toDataURL('image/jpeg');
+          photoPreview.src = dataUrl;
+          photoPreview.style.display = 'block';
+          proofBase64Input.value = dataUrl;
+          stream.getTracks().forEach(track => track.stop());
+          cameraContainer.style.display = 'none';
+          proofUploadInput.value = ''; 
+      });
 
-        checkinForm.addEventListener('submit', (event) => {
-            if (signaturePad && !signaturePad.isEmpty()) {
-                sigDataInput.value = signaturePad.toDataURL('image/png');
-            }
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        });
-    });
+      checkinForm.addEventListener('submit', (event) => {
+          if (signaturePad && !signaturePad.isEmpty()) {
+              sigDataInput.value = signaturePad.toDataURL('image/png');
+          }
+          if (stream) {
+              stream.getTracks().forEach(track => track.stop());
+          }
+      });
+  });
 </script>

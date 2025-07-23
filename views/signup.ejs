@@ -14,8 +14,15 @@
                     <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Create an Account</h2>
                     <p style="margin-bottom: 2rem;">Join the platform by filling out your details.</p>
                     
-                    <% if (typeof error !== 'undefined' && error) { %>
-                        <div class="alert alert-danger" style="background-color: #FEE2E2; color: #B91C1C; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;"><%= error %></div>
+                    <!-- FIX: Correctly display flash messages from the server -->
+                    <% if (typeof success_msg !== 'undefined' && success_msg.length > 0) { %>
+                        <div class="alert alert-success"><%= success_msg %></div>
+                    <% } %>
+                    <% if (typeof error_msg !== 'undefined' && error_msg.length > 0) { %>
+                        <div class="alert alert-danger"><%= error_msg %></div>
+                    <% } %>
+                    <% if (typeof error !== 'undefined' && error.length > 0) { %>
+                        <div class="alert alert-danger"><%= error %></div>
                     <% } %>
 
                     <form action="/signup" method="POST">
@@ -37,8 +44,16 @@
                     </p>
                 </div>
             </div>
-            <div class="login-image-container"></div>
+            <div class="login-image-container">
+                 <img src="/images/logo.png" alt="VME Logo" class="login-logo-img">
+                 <h2 class="login-brand-title">VINTEL MED ENTERPRISES</h2>
+            </div>
         </div>
     </div>
+    <style>
+        .alert { padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid transparent; }
+        .alert-danger { background-color: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
+        .alert-success { background-color: #D1FAE5; color: #065F46; border-color: #6EE7B7; }
+    </style>
 </body>
 </html>

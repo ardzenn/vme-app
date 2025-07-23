@@ -1,30 +1,31 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose_User = require('mongoose');
+const { Schema: Schema_User } = mongoose_User; 
+const passportLocalMongoose_User = require('passport-local-mongoose');
 
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true, index: true },
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  birthdate: { type: Date, required: true },
-  area: { type: String, required: true },
-  address: { type: String, required: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['Pending', 'Admin', 'MSR', 'KAS', 'Accounting'], default: 'Pending' },
-  profilePicture: { type: String },
-  location: { lat: Number, lng: Number, timestamp: Date }
-}, {
-  timestamps: true // This automatically adds createdAt and updatedAt fields
-});
+const userSchema = new Schema_User({
+  firstName: { type: String, required: true, trim: true },
+  lastName: { type: String, required: true, trim: true },
+  birthdate: { type: Date },
+  area: { type: String, trim: true },
+  address: { type: String, trim: true },
+  role: { 
+    type: String, 
+    enum: ['Pending', 'Admin', 'MSR', 'KAS', 'Accounting'], 
+    default: 'Pending' 
+  },
+  profilePicture: { 
+    type: String, 
+    default: '/images/default-profile.png'
+  },
+  lastLocation: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] }
+  },
+  lastLocationUpdate: { type: Date },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date }
+}, { timestamps: true });
 
-userSchema.pre('save', async function(next) {
-  if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 10);
-  }
-  next();
-});
+userSchema.plugin(passportLocalMongoose_User);
 
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose_User.models.User || mongoose_User.model('User', userSchema);

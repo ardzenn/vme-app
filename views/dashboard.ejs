@@ -3,77 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VME Dashboard</title>
+    <title>Dashboard - VME App</title>
+    <link rel="icon" href="/images/logo.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body data-user-id="<%= currentUser._id %>">
     <%- include('partials/navbar') %>
-    <main style="padding: 0 2rem;">
-        <div class="container-fluid">
-            <header class="page-header">
-                <div>
-                    <h1 style="font-size: 1.875rem;">Dashboard</h1>
-                     <p style="margin: 0;">Welcome, <%= user.firstName %>!</p>
 
-                    <p style="margin: 0;">Here's your activity overview.</p>
-                </div>
-                <div>
-                    <a href="/order/book" class="btn btn-secondary">Book New Order</a>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkinModal">New Check-In</button>
-                </div>
-            </header>
-
-            <div class="row g-4 mb-4">
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Check-ins Today</div><div class="stat-value"><%= stats.checkinsToday %></div></div></div>
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Pending Orders</div><div class="stat-value"><%= stats.pendingOrders %></div></div></div>
-                <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Sales</div><div class="stat-value"><%= stats.totalSales %></div></div></div>
+    <main class="container-fluid" style="padding: 0 2rem;">
+        <header class="page-header">
+            <div>
+                <h1 style="font-size: 1.875rem;">Dashboard</h1>
+                <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
             </div>
+            <div>
+                <a href="/bookorder" class="btn btn-outline-primary">Book New Order</a>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkinModal">
+                    New Check-in
+                </button>
+            </div>
+        </header>
 
-            <div class="card mb-4">
-                <div class="card-header"><input type="text" id="orderSearch" class="form-control" placeholder="Search your sales orders..."></div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table" id="orderTable">
-                            <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Actions</th></tr></thead>
-                            <tbody>
-                                <% if(orders.length > 0) { orders.forEach(order => { %>
-                                    <tr data-search="<%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
-                                        <td><strong><%= order.reference %></strong></td>
-                                        <td><%= order.customerName %></td>
-                                        <td><span class="badge <%= order.status.includes('Processed') || order.status.includes('Shipped') || order.status.includes('Delivered') ? 'badge-success' : 'badge-warning' %>"><%= order.status %></span></td>
-                                        <td><button class="btn btn-secondary btn-sm" onclick="viewOrder('<%= order._id %>')">View</button></td>
-                                    </tr>
-                                <% })} else { %>
-                                    <tr><td colspan="4" class="text-center p-5">No sales orders found.</td></tr>
-                                <% } %>
-                            </tbody>
-                        </table>
+        <!-- Flash Messages -->
+        <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Check-ins Today</div><div class="stat-value"><%= stats.checkinsToday %></div></div></div>
+            <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Pending Orders</div><div class="stat-value"><%= stats.pendingOrders %></div></div></div>
+            <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Sales</div><div class="stat-value"><%= stats.totalSales %></div></div></div>
+        </div>
+
+        <!-- Tab Navigation for Orders and Check-ins -->
+        <ul class="nav nav-tabs mb-3" id="dashboardTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">My Sales Orders</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="checkins-tab" data-bs-toggle="tab" data-bs-target="#checkins-panel" type="button" role="tab">My Check-in History</button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="dashboardTabContent">
+            <!-- Sales Orders Panel -->
+            <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search your sales orders...">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="orderTable">
+                                <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    <% if(orders.length > 0) { %>
+                                        <% orders.forEach(order => { %>
+                                            <tr data-search="<%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
+                                                <td><%= order.reference || 'N/A' %></td>
+                                                <td><%= order.customerName || 'N/A' %></td>
+                                                <td><span class="badge bg-primary"><%= order.status || 'N/A' %></span></td>
+                                                <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
+                                                <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View</button></td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr><td colspan="5" class="text-center p-4">No sales orders found.</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header"><input type="text" id="checkinSearch" class="form-control" placeholder="Search your check-in history..."></div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table" id="checkinTable">
-                            <thead><tr><th>Hospital</th><th>Doctor</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Timestamp</th></tr></thead>
-                            <tbody>
-                                <% if(checkins.length > 0) { checkins.forEach(checkin => { %>
-                                    <tr data-search="<%= (checkin.hospital?.name || '').toLowerCase() %> <%= (checkin.doctor?.name || '').toLowerCase() %> <%= (checkin.activity || '').toLowerCase() %>">
-                                        <td><%= checkin.hospital.name %></td>
-                                        <td><%= checkin.doctor.name %></td>
-                                        <td><%= checkin.activity %></td>
-                                        <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %>N/A<% } %></td>
-                                        <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %>N/A<% } %></td>
-                                        <td style="color: var(--text-light);"><%= new Date(checkin.location.timestamp).toLocaleString() %></td>
-                                    </tr>
-                                <% })} else { %>
-                                    <tr><td colspan="6" class="text-center p-5">No check-in history found.</td></tr>
-                                <% } %>
-                            </tbody>
-                        </table>
+            <!-- Check-in History Panel -->
+            <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
+                 <div class="card card-tab">
+                    <div class="card-body">
+                        <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search your check-ins...">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="checkinTable">
+                                <thead><tr><th>Hospital</th><th>Doctor</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Date</th></tr></thead>
+                                <tbody>
+                                    <% if(checkins.length > 0) { %>
+                                        <% checkins.forEach(checkin => { %>
+                                            <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
+                                                <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
+                                                <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
+                                                <td><%= checkin.activity || 'N/A' %></td>
+                                                <td>
+                                                    <% if (checkin.proof) { %>
+                                                        <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
+                                                    <% } else { %>
+                                                        N/A
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (checkin.signature) { %>
+                                                        <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
+                                                    <% } else { %>
+                                                        N/A
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (checkin.createdAt && !isNaN(new Date(checkin.createdAt))) { %>
+                                                        <%= new Date(checkin.createdAt).toLocaleString() %>
+                                                    <% } else { %>
+                                                        Invalid Date
+                                                    <% } %>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr><td colspan="6" class="text-center p-4">No check-in history found.</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -82,127 +129,126 @@
 
     <%- include('partials/checkin-modal.ejs') %>
     <%- include('partials/order-detail-modal.ejs') %>
-    <div class="modal fade" id="imageZoomModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center"><img src="" id="modalZoomImage" class="img-fluid"></div></div></div></div>
-    
+     <%- include('partials/image-zoom-modal') %>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/dashboard-main.js"></script>
+
     <script>
-        // --- THIS IS THE FIX: All necessary variables and functions are now present. ---
-        
-        const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
+          const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
         const modalZoomImage = document.getElementById('modalZoomImage');
-        const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
-        const socket = io();
-        let currentOrderId = null;
-        const currentUser = <%- JSON.stringify(user) %>;
-
         function showImageInModal(src) {
-            modalZoomImage.src = src;
-            imageZoomModal.show();
+            if (modalZoomImage) {
+                modalZoomImage.src = src;
+                imageZoomModal.show();
+            }
         }
 
-        async function viewOrder(orderId) {
-            currentOrderId = orderId;
-            const response = await fetch(`/order/${orderId}`);
-            const data = await response.json();
-            if (!data || !data.order) return;
-            const { order, messages, currentUser: modalCurrentUser } = data;
 
-            document.getElementById('orderUpdateForm').action = `/order/${order._id}/update`;
-            document.getElementById('modal_customerName_header').innerText = `Invoice for: ${order.customerName}`;
-            document.getElementById('modal_reference').innerText = order.reference;
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentUser = <%- JSON.stringify(user) %>;
+            const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
+            const modalZoomImage = document.getElementById('modalZoomImage');
+            const orderDetailModalEl = document.getElementById('orderDetailModal');
+            const orderDetailModal = new bootstrap.Modal(orderDetailModalEl);
+            const socket = io();
+            let currentOrderId = null;
 
-            const invoiceContainer = document.getElementById('invoice_details_container');
-            const footerContainer = document.getElementById('modal_footer');
-            const messageFormContainer = document.getElementById('modal_messageFormContainer');
-            invoiceContainer.innerHTML = '';
-            footerContainer.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
-            
-            if (modalCurrentUser.role === 'Accounting') {
-                let productFields = '';
-                order.products.forEach((p, index) => {
-                    productFields += `
-                        <div class="row g-2 mb-2 align-items-center">
-                            <div class="col-sm-7"><input type="text" class="form-control form-control-sm" name="products[${index}][product]" value="${p.product || ''}"></div>
-                            <div class="col-sm-2"><input type="number" class="form-control form-control-sm" name="products[${index}][quantity]" value="${p.quantity || 0}"></div>
-                            <div class="col-sm-3"><input type="number" step="0.01" class="form-control form-control-sm" name="products[${index}][price]" value="${(p.price || 0).toFixed(2)}"></div>
-                        </div>`;
-                });
-                invoiceContainer.innerHTML = `
-                    <h6>Order Status</h6><select name="status" class="form-select mb-3">
-                        <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                        <option value="Awaiting Approval" ${order.status === 'Awaiting Approval' ? 'selected' : ''}>Awaiting Approval</option>
-                        <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
-                        <option value="Order Shipped" ${order.status === 'Order Shipped' ? 'selected' : ''}>Order Shipped</option>
-                        <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                        <option value="Rejected" ${order.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-                        <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                    </select>
-                    <h6>Payment Status</h6><select name="paymentStatus" class="form-select mb-4">
-                        <option value="Unpaid" ${order.paymentStatus === 'Unpaid' ? 'selected' : ''}>Unpaid</option>
-                        <option value="Paid" ${order.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option>
-                    </select>
-                    <h6>Products</h6>${productFields}`;
-                footerContainer.innerHTML += '<button type="submit" class="btn btn-primary">Save Changes</button>';
-            } else {
-                let productsTableRows = '';
-                order.products.forEach(p => { productsTableRows += `<tr><td>${p.product}</td><td>${p.quantity}</td><td>₱${(p.price || 0).toFixed(2)}</td><td>₱${(p.total || 0).toFixed(2)}</td></tr>`; });
-                invoiceContainer.innerHTML = `
-                    <p><strong>Status:</strong> <span class="badge ${order.status.includes('Processed') || order.status.includes('Shipped') || order.status.includes('Delivered') ? 'badge-success' : 'badge-warning'}">${order.status}</span></p>
-                    <p><strong>Payment:</strong> <span class="badge ${order.paymentStatus === 'Paid' ? 'badge-success' : 'badge-danger'}">${order.paymentStatus}</span></p>
-                    <div class="table-responsive"><table class="table table-sm">
-                        <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-                        <tbody>${productsTableRows}</tbody>
-                        <tfoot><tr><th colspan="3" class="text-end">Total:</th><th class="text-nowrap">₱${(order.subtotal || 0).toFixed(2)}</th></tr></tfoot>
-                    </table></div>`;
-            }
-            
-            const chatBox = document.getElementById('modal_chatMessages');
-            chatBox.innerHTML = '';
-            messages.forEach(msg => appendMessage(msg, modalCurrentUser._id));
-            messageFormContainer.innerHTML = `<form id="modal_messageForm"><div class="input-group"><input type="text" id="modal_messageText" class="form-control" placeholder="Type a message..." required><button class="btn btn-primary" type="submit">Send</button></div></form>`;
-            document.getElementById('modal_messageForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const messageInput = document.getElementById('modal_messageText');
-                if (messageInput.value && currentOrderId) {
-                    socket.emit('sendMessage', { orderId: currentOrderId, userId: currentUser.id, text: messageInput.value });
-                    messageInput.value = '';
+            window.showImageInModal = function(src) {
+                if (modalZoomImage) {
+                    modalZoomImage.src = src;
+                    imageZoomModal.show();
                 }
-            });
-            socket.emit('joinOrder', orderId);
-            orderDetailModal.show();
-        }
-        
-        function appendMessage(msg, currentUserId) {
-            const chatBox = document.getElementById('modal_chatMessages');
-            if (!msg.user) return;
-            const isSent = msg.user._id === currentUserId;
-            const messageClass = isSent ? 'chat-message-sent' : 'chat-message-received';
-            const profilePic = msg.user.profilePicture || 'https://via.placeholder.com/150';
-            chatBox.innerHTML += `<div class="chat-message ${messageClass}"><img src="${profilePic}" class="chat-profile-pic"><div class="chat-bubble"><div class="username">${msg.user.username}</div>${msg.text}<div class="timestamp">${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div></div></div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        socket.on('newMessage', (msg) => {
-            if (msg.order === currentOrderId) {
-                appendMessage(msg, currentUser.id);
             }
-        });
-        
-        const addTableFilter = (inputId, tableId) => {
-            const searchInput = document.getElementById(inputId);
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
-                        row.style.display = (row.dataset.search || '').includes(searchTerm) ? '' : 'none';
-                    });
+
+            function appendMessage(msg, currentUserId) {
+                const chatBox = document.getElementById('modal_chatMessages');
+                if (!chatBox || !msg.user) return;
+                const isSent = msg.user._id === currentUserId;
+                const messageClass = isSent ? 'chat-message-sent' : 'chat-message-received';
+                const profilePic = msg.user.profilePicture || 'https://via.placeholder.com/150';
+                const timestamp = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                const messageHTML = `<div class="chat-message ${messageClass}"><img src="${profilePic}" class="chat-profile-pic"><div class="chat-bubble"><div class="username">${msg.user.username}</div>${msg.text}<div class="timestamp">${timestamp}</div></div></div>`;
+                chatBox.innerHTML += messageHTML;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+            
+            async function viewOrder(orderId) {
+                try {
+                    const response = await fetch(`/order/${orderId}`);
+                    if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
+                    const data = await response.json();
+                    orderDetailModalEl.dataset.orderData = JSON.stringify(data);
+                    orderDetailModal.show();
+                } catch (error) {
+                    console.error("Failed to fetch order data:", error);
+                    alert("Could not load order details.");
+                }
+            }
+
+            orderDetailModalEl.addEventListener('shown.bs.modal', function (event) {
+                const data = JSON.parse(event.currentTarget.dataset.orderData);
+                const { order, messages, currentUser: modalCurrentUser } = data;
+                currentOrderId = order._id;
+                document.getElementById('orderUpdateForm').action = `/order/${order._id}/update`;
+                document.getElementById('modal_customerName_header').innerText = `Invoice for: ${order.customerName}`;
+                document.getElementById('modal_reference').innerText = order.reference;
+                const invoiceContainer = document.getElementById('invoice_details_container');
+                const footerContainer = document.getElementById('modal_footer');
+                const messageInput = document.getElementById('modal_messageText');
+                const sendMessageBtn = document.getElementById('modal_sendMessageBtn');
+                invoiceContainer.innerHTML = '';
+                footerContainer.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
+                
+                let productsTableRows = '';
+                (order.products || []).forEach(p => { productsTableRows += `<tr><td>${p.product}</td><td>${p.quantity}</td><td>₱${(p.price || 0).toFixed(2)}</td><td>₱${(p.total || 0).toFixed(2)}</td></tr>`; });
+                invoiceContainer.innerHTML = `<p><strong>Sales Invoice #:</strong> ${order.salesInvoice || 'N/A'}</p><p><strong>Status:</strong> <span class="badge ${order.status && (order.status.includes('Delivered')) ? 'badge-success' : 'badge-warning'}">${order.status}</span></p><p><strong>Payment:</strong> <span class="badge ${order.paymentStatus === 'Paid' ? 'badge-success' : 'badge-danger'}">${order.paymentStatus}</span></p><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${productsTableRows}</tbody><tfoot><tr><th colspan="3" class="text-end">Total:</th><th class="text-nowrap">₱${(order.subtotal || 0).toFixed(2)}</th></tr></tfoot></table></div>`;
+                
+                const chatBox = document.getElementById('modal_chatMessages');
+                chatBox.innerHTML = '';
+                messages.forEach(msg => appendMessage(msg, modalCurrentUser._id));
+                
+                const handleSendMessage = () => {
+                    if (messageInput.value && currentOrderId) {
+                        socket.emit('sendMessage', { orderId: currentOrderId, userId: currentUser.id, text: messageInput.value });
+                        messageInput.value = '';
+                    }
+                };
+                sendMessageBtn.onclick = handleSendMessage;
+                messageInput.onkeydown = (e) => { if(e.key === 'Enter') { e.preventDefault(); handleSendMessage(); } };
+                socket.emit('joinOrder', order._id);
+            });
+            
+            socket.on('newMessage', (msg) => {
+                if (msg.order === currentOrderId) { appendMessage(msg, currentUser.id); }
+            });
+
+            const orderTableBody = document.getElementById('order-table-body');
+            if (orderTableBody) {
+                orderTableBody.addEventListener('click', (event) => {
+                    const viewButton = event.target.closest('.view-order-btn');
+                    if (viewButton) {
+                        const orderId = viewButton.dataset.orderId;
+                        if (orderId) viewOrder(orderId);
+                    }
                 });
             }
-        };
-        addTableFilter('orderSearch', 'orderTable');
-        addTableFilter('checkinSearch', 'checkinTable');
+
+            const addTableFilter = (inputId, tableId) => {
+                const searchInput = document.getElementById(inputId);
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const searchTerm = e.target.value.toLowerCase();
+                        document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
+                            row.style.display = (row.dataset.search || '').includes(searchTerm) ? '' : 'none';
+                        });
+                    });
+                }
+            };
+            addTableFilter('orderSearch', 'orderTable');
+            addTableFilter('checkinSearch', 'checkinTable');
+        });
     </script>
-    
 </body>
 </html>

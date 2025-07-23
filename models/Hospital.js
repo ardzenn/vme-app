@@ -1,6 +1,9 @@
-const mongoose = require('mongoose');
+const mongoose_Hospital = require('mongoose');
+const { Schema: Schema_Hospital } = mongoose_Hospital;
 
-module.exports = mongoose.model('Hospital', new mongoose.Schema({
-  name: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
-}));
+const hospitalSchema = new Schema_Hospital({
+  name: { type: String, required: true, unique: true, trim: true },
+  address: { type: String, trim: true }
+});
+
+module.exports = mongoose_Hospital.models.Hospital || mongoose_Hospital.model('Hospital', hospitalSchema);

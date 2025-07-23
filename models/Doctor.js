@@ -1,7 +1,12 @@
-const mongoose = require('mongoose');
+const mongoose_Doctor = require('mongoose');
+const { Schema: Schema_Doctor } = mongoose_Doctor;
 
-module.exports = mongoose.model('Doctor', new mongoose.Schema({
-  name: { type: String, required: true },
-  hospital: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
-}));
+const doctorSchema = new Schema_Doctor({
+  name: { type: String, required: true, trim: true },
+  specialty: { type: String, trim: true },
+  hospital: { type: Schema_Doctor.Types.ObjectId, ref: 'Hospital', required: true }
+});
+
+doctorSchema.index({ name: 1, hospital: 1 }, { unique: true });
+
+module.exports = mongoose_Doctor.models.Doctor || mongoose_Doctor.model('Doctor', doctorSchema);

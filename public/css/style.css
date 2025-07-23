@@ -207,3 +207,97 @@ p { color: var(--text-light); line-height: 1.6; }
 .chat-message-sent {
     flex-direction: row-reverse;
 }
+/* --- 8. MODERN CHAT INVOICE STYLES --- */
+/* --- MODERN CHAT INTERFACE STYLES --- */
+
+#modal_chatMessages {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem;
+}
+
+.chat-message {
+    display: flex;
+    gap: 10px;
+    max-width: 80%;
+    align-items: flex-start;
+}
+
+.chat-profile-pic {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-top: auto; /* Aligns pic to the bottom of the bubble */
+}
+
+.chat-bubble {
+    padding: 0.6rem 1rem;
+    border-radius: 1.25rem;
+    line-height: 1.4;
+    position: relative;
+}
+
+.chat-timestamp {
+    font-size: 0.7rem;
+    color: var(--text-light);
+    text-align: right;
+    margin-top: 4px;
+}
+
+/* Received Messages (Left Side) */
+.chat-message-received {
+    align-self: flex-start;
+}
+
+.chat-message-received .chat-bubble {
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-top-left-radius: 0.25rem;
+}
+
+/* Sent Messages (Right Side) */
+.chat-message-sent {
+    align-self: flex-end;
+    flex-direction: row-reverse; /* Reverses order of pic and bubble */
+}
+
+.chat-message-sent .chat-bubble {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border-top-right-radius: 0.25rem;
+}
+
+.chat-message-sent .chat-timestamp {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.chat-message-sent .fw-bold {
+    color: var(--white);
+}
+
+
+.chat-attachment-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin-top: 5px;
+    display: block;
+    cursor: pointer;
+}
+
+.chat-attachment-file {
+    display: block;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 0.5rem;
+    margin-top: 5px;
+    text-decoration: none;
+    color: inherit;
+    font-weight: 500;
+}
+
+.chat-attachment-file:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
