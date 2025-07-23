@@ -19,16 +19,24 @@ exports.submitDailyPlan = async (req, res) => {
             targetCollections
         } = req.body;
 
+        // Filter out empty entries that might be submitted from the dynamic form
+        const filteredCurrentCollections = (targetCollections && targetCollections.current) 
+            ? targetCollections.current.filter(c => c && c.client) 
+            : [];
+        const filteredOverdueCollections = (targetCollections && targetCollections.overdue) 
+            ? targetCollections.overdue.filter(c => c && c.client) 
+            : [];
+
         const newPlan = new DailyPlan({
             user: req.user.id,
             planDate,
             firstClientCall,
             areasToVisit,
-            placesToVisit: placesToVisit || [],
-            salesObjectives: salesObjectives || [],
+            placesToVisit: placesToVisit ? placesToVisit.filter(p => p) : [],
+            salesObjectives: salesObjectives ? salesObjectives.filter(o => o) : [],
             targetCollections: {
-                current: targetCollections.current || [],
-                overdue: targetCollections.overdue || []
+                current: filteredCurrentCollections,
+                overdue: filteredOverdueCollections
             }
         });
 
@@ -49,27 +57,32 @@ exports.getWeeklyItineraryForm = (req, res) => {
 
 exports.submitWeeklyItinerary = async (req, res) => {
     try {
-        const { dailyPlans } = req.body;
+        const { dailyPlans, weekPeriod } = req.body;
         
         // Calculate totals from the submitted form data
         let totalTargetSales = 0;
         let totalTargetCollections = 0;
         if (dailyPlans) {
             dailyPlans.forEach(plan => {
-                (plan.salesObjectives || []).forEach(obj => totalTargetSales += parseFloat(obj.amount) || 0);
-                (plan.collectionObjectives || []).forEach(obj => totalTargetCollections += parseFloat(obj.amount) || 0);
+                if (plan.salesObjectives) {
+                    plan.salesObjectives.forEach(obj => totalTargetSales += parseFloat(obj.amount) || 0);
+                }
+                if (plan.collectionObjectives) {
+                    plan.collectionObjectives.forEach(obj => totalTargetCollections += parseFloat(obj.amount) || 0);
+                }
             });
         }
         
         // Find the Monday of the week for consistency
         const firstDate = new Date(dailyPlans[0].date);
         const dayOfWeek = firstDate.getDay();
-        const diff = firstDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust when day is Sunday
+        const diff = firstDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
         const weekStartDate = new Date(firstDate.setDate(diff));
 
         const newItinerary = new WeeklyItinerary({
             user: req.user.id,
             weekStartDate,
+            weekPeriod,
             dailyPlans: dailyPlans || [],
             totalTargetSales,
             totalTargetCollections
@@ -98,29 +111,6 @@ exports.getPlanningHistory = async (req, res) => {
     }
 };
 
-exports.getWeeklyCoverageReport = async (req, res) => {
-    // This is a complex feature for the future, placeholder for now.
-    res.send("Weekly Coverage Report Page - Coming Soon!");
-};
-
-// --- Commenting ---
-exports.addComment = async (req, res) => {
-    try {
-        const { planType, planId, text } = req.body;
-        const comment = { user: req.user.id, text: text };
-        
-        let planModel = planType === 'daily' ? DailyPlan : WeeklyItinerary;
-        
-        await planModel.findByIdAndUpdate(planId, { $push: { comments: comment } });
-
-        res.redirect('back');
-    } catch (err) {
-        console.error("Error adding comment:", err);
-        req.flash('error_msg', 'Could not post comment.');
-        res.redirect('back');
-    }
-};
-
 exports.getPlanDetails = async (req, res) => {
     try {
         let plan;
@@ -144,6 +134,12 @@ exports.getPlanDetails = async (req, res) => {
         res.redirect('/planning/history');
     }
 };
+
+exports.getWeeklyCoverageReport = (req, res) => {
+    res.send("Weekly Coverage Report Page - Coming Soon!");
+};
+
+// --- MSR/KAS View ---
 exports.getMyPlans = async (req, res) => {
     try {
         const dailyPlans = await DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 });
@@ -153,5 +149,23 @@ exports.getMyPlans = async (req, res) => {
         console.error("Error getting user's plans:", err);
         req.flash('error_msg', 'Could not load your plan history.');
         res.redirect('/dashboard');
+    }
+};
+
+// --- Commenting ---
+exports.addComment = async (req, res) => {
+    try {
+        const { planType, planId, text } = req.body;
+        const comment = { user: req.user.id, text: text };
+        
+        const Model = planType === 'daily' ? DailyPlan : WeeklyItinerary;
+        
+        await Model.findByIdAndUpdate(planId, { $push: { comments: comment } });
+
+        res.redirect('back');
+    } catch (err) {
+        console.error("Error adding comment:", err);
+        req.flash('error_msg', 'Could not post comment.');
+        res.redirect('back');
     }
 };
