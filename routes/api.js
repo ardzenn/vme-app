@@ -16,4 +16,8 @@ router.get('/orders/:id', ensureAuthenticated, orderController.getOrderDetailsAn
 router.get('/messages/:userId', ensureAuthenticated, chatController.getMessageHistory);
 
 
+// routes
+router.post('/hospitals/add', ensureAuthenticated, apiController.addHospital);
+router.post('/doctors/add', ensureAuthenticated, apiController.addDoctor);
+
 module.exports = router;
