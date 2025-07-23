@@ -41,7 +41,11 @@
 
         <div class="row g-4" id="product-grid">
             <% products.forEach(product => { %>
-                <div class="col-lg-4 col-md-6 product-item" data-category="<%= product.category %>" data-name="<%= product.name.toLowerCase() %>">
+                <div class="card h-100 product-card" style="cursor: pointer;" 
+                  data-name="<%= product.name %>" 
+                    data-description="<%= product.description %>" 
+                      data-image="<%= product.imageUrl %>">
+                    </div>
                     <div class="card h-100 product-card">
                         <img src="<%= product.imageUrl %>" class="card-img-top product-img" alt="<%= product.name %>">
                         <div class="card-body">
@@ -55,6 +59,7 @@
                 </div>
             <% }) %>
         </div>
+        <%- include('partials/product-detail-modal.ejs') %>
     </main>
 
     <script>
@@ -84,6 +89,20 @@
                 });
             });
         });
+
+        document.addEventListener('DOMContentLoaded', () => {
+        const productDetailModal = new bootstrap.Modal(document.getElementById('productDetailModal'));
+
+        document.getElementById('product-grid').addEventListener('click', (event) => {
+            const card = event.target.closest('.product-card');
+            if (card) {
+                document.getElementById('modalProductImage').src = card.dataset.image;
+                document.getElementById('modalProductName').textContent = card.dataset.name;
+                document.getElementById('modalProductDescription').textContent = card.dataset.description;
+                productDetailModal.show();
+            }
+        });
+    });
     </script>
 </body>
 </html>

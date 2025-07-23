@@ -2,6 +2,9 @@
 const Product = require('../models/Product');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const csv = require('csv-parser');
+
 
 // --- Multer Configuration for Product Images ---
 const storage = multer.diskStorage({
@@ -69,4 +72,29 @@ exports.deleteProduct = async (req, res) => {
         req.flash('error_msg', 'Failed to delete product.');
         res.redirect('/products/manage');
     }
+};
+
+// This is for to upload many files
+exports.importProducts = (req, res) => {
+    if (!req.file) {
+        req.flash('error_msg', 'Please upload a CSV file.');
+        return res.redirect('/products/manage');
+    }
+
+    const results = [];
+    fs.createReadStream(req.file.path)
+        .pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', async () => {
+            try {
+                await Product.insertMany(results, { ordered: false });
+                fs.unlinkSync(req.file.path); // Clean up the uploaded file
+                req.flash('success_msg', `${results.length} products imported successfully.`);
+                res.redirect('/products/manage');
+            } catch (err) {
+                fs.unlinkSync(req.file.path);
+                req.flash('error_msg', 'Error importing products. Please check your CSV file format.');
+                res.redirect('/products/manage');
+            }
+        });
 };

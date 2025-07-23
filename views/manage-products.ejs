@@ -22,8 +22,8 @@
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
         <div class="row g-5">
-            <div class="col-lg-4">
-                <div class="card">
+            <div class="col-lg-5">
+                <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">Add New Product</h5>
                     </div>
@@ -53,10 +53,25 @@
                         </form>
                     </div>
                 </div>
+
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Bulk Import from CSV</h5></div>
+                    <div class="card-body">
+                        <form action="/products/manage/import" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="productCsv" class="form-label">Upload CSV File</label>
+                                <input type="file" id="productCsv" name="productImage" class="form-control" required accept=".csv">
+                                <div class="form-text">CSV must have columns: name, description, category, imageUrl</div>
+                            </div>
+                            <button type="submit" class="btn btn-secondary w-100">Import Products</button>
+                        </form>
+                    </div>
+                </div>
             </div>
 
-            <div class="col-lg-8">
+            <div class="col-lg-7">
                 <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Existing Products</h5></div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">

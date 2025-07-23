@@ -20,5 +20,7 @@ router.get('/', ensureAuthenticated, productController.getProductGallery);
 router.get('/manage', ensureAuthenticated, canManageProducts, productController.getManageProducts);
 router.post('/manage/add', ensureAuthenticated, canManageProducts, productController.uploadProductImage, productController.createProduct);
 router.post('/manage/delete/:id', ensureAuthenticated, canManageProducts, productController.deleteProduct);
+router.post('/manage/import', ensureAuthenticated, canManageProducts, productController.uploadProductImage, productController.importProducts);
+
 
 module.exports = router;
