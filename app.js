@@ -107,6 +107,8 @@ const chatRoutes = require('./routes/chat');
 const userRoutes = require('./routes/users');
 const dailyReportRoutes = require('./routes/dailyReport');
 const planningRoutes = require('./routes/planning');
+const productRoutes = require('./routes/products');
+
 
 
 
@@ -125,6 +127,8 @@ app.use('/api', apiRoutes);
 app.use('/users', userRoutes);
 app.use('/report', dailyReportRoutes);
 app.use('/planning', planningRoutes);
+app.use('/products', productRoutes);
+
 
 
 
