@@ -1,4 +1,6 @@
 // Load environment variables from .env file
+const MongoStore = require('connect-mongo');
+
 require('dotenv').config();
 
 // --- 1. CORE & NPM MODULES ---
