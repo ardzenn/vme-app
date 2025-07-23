@@ -80,6 +80,12 @@ const apiRoutes = require('./routes/api');
 const chatRoutes = require('./routes/chat');
 const userRoutes = require('./routes/users');
 
+// Health Check Route
+// This is for the deployment service to verify the app is live.
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
 app.use('/', authRoutes);
 app.use('/', viewRoutes);
 app.use('/orders', orderRoutes);
