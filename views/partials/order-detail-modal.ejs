@@ -6,63 +6,44 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="orderUpdateForm" method="POST"> <div class="modal-body">
-                <div class="row">
-                    <!-- Left Panel: Invoice Details -->
-                    <div class="col-lg-7">
-                        <div id="invoice_details_container">
-                            <!-- Invoice content will be loaded here by JavaScript -->
+                    <div class="row">
+                        <div class="col-lg-7">
+                            <div id="order_edit_form_container" class="mb-4"></div>
+                            
+                            <div id="invoice_details_container"></div>
+                            <hr>
+                            <h5 class="mt-4">Attachments</h5>
+                            <div id="attachment_section"></div>
                         </div>
-                        <hr>
-                        <h5 class="mt-4">Attachments</h5>
-                        <div id="attachment_section">
-                            <!-- Attachment info will be loaded here -->
-                        </div>
-                    </div>
-                    <!-- Right Panel: Chat -->
-                    <div class="col-lg-5 border-start-lg mt-4 mt-lg-0">
-                        <div class="chat-container d-flex flex-column bg-light p-3 rounded" style="height: 100%;">
-                            <h5 class="mb-3">Communication</h5>
-                            <div id="modal_chatMessages" class="chat-messages flex-grow-1" style="min-height: 300px;">
-                                <!-- Chat messages will be dynamically injected here -->
+
+                        <div class="col-lg-5 border-start-lg mt-4 mt-lg-0">
+                            <div class="chat-container d-flex flex-column bg-light p-3 rounded">
+                                <h5 class="mb-3">Communication</h5>
+                                
+                                <div class="chat-search-bar mb-3">
+                                    <input type="text" id="chat_search_input" class="form-control form-control-sm" placeholder="Search messages...">
+                                </div>
+                                
+                                <div id="modal_chatMessages" class="chat-messages flex-grow-1">
+                                    </div>
+                                
+                                <div class="chat-input-area mt-3">
+                                    <input type="file" id="chat_file_input" style="display: none;" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx">
+                                    <button id="chat_attach_btn" class="btn btn-secondary" type="button" title="Attach file">📎</button>
+                                    <input type="text" id="modal_messageText" class="form-control" placeholder="Type a message...">
+                                    <button id="modal_sendMessageBtn" class="btn btn-primary" type="button">Send</button>
+                                </div>
                             </div>
-                            <!-- FIX: New chat input area with file attachment -->
-                            <div class="chat-input-area mt-3">
-                                <input type="file" id="chat_file_input" style="display: none;" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx">
-                                <button id="chat_attach_btn" class="btn btn-secondary" type="button" title="Attach file">📎</button>
-                                <input type="text" id="modal_messageText" class="form-control" placeholder="Type a message...">
-                                <button id="modal_sendMessageBtn" class="btn btn-primary">Send</button>
-                            </div>
-                            <div id="chat_attachment_preview" class="mt-2" style="display: none;"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <!-- FIX: Added a permanent modal footer for the close button -->
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
+                <div class="modal-footer">
+                    </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Simple CSS to handle the border on responsive layout -->
 <style>
-    @media (min-width: 992px) {
-        .border-start-lg {
-            border-left: 1px solid #dee2e6;
-        }
-    }
-    .chat-input-area {
-        display: flex;
-        gap: 0.5rem;
-    }
-    #chat_attachment_preview {
-        font-size: 0.8rem;
-        background-color: #e9ecef;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+    @media (min-width: 992px) { .border-start-lg { border-left: 1px solid #dee2e6; } }
 </style>
