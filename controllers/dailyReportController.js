@@ -3,6 +3,7 @@ const DailyReport = require('../models/DailyReport');
 const CheckIn = require('../models/CheckIn');
 const multer = require('multer');
 const path = require('path');
+const { sendNotificationToAdmins } = require('./pushController');
 
 // --- Multer Configuration for Multiple Report Attachments ---
 const storage = multer.diskStorage({
@@ -99,7 +100,14 @@ exports.submitReport = async (req, res) => {
         });
 
         await newReport.save();
+        const payload = {
+        title: 'New Daily Report Submitted',
+        body: `A new "Last Call" report was submitted by ${req.user.firstName} ${req.user.lastName}.`,
+        url: `/report/${newReport._id}`
+        };
+        sendNotificationToAdmins(payload);
         req.flash('success_msg', 'Daily report submitted successfully!');
+        
         res.redirect('/dashboard');
     } catch (err) {
         console.error("Error submitting report:", err);

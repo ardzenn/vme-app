@@ -92,6 +92,16 @@ p { color: var(--text-light); line-height: 1.6; }
 .chat-attachment-img { max-width: 100%; height: auto; border-radius: 0.5rem; margin-top: 5px; display: block; cursor: pointer; }
 .chat-attachment-file { display: block; padding: 8px 12px; background-color: rgba(0,0,0,0.05); border-radius: 0.5rem; margin-top: 5px; text-decoration: none; color: inherit; font-weight: 500; }
 .chat-attachment-file:hover { background-color: rgba(0, 0, 0, 0.1); }
+.product-card {transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; cursor: pointer;} /* Product Galery */
+.product-card:hover {transform: translateY(-5px); box-shadow: var(--shadow-md);}
+.product-img { height: 220px;width: 100%;object-fit: cover;}
+
+#modalProductImage {
+    width: 100%;
+    height: 500px; 
+    object-fit: contain; 
+}
+
 
 #orderDetailModal .modal-body .row > div {
     padding: 1rem; 

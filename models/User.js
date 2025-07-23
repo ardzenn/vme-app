@@ -24,7 +24,8 @@ const userSchema = new Schema({
   },
   lastLocationUpdate: { type: Date },
   resetPasswordToken: { type: String },
-  resetPasswordExpires: { type: Date }
+  resetPasswordExpires: { type: Date },
+  pushSubscription: { type: Object }
 }, { timestamps: true });
 
 // This plugin adds all the necessary fields and methods for authentication

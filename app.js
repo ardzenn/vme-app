@@ -15,6 +15,7 @@ const MongoStore = require('connect-mongo');
 // --- 2. LOCAL IMPORTS ---
 const dbConnect = require('./dbConnect');
 const initializeWebsockets = require('./websockets');
+
 // Create upload directories
 const fs = require('fs');
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
@@ -108,6 +109,10 @@ const userRoutes = require('./routes/users');
 const dailyReportRoutes = require('./routes/dailyReport');
 const planningRoutes = require('./routes/planning');
 const productRoutes = require('./routes/products');
+const analyticsRoutes = require('./routes/analytics');
+const pushRoutes = require('./routes/push');
+
+
 
 
 
@@ -128,6 +133,9 @@ app.use('/users', userRoutes);
 app.use('/report', dailyReportRoutes);
 app.use('/planning', planningRoutes);
 app.use('/products', productRoutes);
+app.use('/analytics', analyticsRoutes);
+app.use('/push', pushRoutes);
+
 
 
 

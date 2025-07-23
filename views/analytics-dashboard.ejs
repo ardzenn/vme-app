@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - VME App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <main class="container-fluid my-5">
+        <header class="page-header">
+            <div>
+                <h1>Analytics Dashboard</h1>
+                <p class="text-muted">A high-level overview of business performance.</p>
+            </div>
+        </header>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="card stat-card h-100">
+                    <div class="stat-title">Total Sales</div>
+                    <div class="stat-value">₱<%= (analyticsData.kpis.totalSales || 0).toLocaleString() %></div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card stat-card h-100">
+                    <div class="stat-title">Total Collections</div>
+                    <div class="stat-value">₱<%= (analyticsData.kpis.totalCollections || 0).toLocaleString() %></div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card stat-card h-100">
+                    <div class="stat-title">Total Orders</div>
+                    <div class="stat-value"><%= analyticsData.kpis.totalOrders %></div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card stat-card h-100">
+                    <div class="stat-title">Total Check-ins</div>
+                    <div class="stat-value"><%= analyticsData.kpis.totalCheckIns %></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header"><h5>Sales Performance by User</h5></div>
+                    <div class="card-body">
+                        <canvas id="salesByUserChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                 <div class="card">
+                    <div class="card-header"><h5>Check-ins by User</h5></div>
+                    <div class="card-body">
+                        <canvas id="checkInsByUserChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const salesChartData = <%- JSON.stringify(analyticsData.charts.salesByUser) %>;
+            const checkInsChartData = <%- JSON.stringify(analyticsData.charts.checkInsByUser) %>;
+
+            // Sales by User Bar Chart
+            new Chart(document.getElementById('salesByUserChart'), {
+                type: 'bar',
+                data: {
+                    labels: salesChartData.labels,
+                    datasets: [{
+                        label: 'Total Sales',
+                        data: salesChartData.data,
+                        backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Check-ins by User Doughnut Chart
+            new Chart(document.getElementById('checkInsByUserChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: checkInsChartData.labels,
+                    datasets: [{
+                        label: 'Number of Check-ins',
+                        data: checkInsChartData.data,
+                        backgroundColor: [
+                            'rgba(22, 163, 74, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(220, 38, 38, 0.7)',
+                            'rgba(100, 116, 139, 0.7)',
+                        ]
+                    }]
+                }
+            });
+        });
+    </script>
+</body>
+</html>
