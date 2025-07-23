@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Itinerary - VME App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <main class="container my-5" style="max-width: 1000px;">
+        <header class="page-header">
+            <div>
+                <h1>Weekly Itinerary</h1>
+                <p class="text-muted">Plan your sales and collection objectives for the upcoming week.</p>
+            </div>
+        </header>
+
+        <form action="/planning/weekly" method="POST">
+            <div class="mb-3">
+                <label for="weekPeriod" class="form-label fw-bold">Period:</label>
+                <input type="text" id="weekPeriod" name="weekPeriod" class="form-control" placeholder="e.g., July 21-25, 2025">
+            </div>
+
+            <% const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']; %>
+            <% days.forEach((day, dayIndex) => { %>
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h4 class="mb-0"><%= day %></h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Date:</label>
+                                    <input type="date" name="dailyPlans[<%= dayIndex %>][date]" class="form-control">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Area:</label>
+                                    <input type="text" name="dailyPlans[<%= dayIndex %>][area]" class="form-control" placeholder="e.g., Bauan/ SanJose/ Lipa">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Sales Objectives:</label>
+                                    <div id="sales-container-<%= day.toLowerCase() %>"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addObjectiveRow('<%= day.toLowerCase() %>', 'sales')">+ Add Sale Target</button>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Collection Objectives:</label>
+                                    <div id="collections-container-<%= day.toLowerCase() %>"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addObjectiveRow('<%= day.toLowerCase() %>', 'collections')">+ Add Collection Target</button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Hospitals to Visit:</label>
+                                <div id="hospitals-container-<%= day.toLowerCase() %>"></div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addHospitalRow('<%= day.toLowerCase() %>')">+ Add Hospital</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+            
+            <div class="card">
+                <div class="card-body text-end">
+                    <h4>Total Target Sales: <span id="total-sales" class="fw-bold">₱0.00</span></h4>
+                    <h4>Total Target Collections: <span id="total-collections" class="fw-bold">₱0.00</span></h4>
+                </div>
+                <div class="card-footer text-end">
+                    <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Submit Weekly Itinerary</button>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        // Store indices in an object to manage them for each day
+        const objectiveIndices = { sales: {}, collections: {} };
+        const hospitalIndices = {};
+
+        function addObjectiveRow(day, type) {
+            if (!objectiveIndices[type][day]) objectiveIndices[type][day] = 0;
+            const index = objectiveIndices[type][day];
+            const container = document.getElementById(`${type}-container-${day}`);
+            const newRow = document.createElement('div');
+            newRow.className = 'input-group mb-2';
+            newRow.innerHTML = `
+                <input type="text" name="dailyPlans[${getDayIndex(day)}][${type}Objectives][${index}][client]" class="form-control" placeholder="Client Name">
+                <span class="input-group-text">₱</span>
+                <input type="number" name="dailyPlans[${getDayIndex(day)}][${type}Objectives][${index}][amount]" class="form-control objective-amount ${type}-amount" placeholder="Amount" value="0" min="0" step="0.01" oninput="updateTotals()">
+            `;
+            container.appendChild(newRow);
+            objectiveIndices[type][day]++;
+        }
+
+        function addHospitalRow(day) {
+            if (!hospitalIndices[day]) hospitalIndices[day] = 0;
+            const index = hospitalIndices[day];
+            const container = document.getElementById(`hospitals-container-${day}`);
+            const newCard = document.createElement('div');
+            newCard.className = 'card bg-light p-2 mb-2';
+            newCard.innerHTML = `
+                <input type="text" name="dailyPlans[${getDayIndex(day)}][placesToVisit][${index}][place]" class="form-control mb-2" placeholder="Hospital Name">
+                <div class="doctor-container ps-3">
+                    </div>
+                <button type="button" class="btn btn-sm btn-link text-start" onclick="addDoctorRow(this.previousElementSibling, ${getDayIndex(day)}, ${index})">+ Add Doctor</button>
+            `;
+            container.appendChild(newCard);
+            hospitalIndices[day]++;
+        }
+        
+        const doctorIndices = {};
+        function addDoctorRow(container, dayIndex, hospitalIndex) {
+            const key = `${dayIndex}-${hospitalIndex}`;
+            if (!doctorIndices[key]) doctorIndices[key] = 0;
+            const index = doctorIndices[key];
+            const newRow = document.createElement('div');
+            newRow.className = 'input-group input-group-sm mb-1';
+            newRow.innerHTML = `
+                <span class="input-group-text">-</span>
+                <input type="text" name="dailyPlans[${dayIndex}][placesToVisit][${hospitalIndex}][doctors][${index}]" class="form-control" placeholder="Doctor Name">
+            `;
+            container.appendChild(newRow);
+            doctorIndices[key]++;
+        }
+
+        function getDayIndex(day) {
+            return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].indexOf(day);
+        }
+
+        function updateTotals() {
+            let totalSales = 0;
+            let totalCollections = 0;
+            document.querySelectorAll('.sales-amount').forEach(input => totalSales += parseFloat(input.value) || 0);
+            document.querySelectorAll('.collections-amount').forEach(input => totalCollections += parseFloat(input.value) || 0);
+
+            document.getElementById('total-sales').textContent = '₱' + totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('total-collections').textContent = '₱' + totalCollections.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Initialize each day with one row to start
+        ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
+            addObjectiveRow(day, 'sales');
+            addObjectiveRow(day, 'collections');
+            addHospitalRow(day);
+        });
+    </script>
+</body>
+</html>

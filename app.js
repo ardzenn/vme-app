@@ -106,6 +106,8 @@ const apiRoutes = require('./routes/api');
 const chatRoutes = require('./routes/chat');
 const userRoutes = require('./routes/users');
 const dailyReportRoutes = require('./routes/dailyReport');
+const planningRoutes = require('./routes/planning');
+
 
 
 // Health Check Route for deployment
@@ -122,6 +124,8 @@ app.use('/chat', chatRoutes);
 app.use('/api', apiRoutes);
 app.use('/users', userRoutes);
 app.use('/report', dailyReportRoutes);
+app.use('/planning', planningRoutes);
+
 
 
 // --- 6. SERVER LISTENING ---
