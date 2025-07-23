@@ -120,20 +120,33 @@ exports.getAdminDashboard = async (req, res) => {
 
 exports.getAccountingDashboard = async (req, res) => {
     try {
-        // Fetch all required data in parallel for efficiency
-        const [orders, collections, checkins, users] = await Promise.all([
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Fetch all data and calculate stats in parallel
+        const [orders, collections, checkins, users, pendingUsersCount, checkInsTodayCount] = await Promise.all([
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Collection.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
-            User.find().sort({ createdAt: -1 }) // Also fetch users for the map tab
+            User.find().sort({ createdAt: -1 }),
+            User.countDocuments({ role: 'Pending' }), // Calculates pending users
+            CheckIn.countDocuments({ createdAt: { $gte: today } }) // Calculates today's check-ins
         ]);
+
+        // Create the 'stats' object that the template needs
+        const stats = {
+            totalUsers: users.length,
+            pendingUsers: pendingUsersCount,
+            checkInsToday: checkInsTodayCount
+        };
 
         res.render('accounting-dashboard', { 
             user: req.user, 
             orders, 
             collections,
-            checkins, // Now passing the checkins variable
-            users // Also passing the users variable
+            checkins,
+            users,
+            stats // Now passing the stats object to the template
         });
 
     } catch (err) {
@@ -142,6 +155,7 @@ exports.getAccountingDashboard = async (req, res) => {
         res.redirect('/dashboard');
     }
 };
+
 exports.getProfilePage = (req, res) => { res.render('profile', { user: req.user }); };
 
 exports.getBookOrderPage = (req, res) => { res.render('bookorder'); };
