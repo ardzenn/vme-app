@@ -17,7 +17,6 @@ const dbConnect = require('./dbConnect');
 const initializeWebsockets = require('./websockets');
 // Create upload directories
 const fs = require('fs');
-const path = require('path');
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 const ordersDir = path.join(uploadsDir, 'orders');
 const chatDir = path.join(uploadsDir, 'chat');
