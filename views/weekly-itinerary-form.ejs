@@ -18,6 +18,8 @@
             </div>
         </header>
 
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
+
         <form action="/planning/weekly" method="POST">
             <div class="mb-3">
                 <label for="weekPeriod" class="form-label fw-bold">Period:</label>
@@ -35,7 +37,8 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Date:</label>
-                                    <input type="date" name="dailyPlans[<%= dayIndex %>][date]" class="form-control">
+                                    <input type="date" class="form-control" onchange="this.nextElementSibling.value = this.value;" required>
+                                    <input type="hidden" name="dailyPlans[<%= dayIndex %>][date]" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Area:</label>
@@ -76,41 +79,28 @@
     </main>
 
     <script>
-        // Store indices in an object to manage them for each day
         const objectiveIndices = { sales: {}, collections: {} };
         const hospitalIndices = {};
-
         function addObjectiveRow(day, type) {
             if (!objectiveIndices[type][day]) objectiveIndices[type][day] = 0;
             const index = objectiveIndices[type][day];
             const container = document.getElementById(`${type}-container-${day}`);
             const newRow = document.createElement('div');
             newRow.className = 'input-group mb-2';
-            newRow.innerHTML = `
-                <input type="text" name="dailyPlans[${getDayIndex(day)}][${type}Objectives][${index}][client]" class="form-control" placeholder="Client Name">
-                <span class="input-group-text">₱</span>
-                <input type="number" name="dailyPlans[${getDayIndex(day)}][${type}Objectives][${index}][amount]" class="form-control objective-amount ${type}-amount" placeholder="Amount" value="0" min="0" step="0.01" oninput="updateTotals()">
-            `;
+            newRow.innerHTML = `<input type="text" name="dailyPlans[${getDayIndex(day)}][${type}Objectives][${index}][client]" class="form-control" placeholder="Client Name"><span class="input-group-text">₱</span><input type="number" name="dailyPlans[${getDayIndex(day)}][${type}Objectives][${index}][amount]" class="form-control objective-amount ${type}-amount" placeholder="Amount" value="0" min="0" step="0.01" oninput="updateTotals()">`;
             container.appendChild(newRow);
             objectiveIndices[type][day]++;
         }
-
         function addHospitalRow(day) {
             if (!hospitalIndices[day]) hospitalIndices[day] = 0;
             const index = hospitalIndices[day];
             const container = document.getElementById(`hospitals-container-${day}`);
             const newCard = document.createElement('div');
             newCard.className = 'card bg-light p-2 mb-2';
-            newCard.innerHTML = `
-                <input type="text" name="dailyPlans[${getDayIndex(day)}][placesToVisit][${index}][place]" class="form-control mb-2" placeholder="Hospital Name">
-                <div class="doctor-container ps-3">
-                    </div>
-                <button type="button" class="btn btn-sm btn-link text-start" onclick="addDoctorRow(this.previousElementSibling, ${getDayIndex(day)}, ${index})">+ Add Doctor</button>
-            `;
+            newCard.innerHTML = `<input type="text" name="dailyPlans[${getDayIndex(day)}][placesToVisit][${index}][place]" class="form-control mb-2" placeholder="Hospital Name"><div class="doctor-container ps-3"></div><button type="button" class="btn btn-sm btn-link text-start" onclick="addDoctorRow(this.previousElementSibling, ${getDayIndex(day)}, ${index})">+ Add Doctor</button>`;
             container.appendChild(newCard);
             hospitalIndices[day]++;
         }
-        
         const doctorIndices = {};
         function addDoctorRow(container, dayIndex, hospitalIndex) {
             const key = `${dayIndex}-${hospitalIndex}`;
@@ -118,29 +108,21 @@
             const index = doctorIndices[key];
             const newRow = document.createElement('div');
             newRow.className = 'input-group input-group-sm mb-1';
-            newRow.innerHTML = `
-                <span class="input-group-text">-</span>
-                <input type="text" name="dailyPlans[${dayIndex}][placesToVisit][${hospitalIndex}][doctors][${index}]" class="form-control" placeholder="Doctor Name">
-            `;
+            newRow.innerHTML = `<span class="input-group-text">-</span><input type="text" name="dailyPlans[${dayIndex}][placesToVisit][${hospitalIndex}][doctors][${index}]" class="form-control" placeholder="Doctor Name">`;
             container.appendChild(newRow);
             doctorIndices[key]++;
         }
-
         function getDayIndex(day) {
             return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].indexOf(day);
         }
-
         function updateTotals() {
             let totalSales = 0;
             let totalCollections = 0;
             document.querySelectorAll('.sales-amount').forEach(input => totalSales += parseFloat(input.value) || 0);
             document.querySelectorAll('.collections-amount').forEach(input => totalCollections += parseFloat(input.value) || 0);
-
             document.getElementById('total-sales').textContent = '₱' + totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('total-collections').textContent = '₱' + totalCollections.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-
-        // Initialize each day with one row to start
         ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
             addObjectiveRow(day, 'sales');
             addObjectiveRow(day, 'collections');

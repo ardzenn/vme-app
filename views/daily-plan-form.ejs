@@ -14,13 +14,20 @@
         <header class="page-header">
             <div>
                 <h1>Daily Call Plan</h1>
-                <p class="text-muted">Plan your calls for <%= new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) %>.</p>
+                <p class="text-muted">Plan your calls for today.</p>
             </div>
         </header>
+        
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
         <form action="/planning/daily" method="POST">
             <div class="card">
                 <div class="card-body">
+                    <div class="mb-4">
+                        <label for="planDate" class="form-label fw-bold">PLAN DATE:</label>
+                        <input type="date" id="planDate" name="planDate" class="form-control" required value="<%= new Date().toISOString().split('T')[0] %>">
+                    </div>
+                    
                     <div class="mb-4">
                         <label for="firstClientCall" class="form-label fw-bold">FIRST CLIENT CALL:</label>
                         <input type="text" id="firstClientCall" name="firstClientCall" class="form-control" placeholder="e.g., Davao City Hall">
@@ -31,25 +38,25 @@
                     </div>
                     <div id="places-container" class="mb-4">
                         <label class="form-label fw-bold">HOSPITALS & CAPITOL TO VISIT:</label>
-                        </div>
+                    </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addPlaceRow()">+ Add Place</button>
                     <hr class="my-4">
 
                     <div id="sales-objectives-container" class="mb-4">
                         <label class="form-label fw-bold">2.) SALES OBJECTIVES FOR THE DAY:</label>
-                        </div>
+                    </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addObjectiveRow()">+ Add Objective</button>
                     <hr class="my-4">
 
                     <div id="current-collections-container" class="mb-4">
                         <label class="form-label fw-bold">3.) TARGET COLLECTIONS FOR THE DAY (90 Days and Below):</label>
-                        </div>
+                    </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addCurrentCollectionRow()">+ Add Target</button>
                     <hr class="my-4">
                     
                     <div id="overdue-collections-container" class="mb-4">
                         <label class="form-label fw-bold">4.) TARGET COLLECTIONS FOR OVERDUE ACCOUNTS:</label>
-                        </div>
+                    </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addOverdueCollectionRow()">+ Add Overdue Target</button>
                 </div>
 
@@ -62,7 +69,6 @@
     </main>
 
     <script>
-        // --- Functions to dynamically add input rows ---
         let placeIndex = 0;
         function addPlaceRow() {
             const container = document.getElementById('places-container');
@@ -102,14 +108,13 @@
                 <h6>Overdue Target ${overdueCollectionIndex + 1}</h6>
                 <input type="text" name="targetCollections[overdue][${overdueCollectionIndex}][client]" class="form-control mb-2" placeholder="Client Name">
                 <input type="text" name="targetCollections[overdue][${overdueCollectionIndex}][si_dr]" class="form-control mb-2" placeholder="SI / DR Number">
-                <input type="date" name="targetCollections[overdue][${overdueCollectionIndex}][date]" class="form-control mb-2" placeholder="Date of SI / DR">
+                <input type="date" name="targetCollections[overdue][${overdueCollectionIndex}][date]" class="form-control mb-2">
                 <input type="number" name="targetCollections[overdue][${overdueCollectionIndex}][amount]" class="form-control" placeholder="Amount" min="0" step="0.01">
             `;
             container.appendChild(newRow);
             overdueCollectionIndex++;
         }
 
-        // Add one of each row by default to start
         addPlaceRow();
         addObjectiveRow();
         addCurrentCollectionRow();
