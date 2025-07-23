@@ -1,8 +1,9 @@
-const mongoose_User = require('mongoose');
-const { Schema: Schema_User } = mongoose_User; 
-const passportLocalMongoose_User = require('passport-local-mongoose');
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
+const passportLocalMongoose = require('passport-local-mongoose');
 
-const userSchema = new Schema_User({
+const userSchema = new Schema({
+  // username (email) and password (hash/salt) are handled by passport-local-mongoose
   firstName: { type: String, required: true, trim: true },
   lastName: { type: String, required: true, trim: true },
   birthdate: { type: Date },
@@ -26,6 +27,7 @@ const userSchema = new Schema_User({
   resetPasswordExpires: { type: Date }
 }, { timestamps: true });
 
-userSchema.plugin(passportLocalMongoose_User);
+// This plugin adds all the necessary fields and methods for authentication
+userSchema.plugin(passportLocalMongoose, { usernameField: 'username' });
 
-module.exports = mongoose_User.models.User || mongoose_User.model('User', userSchema);
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

@@ -1,11 +1,10 @@
 const User = require('../models/User');
 const passport = require('passport');
 const crypto = require('crypto');
-const sgMail = require('@sendgrid/mail'); // Use SendGrid, not nodemailer
+const sgMail = require('@sendgrid/mail');
 const { validationResult } = require('express-validator');
 
 // --- Signup, Login, Logout ---
-
 exports.signup = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -13,8 +12,9 @@ exports.signup = (req, res, next) => {
         return res.redirect('/signup');
     }
 
-    const { username, firstName, lastName, role, password } = req.body;
-    const newUser = new User({ username, firstName, lastName, role });
+    const { username, firstName, lastName, password } = req.body;
+    // Role is intentionally omitted; it should be set to 'Pending' by default
+    const newUser = new User({ username, firstName, lastName });
     
     User.register(newUser, password, (err, user) => {
         if (err) {
@@ -22,8 +22,8 @@ exports.signup = (req, res, next) => {
             return res.redirect('/signup');
         }
         passport.authenticate('local')(req, res, () => {
-            req.flash('success_msg', 'You are now registered and logged in!');
-            res.redirect('/dashboard');
+            req.flash('success_msg', 'You are now registered! Your account is pending admin approval.');
+            res.redirect('/login');
         });
     });
 };
@@ -42,9 +42,7 @@ exports.logout = (req, res, next) => {
     });
 };
 
-
 // --- Password Reset Logic (Using SendGrid) ---
-
 exports.forgotPassword = async (req, res) => {
     try {
         const token = crypto.randomBytes(20).toString('hex');
@@ -59,9 +57,8 @@ exports.forgotPassword = async (req, res) => {
         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
         await user.save();
 
-        // --- CONFIGURE AND CHECK FOR SENDGRID ---
         if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_FROM_EMAIL) {
-            console.error("FATAL ERROR: SENDGRID_API_KEY or SENDGRID_FROM_EMAIL is not set in the .env file.");
+            console.error("FATAL ERROR: SendGrid credentials not set in .env file.");
             req.flash('error_msg', 'Server error: The email service is not configured correctly.');
             return res.redirect('/forgot-password');
         }
@@ -69,30 +66,19 @@ exports.forgotPassword = async (req, res) => {
 
         const msg = {
             to: user.username,
-            from: {
-                name: 'VME App Support',
-                email: process.env.SENDGRID_FROM_EMAIL,
-            },
+            from: { name: 'VME App Support', email: process.env.SENDGRID_FROM_EMAIL },
             subject: 'VME App Password Reset Request',
-            text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n
-                   Please click on the following link, or paste this into your browser to complete the process:\n\n
-                   http://${req.headers.host}/reset-password/${token}\n\n
-                   If you did not request this, please ignore this email and your password will remain unchanged.\n`
+            text: `You are receiving this email because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process within one hour:\n\nhttp://${req.headers.host}/reset-password/${token}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\n`
         };
 
-        console.log("Attempting to send password reset email via SendGrid to:", user.username);
         await sgMail.send(msg);
-        console.log("Email sent successfully via SendGrid.");
 
         req.flash('success_msg', 'An e-mail has been sent to ' + user.username + ' with further instructions.');
         res.redirect('/forgot-password');
 
     } catch (err) {
         console.error('FORGOT PASSWORD ERROR:', err);
-        if (err.response) {
-            console.error('SendGrid Error Body:', err.response.body)
-        }
-        req.flash('error_msg', 'An error occurred while trying to send the reset email. Please check the server logs.');
+        req.flash('error_msg', 'An error occurred. Please try again.');
         res.redirect('/forgot-password');
     }
 };
@@ -109,6 +95,11 @@ exports.resetPassword = async (req, res) => {
             return res.redirect('/forgot-password');
         }
 
+        if (req.body.password !== req.body.confirmPassword) {
+            req.flash('error_msg', 'Passwords do not match.');
+            return res.redirect('back');
+        }
+
         await user.setPassword(req.body.password);
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
@@ -116,7 +107,6 @@ exports.resetPassword = async (req, res) => {
 
         req.login(user, (err) => {
             if (err) {
-                console.error('LOGIN AFTER RESET ERROR:', err);
                 req.flash('error_msg', 'Could not log you in after password reset. Please log in manually.');
                 return res.redirect('/login');
             }

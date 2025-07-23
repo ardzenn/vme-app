@@ -1,12 +1,18 @@
-const express = require('express'); 
+const express = require('express');
+const router = express.Router();
 const passport = require('passport');
 const authController = require('../controllers/authController');
-const { validateSignup, validatePasswordReset } = require('../middleware/validators');
+const { body } = require('express-validator');
 
-const router = express.Router();
+// --- Validation Rules ---
+const signupValidation = [
+    body('username', 'Please enter a valid email address.').isEmail(),
+    body('firstName', 'First name is required.').not().isEmpty(),
+    body('password', 'Password must be at least 6 characters.').isLength({ min: 6 })
+];
 
-// --- Authentication Routes ---
-router.post('/signup', validateSignup, authController.signup);
+// --- Routes ---
+router.post('/signup', signupValidation, authController.signup);
 
 router.post('/login', passport.authenticate('local', {
     failureRedirect: '/login',
@@ -15,9 +21,8 @@ router.post('/login', passport.authenticate('local', {
 
 router.get('/logout', authController.logout);
 
-// --- Password Reset Routes ---
 router.post('/forgot-password', authController.forgotPassword);
 
-router.post('/reset-password/:token', validatePasswordReset, authController.resetPassword);
+router.post('/reset-password/:token', authController.resetPassword);
 
 module.exports = router;
