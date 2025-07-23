@@ -8,6 +8,9 @@ router.get('/login', viewController.getLoginPage);
 router.get('/signup', viewController.getSignupPage);
 router.get('/forgot-password', viewController.getForgotPasswordPage);
 router.get('/reset-password/:token', viewController.getResetPasswordPage);
+router.get('/manage-entries', ensureAuthenticated, viewController.getManageEntriesPage);
+router.get('/manage-entries', ensureAuthenticated, viewController.getManageEntriesPage);
+
 
 // --- Authenticated Main Views ---
 router.get('/dashboard', ensureAuthenticated, viewController.getDashboard);
