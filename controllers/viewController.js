@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const CheckIn = require('../models/CheckIn');
 const Collection = require('../models/Collection');
+const DailyPlan = require('../models/DailyPlan');
+const WeeklyItinerary = require('../models/WeeklyItinerary');
 
 // --- Authentication Page Renderers ---
 exports.getLoginPage = (req, res) => {
@@ -97,12 +99,14 @@ exports.getAdminDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        let [users, orders, checkIns, pendingUsersCount, checkInsTodayCount] = await Promise.all([
+        const [users, orders, checkIns, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
             User.find().sort({ createdAt: -1 }),
             Order.find().populate('user', 'firstName lastName profilePicture').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
             User.countDocuments({ role: 'Pending' }),
-            CheckIn.countDocuments({ createdAt: { $gte: today } })
+            CheckIn.countDocuments({ createdAt: { $gte: today } }),
+            DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }), // <-- ADDED
+            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 }) // <-- ADDED
         ]);
 
         // NEW: Add map image URL to each check-in
@@ -127,7 +131,9 @@ exports.getAdminDashboard = async (req, res) => {
             users,
             orders,
             checkins: checkIns,
-            stats: stats
+            stats: stats,
+            dailyPlans,
+            weeklyItineraries
         });
     } catch (err) {
         console.error("Admin Dashboard Error:", err);
@@ -141,13 +147,15 @@ exports.getAccountingDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        let [orders, collections, checkIns, users, pendingUsersCount, checkInsTodayCount] = await Promise.all([
+        const [orders, collections, checkIns, users, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Collection.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
             User.find().sort({ createdAt: -1 }),
             User.countDocuments({ role: 'Pending' }),
-            CheckIn.countDocuments({ createdAt: { $gte: today } })
+            CheckIn.countDocuments({ createdAt: { $gte: today } }),
+            DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }), // <-- ADDED
+            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 }) // <-- ADDED
         ]);
 
         // NEW: Add map image URL to each check-in
@@ -173,7 +181,9 @@ exports.getAccountingDashboard = async (req, res) => {
             collections,
             checkins: checkIns,
             users,
-            stats
+            stats,
+            dailyPlans,
+            weeklyItineraries
         });
 
     } catch (err) {

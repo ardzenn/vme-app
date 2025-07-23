@@ -21,16 +21,15 @@
             <div>
                 <h1 style="font-size: 1.875rem;">Dashboard</h1>
                 <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
-                <a href="/planning/my-plans" class="btn btn-info text-white">Itinerary</a>
             </div>
-            <div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="/planning/my-plans" class="btn btn-info text-white">My Plans & Hub</a>
+                <a href="/report" class="btn btn-success">Last Call Report</a>
                 <a href="/bookorder" class="btn btn-primary">Book New Order</a>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkinModal">
                     New Check-in
                 </button>
             </div>
-            <div>
-        <a href="/report" class="btn btn-success">Last Call Report</a> </div>
         </header>
 
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
@@ -81,7 +80,7 @@
             </div>
 
             <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
-                 <div class="card card-tab">
+               <div class="card card-tab">
                     <div class="card-body">
                         <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search your check-ins...">
                         <div class="table-responsive">
@@ -104,17 +103,20 @@
                                                 <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
                                                 <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
                                                 <td><%= checkin.activity || 'N/A' %></td>
-                                                <td> <% if (checkin.mapImageUrl) { %>
+                                                <td>
+                                                    <% if (checkin.mapImageUrl) { %>
                                                         <a href="https://maps.google.com/?q=<%= checkin.location.lat %>,<%= checkin.location.lng %>" target="_blank">
                                                             <img src="<%= checkin.mapImageUrl %>" alt="Map of check-in location" style="width: 150px; border-radius: 0.25rem; cursor: pointer;">
                                                         </a>
                                                     <% } else { %><span class="text-muted">No Location</span><% } %>
                                                 </td>
-                                                <td> <% if (checkin.proof) { %>
+                                                <td>
+                                                    <% if (checkin.proof) { %>
                                                         <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
                                                     <% } else { %><span class="text-muted">No Proof</span><% } %>
                                                 </td>
-                                                <td> <% if (checkin.signature) { %>
+                                                <td>
+                                                    <% if (checkin.signature) { %>
                                                         <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
                                                     <% } else { %><span class="text-muted">No Signature</span><% } %>
                                                 </td>
@@ -142,7 +144,6 @@
     <script src="/js/dashboard-main.js"></script>
 
     <script>
-        // This function is for the image zoom modal, which is used on this page.
         const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
         const modalZoomImage = document.getElementById('modalZoomImage');
         function showImageInModal(src) {
@@ -152,8 +153,8 @@
             }
         }
         
-        // Table search functionality
         document.addEventListener('DOMContentLoaded', () => {
+            // Table search functionality
             const addTableFilter = (inputId, tableId) => {
                 const searchInput = document.getElementById(inputId);
                 if (searchInput) {
@@ -167,22 +168,20 @@
             };
             addTableFilter('orderSearch', 'orderTable');
             addTableFilter('checkinSearch', 'checkinTable');
+
+            // Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(registration => {
+                            console.log('Service Worker registered successfully:', registration);
+                        })
+                        .catch(error => {
+                            console.log('Service Worker registration failed:', error);
+                        });
+                });
+            }
         });
-    </script>
-    
-    <script>
-        // SW
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('Service Worker registered successfully:', registration);
-                    })
-                    .catch(error => {
-                        console.log('Service Worker registration failed:', error);
-                    });
-            });
-        }
     </script>
 </body>
 </html>
