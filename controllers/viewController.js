@@ -56,7 +56,6 @@ exports.getDashboard = async (req, res) => {
                 Order.countDocuments({ user: req.user.id, status: 'Pending' })
             ]);
 
-            // NEW: Add map image URL to each check-in
             if (process.env.MAPBOX_TOKEN) {
                 checkIns = checkIns.map(checkin => {
                     if (checkin.location && checkin.location.lat && checkin.location.lng) {
@@ -99,17 +98,17 @@ exports.getAdminDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const [users, orders, checkIns, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
+        // FIXED: Changed const to let
+        let [users, orders, checkIns, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
             User.find().sort({ createdAt: -1 }),
             Order.find().populate('user', 'firstName lastName profilePicture').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
             User.countDocuments({ role: 'Pending' }),
             CheckIn.countDocuments({ createdAt: { $gte: today } }),
-            DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }), // <-- ADDED
-            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 }) // <-- ADDED
+            DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }),
+            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 })
         ]);
 
-        // NEW: Add map image URL to each check-in
         if (process.env.MAPBOX_TOKEN) {
             checkIns = checkIns.map(checkin => {
                 if (checkin.location && checkin.location.lat && checkin.location.lng) {
@@ -147,18 +146,18 @@ exports.getAccountingDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const [orders, collections, checkIns, users, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
+        // FIXED: Changed const to let
+        let [orders, collections, checkIns, users, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Collection.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
             User.find().sort({ createdAt: -1 }),
             User.countDocuments({ role: 'Pending' }),
             CheckIn.countDocuments({ createdAt: { $gte: today } }),
-            DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }), // <-- ADDED
-            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 }) // <-- ADDED
+            DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }),
+            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 })
         ]);
 
-        // NEW: Add map image URL to each check-in
         if (process.env.MAPBOX_TOKEN) {
             checkIns = checkIns.map(checkin => {
                 if (checkin.location && checkin.location.lat && checkin.location.lng) {
