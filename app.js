@@ -31,6 +31,7 @@ const User = require('./models/User');
 // --- 3. INITIALIZATION ---
 dbConnect();
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const io = socketio(server);
 
