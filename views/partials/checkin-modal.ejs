@@ -51,10 +51,7 @@
             </div>
           </div>
 
-          <div class="mb-3">
-            <label for="activity" class="form-label">Activity</label>
-            <textarea name="activity" class="form-control" required></textarea>
-          </div>
+          <div class="mb-3"><label for="activity" class="form-label">Activity</label><textarea name="activity" class="form-control" required></textarea></div>
           <div class="mb-3">
               <label class="form-label">Proof of Visit</label>
               <div class="p-3 border rounded">
@@ -91,18 +88,11 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- Data & All UI Elements ---
     let allDoctors = <%- JSON.stringify(locals.allDoctors || []) %>;
     
-    // --- Modal Elements ---
-    const addHospitalModal = new bootstrap.Modal(document.getElementById('addHospitalModal'));
-    const addDoctorModal = new bootstrap.Modal(document.getElementById('addDoctorModal'));
-    const checkinModalEl = document.getElementById('checkinModal');
-
-    // --- Form Elements ---
     const hospitalSelectUI = document.getElementById('hospital-selection-ui');
     const hospitalCreateUI = document.getElementById('hospital-creation-ui');
     const showAddHospitalBtn = document.getElementById('show-add-hospital-btn');
@@ -110,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNewHospitalBtn = document.getElementById('save-new-hospital-btn');
     const hospitalSelect = document.getElementById('hospital-select');
     const newHospitalNameInput = document.getElementById('new-hospital-name-input');
+
     const doctorSelectUI = document.getElementById('doctor-selection-ui');
     const doctorCreateUI = document.getElementById('doctor-creation-ui');
     const showAddDoctorBtn = document.getElementById('show-add-doctor-btn');
@@ -117,13 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNewDoctorBtn = document.getElementById('save-new-doctor-btn');
     const doctorSelect = document.getElementById('doctor-select');
     const newDoctorNameInput = document.getElementById('new-doctor-name-input');
-    const checkinForm = document.getElementById('checkinForm');
 
-    // --- Signature & Camera Elements ---
+    const checkinModalEl = document.getElementById('checkinModal');
     const sigCanvas = document.getElementById('signature-pad');
+    const checkinForm = document.getElementById('checkinForm');
     const clearSigButton = document.getElementById('clear-signature');
     const sigDataInput = document.getElementById('signature-data');
     let signaturePad;
+
     const startCameraButton = document.getElementById('start-camera-btn');
     const cameraContainer = document.getElementById('camera-container');
     const videoPreview = document.getElementById('video-preview');
@@ -135,17 +127,86 @@ document.addEventListener('DOMContentLoaded', () => {
     let stream;
 
     // --- Logic for "Add in Place" Feature ---
-    const toggleHospitalUI = (showCreate) => { /* ... */ };
-    const toggleDoctorUI = (showCreate) => { /* ... */ };
+    const toggleHospitalUI = (showCreate) => {
+        hospitalCreateUI.style.display = showCreate ? 'block' : 'none';
+        hospitalSelectUI.style.display = showCreate ? 'none' : 'block';
+    };
+    const toggleDoctorUI = (showCreate) => {
+        doctorCreateUI.style.display = showCreate ? 'block' : 'none';
+        doctorSelectUI.style.display = showCreate ? 'none' : 'block';
+    };
+
     showAddHospitalBtn.addEventListener('click', () => toggleHospitalUI(true));
     cancelAddHospitalBtn.addEventListener('click', () => toggleHospitalUI(false));
     showAddDoctorBtn.addEventListener('click', () => toggleDoctorUI(true));
     cancelAddDoctorBtn.addEventListener('click', () => toggleDoctorUI(false));
-    hospitalSelect.addEventListener('change', () => { /* ... */ });
-    saveNewHospitalBtn.addEventListener('click', async () => { /* ... */ });
-    saveNewDoctorBtn.addEventListener('click', async () => { /* ... */ });
 
-    // --- FULLY RESTORED Logic for Camera, Signature, and Form Submission ---
+    hospitalSelect.addEventListener('change', () => {
+        const selectedOption = hospitalSelect.options[hospitalSelect.selectedIndex];
+        const selectedHospitalId = selectedOption ? selectedOption.dataset.hospitalId : null;
+        
+        doctorSelect.innerHTML = '<option value="" selected disabled>-- Select a Doctor --</option>';
+        if (selectedHospitalId) {
+            const doctorsInHospital = allDoctors.filter(doc => doc.hospital === selectedHospitalId);
+            if (doctorsInHospital.length > 0) {
+                doctorsInHospital.forEach(doc => doctorSelect.appendChild(new Option(doc.name, doc.name)));
+            } else {
+                doctorSelect.innerHTML = '<option value="" selected>-- No doctors found --</option>';
+            }
+            doctorSelect.disabled = false;
+            showAddDoctorBtn.disabled = false;
+        } else {
+            doctorSelect.disabled = true;
+            showAddDoctorBtn.disabled = true;
+        }
+    });
+
+    saveNewHospitalBtn.addEventListener('click', async () => {
+        const name = newHospitalNameInput.value.trim();
+        if (!name) return alert('Hospital name cannot be empty.');
+        
+        try {
+            const response = await fetch('/api/hospitals/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            const result = await response.json();
+            if (result.success) {
+                const newOption = new Option(result.hospital.name, result.hospital.name, true, true);
+                newOption.dataset.hospitalId = result.hospital._id;
+                hospitalSelect.appendChild(newOption);
+                hospitalSelect.dispatchEvent(new Event('change'));
+                newHospitalNameInput.value = '';
+                toggleHospitalUI(false);
+            } else { alert(result.message); }
+        } catch (err) { alert('An error occurred. Please try again.'); }
+    });
+
+    saveNewDoctorBtn.addEventListener('click', async () => {
+        const name = newDoctorNameInput.value.trim();
+        const selectedHospitalId = hospitalSelect.options[hospitalSelect.selectedIndex].dataset.hospitalId;
+        if (!name) return alert('Doctor name cannot be empty.');
+        if (!selectedHospitalId) return alert('A hospital must be selected.');
+
+        try {
+            const response = await fetch('/api/doctors/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, hospitalId: selectedHospitalId })
+            });
+            const result = await response.json();
+            if (result.success) {
+                allDoctors.push(result.doctor);
+                hospitalSelect.dispatchEvent(new Event('change'));
+                setTimeout(() => { doctorSelect.value = result.doctor.name; }, 0);
+                newDoctorNameInput.value = '';
+                toggleDoctorUI(false);
+            } else { alert(result.message); }
+        } catch (err) { alert('An error occurred. Please try again.'); }
+    });
+    
+    // --- YOUR ORIGINAL WORKING CODE FOR CAMERA AND SIGNATURE ---
     const resizeCanvas = () => {
         const ratio = Math.max(window.devicePixelRatio || 1, 1);
         sigCanvas.width = sigCanvas.offsetWidth * ratio;
@@ -179,7 +240,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
             videoPreview.srcObject = stream;
-            videoPreview.play();
         } catch (err) {
             alert("Could not access the camera. Please check permissions.");
         }
@@ -197,7 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
         cameraContainer.style.display = 'none';
         proofUploadInput.value = ''; 
     });
-    
+
+    // --- UPDATED FORM SUBMISSION LOGIC FOR SERVICE WORKER ---
     checkinForm.addEventListener('submit', (event) => {
         event.preventDefault();
         if (signaturePad && !signaturePad.isEmpty()) {
