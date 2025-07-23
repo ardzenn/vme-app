@@ -23,7 +23,7 @@
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
-        <form action="/profile" method="POST" enctype="multipart/form-data">
+        <form action="/users/profile" method="POST" enctype="multipart/form-data">
             <div class="card">
                 <div class="card-body">
                     <div class="row">

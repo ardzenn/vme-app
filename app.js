@@ -15,6 +15,20 @@ const MongoStore = require('connect-mongo');
 // --- 2. LOCAL IMPORTS ---
 const dbConnect = require('./dbConnect');
 const initializeWebsockets = require('./websockets');
+// Create upload directories
+const fs = require('fs');
+const path = require('path');
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+const ordersDir = path.join(uploadsDir, 'orders');
+const chatDir = path.join(uploadsDir, 'chat');
+const proofsDir = path.join(uploadsDir, 'proofs');
+const othersDir = path.join(uploadsDir, 'others');
+
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+if (!fs.existsSync(ordersDir)) fs.mkdirSync(ordersDir, { recursive: true });
+if (!fs.existsSync(chatDir)) fs.mkdirSync(chatDir, { recursive: true });
+if (!fs.existsSync(proofsDir)) fs.mkdirSync(proofsDir, { recursive: true });
+if (!fs.existsSync(othersDir)) fs.mkdirSync(othersDir, { recursive: true });
 
 // Pre-load all models to prevent schema errors
 require('./models/User');
