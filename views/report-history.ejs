@@ -18,10 +18,11 @@
             </div>
         </header>
 
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-body">
+                <input type="text" id="reportSearch" class="form-control" placeholder="Search reports by user, client, or date..."> 
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover" id="reportHistoryTable">
                         <thead>
                             <tr>
                                 <th>Submitted By</th>
@@ -33,7 +34,7 @@
                         <tbody>
                             <% if(reports.length > 0) { %>
                                 <% reports.forEach(report => { %>
-                                    <tr>
+                            <tr data-search="<%= report.user.firstName.toLowerCase() %> <%= report.user.lastName.toLowerCase() %> <%= new Date(report.reportDate).toLocaleDateString().toLowerCase() %> <%= report.lastClientVisited.toLowerCase() %>">
                                         <td><%= report.user.firstName %> <%= report.user.lastName %></td>
                                         <td><%= new Date(report.reportDate).toLocaleDateString() %></td>
                                         <td><%= report.lastClientVisited %></td>
@@ -53,5 +54,19 @@
             </div>
         </div>
     </main>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('reportSearch');
+        const tableRows = document.querySelectorAll('#reportHistoryTable tbody tr'); // Add id="reportHistoryTable" to your table tag
+
+        searchInput.addEventListener('keyup', () => {
+            const filter = searchInput.value.toLowerCase();
+            tableRows.forEach(row => {
+                const searchData = row.dataset.search || '';
+                row.style.display = searchData.includes(filter) ? '' : 'none';
+            });
+        });
+    });
+</script>
 </body>
 </html>

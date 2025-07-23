@@ -54,26 +54,26 @@
                             <% report.dailySales.forEach(sale => { %>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <%= sale.client %>
-                                    <span class="badge bg-primary rounded-pill">₱<%= sale.amount.toLocaleString() %></span>
+                                    <span class="badge bg-primary rounded-pill">₱<%= (sale.amount || 0).toLocaleString() %></span>
                                 </li>
                             <% }) %>
                         </ul>
                     </div>
                     <div class="col-md-6">
                         <h5>Collections for the Day:</h5>
-                        <p>Current: ₱<%= report.dailyCollections.current.toLocaleString() %></p>
-                        <p>Overdue: ₱<%= report.dailyCollections.overdue.toLocaleString() %></p>
+                        <p>Current: ₱<%= (report.dailyCollections.current || 0).toLocaleString() %></p>
+                        <p>Overdue: ₱<%= (report.dailyCollections.overdue || 0).toLocaleString() %></p>
                     </div>
                 </div>
                 <hr>
 
                 <h5>Expense Report:</h5>
                 <p>
-                    Meal: ₱<%= report.expenses.meal.toLocaleString() %> | 
-                    Transportation: ₱<%= report.expenses.transportation.toLocaleString() %> | 
-                    Toll: ₱<%= report.expenses.toll.toLocaleString() %> | 
-                    Parking: ₱<%= report.expenses.parking.toLocaleString() %> | 
-                    Lodging: ₱<%= report.expenses.lodging.toLocaleString() %>
+                Meal: ₱<%= (report.expenses.meal || 0).toLocaleString() %> | 
+                Transportation: ₱<%= (report.expenses.transportation || 0).toLocaleString() %> | 
+                Toll: ₱<%= (report.expenses.toll || 0).toLocaleString() %> | 
+                Parking: ₱<%= (report.expenses.parking || 0).toLocaleString() %> | 
+             Lodging: ₱<%= (report.expenses.lodging || 0).toLocaleString() %>
                 </p>
                 <hr>
 

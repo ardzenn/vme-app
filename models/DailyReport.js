@@ -20,6 +20,8 @@ const dailyReportSchema = new Schema({
     },
 
     accomplishments: { type: String },
+    
+    mtdNotes: { type: String },
 
     dailySales: [{
         client: String,
@@ -38,6 +40,7 @@ const dailyReportSchema = new Schema({
         parking: { type: Number, default: 0 },
         lodging: { type: Number, default: 0 },
     },
+    
 
     attachments: [{ type: String }] // Array of file paths for multiple images
 }, { timestamps: true });
