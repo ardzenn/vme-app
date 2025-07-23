@@ -10,13 +10,13 @@ const flash = require('connect-flash');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const socketio = require('socket.io');
-const MongoStore = require('connect-mongo'); // Ensure this import is here
+const MongoStore = require('connect-mongo');
 
 // --- 2. LOCAL IMPORTS ---
 const dbConnect = require('./dbConnect');
 const initializeWebsockets = require('./websockets');
 
-// Pre-load all models
+// Pre-load all models to prevent schema errors
 require('./models/User');
 require('./models/Order');
 require('./models/Message');
@@ -26,21 +26,11 @@ require('./models/Doctor');
 require('./models/CheckIn');
 require('./models/Collection');
 
-app.use('/', authRoutes);
-app.use('/', viewRoutes);
-app.use('/orders', orderRoutes);
-app.use('/checkin', checkinRoutes);
-app.use('/collection', collectionRoutes);
-app.use('/chat', chatRoutes);
-app.use('/api', apiRoutes);
-app.use('/users', userRoutes);
-
-
-const User = require('./models.User');
+const User = require('./models/User');
 
 // --- 3. INITIALIZATION ---
 dbConnect();
-const app = express();
+const app = express(); // <<< 'app' is created here, BEFORE it is used.
 const server = http.createServer(app);
 const io = socketio(server);
 
@@ -51,24 +41,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// View Engine Setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// FIX: This is the correct session configuration for production
 app.use(session({
-    secret: process.env.SESSION_SECRET, // Reads the secret from your Render environment variables
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({ 
-        mongoUrl: process.env.MONGO_URI // This tells the app to save sessions in your database
+        mongoUrl: process.env.MONGO_URI
     }),
     cookie: { 
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 // Cookie lasts for 1 day
+        maxAge: 1000 * 60 * 60 * 24 // 1 day
     }
 }));
-
 app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
@@ -95,14 +82,20 @@ const apiRoutes = require('./routes/api');
 const chatRoutes = require('./routes/chat');
 const userRoutes = require('./routes/users');
 
-// Health Check Route
-// This is for the deployment service to verify the app is live.
+// Health Check Route for deployment
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
-
-
+// These must come AFTER 'app' is created and middleware is set up.
+app.use('/', authRoutes);
+app.use('/', viewRoutes);
+app.use('/orders', orderRoutes);
+app.use('/checkin', checkinRoutes);
+app.use('/collection', collectionRoutes);
+app.use('/chat', chatRoutes);
+app.use('/api', apiRoutes);
+app.use('/users', userRoutes);
 
 // --- 6. SERVER LISTENING ---
 const PORT = process.env.PORT || 3000;
