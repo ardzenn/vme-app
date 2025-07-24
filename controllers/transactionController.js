@@ -1,17 +1,26 @@
-// in controllers/transactionController.js
 const Transaction = require('../models/Transaction');
 const multer = require('multer');
 const path = require('path');
 
 const storage = multer.diskStorage({
-    destination: './public/uploads/transactions/',
+    destination: (req, file, cb) => {
+        let dest = './public/uploads/transactions/';
+        // Check if the route is for a comment attachment
+        if (req.originalUrl.includes('/comment/attach')) {
+            dest = './public/uploads/txn_comments/';
+        }
+        cb(null, dest);
+    },
     filename: (req, file, cb) => {
         cb(null, `txn-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
     }
 });
 const upload = multer({ storage });
 
+// --- Middleware Exports ---
+// For the main transaction form
 exports.uploadAttachment = upload.single('attachment');
+exports.uploadCommentAttachment = upload.single('commentAttachment');
 
 // --- Views ---
 exports.getTransactionPage = (req, res) => {
