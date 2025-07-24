@@ -120,10 +120,19 @@ p { color: var(--text-light); line-height: 1.6; }
 }
 .page-header {
     display: flex;
-    flex-wrap: wrap; /* Allows items to wrap to the next line */
+    flex-wrap: wrap; 
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
     padding: 2rem 0;
-    gap: 1rem; /* Adds spacing between items when they wrap */
+    gap: 1rem; 
+}
+.dashboard-header-btn {
+    min-width: 140px;
+    height: 50px; /* Sets a consistent height for all buttons */
+    display: inline-flex; /* Use flexbox for alignment */
+    align-items: center; /* Vertically centers the text */
+    justify-content: center; /* Horizontally centers the text */
+    text-align: center;
+    padding: 0.5rem; /* Adjust padding for better text flow */
 }
