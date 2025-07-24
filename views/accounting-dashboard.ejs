@@ -92,16 +92,16 @@
                     <div class="table-responsive"><table class="table table-hover align-middle" id="checkinTable">
                         <thead><tr><th>User</th><th>Hospital</th><th>Location</th><th>Proof</th><th>Signature</th><th>Date</th></tr></thead>
                         <tbody>
-                            <% checkins.forEach(checkin => { %>
-                                <tr data-search="<%= (checkin.user ? (checkin.user.firstName || '') + ' ' + (checkin.user.lastName || '') : '').toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %>">
-                                    <td><%= checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A' %></td>
-                                    <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
-                                    <td><% if (checkin.mapImageUrl) { %><a href="https://www.google.com/maps?q=<%= checkin.location.lat %>,<%= checkin.location.lng %>" target="_blank"><img src="<%= checkin.mapImageUrl %>" alt="Map" style="width: 150px; border-radius: 0.25rem;"></a><% } else { %> No Location <% } %></td>
-                                    <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %> No Proof <% } %></td>
-                                    <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %> No Signature <% } %></td>
-                                    <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
-                                </tr>
-                            <% }) %>
+                        <% checkins.forEach(checkin => { %>
+                          <tr data-search="<%= (checkin.user ? (checkin.user.firstName || '') + ' ' + (checkin.user.lastName || '') : '').toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %>">
+                           <td><%= checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A' %></td>
+                           <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
+                           <td><% if (checkin.mapImageUrl) { %><img src="<%= checkin.mapImageUrl %>" alt="Map" style="width: 150px; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.mapImageUrl %>')"><% } else { %> No Location <% } %></td>
+                           <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %> No Proof <% } %></td>
+                           <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %> No Signature <% } %></td>
+                           <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+                           </tr>
+                          <% }) %>
                         </tbody>
                     </table></div>
                 </div></div>
