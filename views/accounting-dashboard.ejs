@@ -32,13 +32,17 @@
             <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Online Now</h5><p class="card-text fs-2 fw-bold" id="online-users-count">0</p></div></div></div>
         </div>
 
-      <ul class="nav nav-tabs" id="accountingTab" role="tablist">
-        <li class="nav-item" role="presentation"><button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">Sales Orders</button></li>
-        <li class="nav-item" role="presentation"><button class="nav-link" id="collections-tab" data-bs-toggle="tab" data-bs-target="#collections-panel" type="button" role="tab">Collections</button></li>
-        <li class="nav-item" role="presentation"><button class="nav-link" id="checkins-tab" data-bs-toggle="tab" data-bs-target="#checkins-panel" type="button" role="tab">Check-in History</button></li>
-        <li class="nav-item" role="presentation"><button class="nav-link" id="daily-plans-tab" data-bs-toggle="tab" data-bs-target="#daily-plans-panel" type="button" role="tab">Daily Itinerary</button></li>
-        <li class="nav-item" role="presentation"><button class="nav-link" id="weekly-itineraries-tab" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel" type="button" role="tab">Weekly Itineraries</button></li>
-        <li class="nav-item" role="presentation"><button class="nav-link" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-panel" type="button" role="tab">Live Map</button></li>
+      <ul class="nav nav-tabs" id="adminTab" role="tablist">
+    <% if (currentUser.role === 'Admin') { %>
+        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#users-panel">User Management</button></li>
+    <% } %>
+    
+    <li class="nav-item" role="presentation"><button class="nav-link <%= currentUser.role === 'Accounting' ? 'active' : '' %>" data-bs-toggle="tab" data-bs-target="#orders-panel">Sales Orders</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel">Transactions</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel">Check-in History</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Plans</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>
+    
     </ul>
 
       <div class="tab-content" id="accountingTabContent">

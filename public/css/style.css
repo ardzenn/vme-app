@@ -136,3 +136,20 @@ p { color: var(--text-light); line-height: 1.6; }
     padding: 0.5rem;
     white-space: normal;
 }
+.header-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 900px; /* Adjust this max-width as needed */
+}
+.dashboard-header-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.5rem;
+    height: 50px;
+    white-space: normal;
+    line-height: 1.2;
+}

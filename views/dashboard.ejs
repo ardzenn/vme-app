@@ -2,29 +2,29 @@
 <html lang="en">
 <head>
     <title>Dashboard - VME App</title>
-    <%- include('partials/header-meta') %>
+    <%- include('partials/header-meta') %
 </head>
 <body data-user-id="<%= currentUser._id %>">
     <%- include('partials/navbar') %>
 
     <main class="container-fluid" style="padding: 0 2rem;">
-        <header class="page-header">
-            <div>
-                <h1 style="font-size: 1.875rem;">Dashboard</h1>
-                <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
-            </div>
-            <div class="d-flex align-items-center gap-2 w-100">
-                <a href="/transactions" class="btn btn-secondary dashboard-header-btn">Collection/Deposit</a>
-                <a href="/manage-entries" class="btn btn-secondary">Manage My Entries</a>
-                <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
-                <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>
-                <a href="/report" class="btn btn-success dashboard-header-btn">Daily Coverage Report</a>
-                <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#checkinModal">
-                    Check-in
-                </button>
-            </div>
-        </header>
+        <<header class="page-header">
+    <div>
+        <h1 style="font-size: 1.875rem;">Dashboard</h1>
+        <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
+    </div>
+    <div class="header-actions">
+        <a href="/transactions" class="btn btn-secondary dashboard-header-btn">Collection/Deposit</a>
+        <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Manage My Entries</a>
+        <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
+        <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>
+        <a href="/report" class="btn btn-success dashboard-header-btn">Daily Coverage Report</a>
+        <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
+        <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
+            Check-in
+        </button>
+    </div>
+</header>
 
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
