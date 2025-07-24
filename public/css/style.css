@@ -128,11 +128,11 @@ p { color: var(--text-light); line-height: 1.6; }
     gap: 1rem; 
 }
 .dashboard-header-btn {
-    min-width: 140px;
-    height: 50px; /* Sets a consistent height for all buttons */
-    display: inline-flex; /* Use flexbox for alignment */
-    align-items: center; /* Vertically centers the text */
-    justify-content: center; /* Horizontally centers the text */
+    flex: 1; 
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    padding: 0.5rem; /* Adjust padding for better text flow */
+    padding: 0.5rem;
+    white-space: normal;
 }

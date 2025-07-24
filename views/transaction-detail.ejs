@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <%- include('partials/navbar') %>
+    <main class="container my-5">
+        <header class="page-header">
+            <h1><%= transaction.type %> Details</h1>
+            <a href="/transactions/history" class="btn btn-secondary">Back to History</a>
+        </header>
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card">
+                    <div class="card-body">
+                        <p><strong>Submitted By:</strong> <%= transaction.user.firstName %> <%= transaction.user.lastName %></p>
+                        <hr>
+                        <h5>Attachment</h5>
+                        <a href="<%= transaction.attachmentUrl %>" target="_blank">View Attached File</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card">
+                    <div class="card-header"><h5>Communication</h5></div>
+                    <div class="card-body chat-container">
+                        <div id="modal_chatMessages" class="chat-messages flex-grow-1">
+                            </div>
+                        <div class="chat-input-area mt-3">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // This page will need JavaScript similar to the order detail modal
+        // to handle the real-time chat and attachments.
+    </script>
+</body>
+</html>

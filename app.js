@@ -39,6 +39,7 @@ require('./models/Hospital');
 require('./models/Doctor');
 require('./models/CheckIn');
 require('./models/Collection');
+require('./models/Transaction');
 
 const User = require('./models/User');
 
@@ -111,7 +112,7 @@ const planningRoutes = require('./routes/planning');
 const productRoutes = require('./routes/products');
 const analyticsRoutes = require('./routes/analytics');
 const pushRoutes = require('./routes/push');
-
+const transactionRoutes = require('./routes/transactions');
 
 
 
@@ -135,7 +136,7 @@ app.use('/planning', planningRoutes);
 app.use('/products', productRoutes);
 app.use('/analytics', analyticsRoutes);
 app.use('/push', pushRoutes);
-
+app.use('/transactions', transactionRoutes);
 
 
 

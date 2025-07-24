@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    <%- include('partials/navbar') %>
+    <main class="container-fluid my-5">
+        <header class="page-header"><h1>Transaction History</h1></header>
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead><tr><th>User</th><th>Type</th><th>Customer/Hospital</th><th>Amount</th><th>Date</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% transactions.forEach(txn => { %>
+                                <tr>
+                                    <td><%= txn.user.firstName %> <%= txn.user.lastName %></td>
+                                    <td><span class="badge bg-<%= txn.type === 'Collection' ? 'info' : 'success' %>"><%= txn.type %></span></td>
+                                    <td><%= txn.customer || txn.hospital %></td>
+                                    <td>₱<%= ((txn.amount || txn.totalAmountDeposited) || 0).toLocaleString() %></td>
+                                    <td><%= new Date(txn.createdAt).toLocaleDateString() %></td>
+                                    <td><a href="/transactions/<%= txn._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

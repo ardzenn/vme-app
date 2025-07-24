@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Collection & Deposit</title>
+    <%- include('partials/header-meta') %> <!-- Assuming you have a partial for meta tags -->
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    <main class="container my-5">
+        <header class="page-header">
+            <h1>Collection & Deposit</h1>
+            <p class="text-muted">Select a form to submit your financial documents.</p>
+        </header>
+
+        <!-- Form Toggle Buttons -->
+        <div class="btn-group w-100 mb-4">
+            <button class="btn btn-primary active" id="show-collection-btn">Collection Form</button>
+            <button class="btn btn-outline-primary" id="show-deposit-btn">Deposit Form</button>
+        </div>
+
+        <!-- Collection Form -->
+        <form action="/transactions" method="POST" enctype="multipart/form-data" id="collection-form">
+            <input type="hidden" name="type" value="Collection">
+            <div class="card">
+                <div class="card-header"><h4>Collection Details</h4></div>
+                <div class="card-body">
+                    <!-- ... form fields from your image ... -->
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Submit Collection</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Deposit Form (Hidden by default) -->
+        <form action="/transactions" method="POST" enctype="multipart/form-data" id="deposit-form" style="display: none;">
+            <input type="hidden" name="type" value="Deposit">
+             <div class="card">
+                <div class="card-header"><h4>Deposit Details</h4></div>
+                <div class="card-body">
+                    <!-- ... form fields from your image ... -->
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Submit Deposit</button>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        const collectionBtn = document.getElementById('show-collection-btn');
+        const depositBtn = document.getElementById('show-deposit-btn');
+        const collectionForm = document.getElementById('collection-form');
+        const depositForm = document.getElementById('deposit-form');
+        
+        collectionBtn.addEventListener('click', () => {
+            collectionForm.style.display = 'block';
+            depositForm.style.display = 'none';
+            collectionBtn.classList.add('active', 'btn-primary');
+            collectionBtn.classList.remove('btn-outline-primary');
+            depositBtn.classList.remove('active', 'btn-primary');
+            depositBtn.classList.add('btn-outline-primary');
+        });
+
+        depositBtn.addEventListener('click', () => {
+            depositForm.style.display = 'block';
+            collectionForm.style.display = 'none';
+            depositBtn.classList.add('active', 'btn-primary');
+            depositBtn.classList.remove('btn-outline-primary');
+            collectionBtn.classList.remove('active', 'btn-primary');
+            collectionBtn.classList.add('btn-outline-primary');
+        });
+    </script>
+</body>
+</html>
