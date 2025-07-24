@@ -1,6 +1,7 @@
 const Message = require('./models/Message');
 const Order = require('./models/Order');
 const User = require('./models/User');
+const Transaction = require('./models/Transaction');
 
 // This map will store the socket ID and the corresponding user ID
 const connectedUsers = new Map();
@@ -24,7 +25,6 @@ function initializeWebsockets(io) {
         });
 
         socket.on('sendOrderMessage', async ({ orderId, userId, text, attachment }) => {
-            // FIX: The validation now checks for the required fields AND either text OR an attachment.
             if (!orderId || !userId || (!text && !attachment)) {
                 return console.error('Invalid data for sendOrderMessage:', { orderId, userId, text, attachment });
             }
@@ -53,6 +53,36 @@ function initializeWebsockets(io) {
                 console.error("Error saving or broadcasting order message:", error);
             }
         });
+
+        // Handler for Transac Comments
+         socket.on('joinTransactionRoom', (transactionId) => {
+            socket.join(transactionId);
+            console.log(`Socket ${socket.id} joined transaction room: ${transactionId}`);
+        });
+
+        socket.on('sendTransactionComment', async ({ transactionId, userId, text, attachmentUrl }) => {
+            if (!transactionId || !userId || (!text && !attachmentUrl)) {
+                return console.error('Invalid data for sendTransactionComment');
+            }
+            try {
+                const comment = { user: userId, text, attachmentUrl };
+                const updatedTransaction = await Transaction.findByIdAndUpdate(
+                    transactionId,
+                    { $push: { comments: comment } },
+                    { new: true }
+                ).populate('comments.user', 'firstName lastName profilePicture');
+                
+                const newComment = updatedTransaction.comments[updatedTransaction.comments.length - 1];
+
+                // Broadcast the new comment to everyone in the room
+                io.to(transactionId).emit('newTransactionComment', newComment);
+            } catch (error) {
+                console.error("Error saving or broadcasting transaction comment:", error);
+            }
+        });
+
+
+        
 
         // --- Handler for Real-Time Location Updates ---
         socket.on('updateLocation', async ({ lat, lng }) => {
@@ -83,5 +113,7 @@ function initializeWebsockets(io) {
         });
     });
 }
+
+
 
 module.exports = initializeWebsockets;
