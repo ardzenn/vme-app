@@ -4,7 +4,7 @@
     <title>Dashboard - VME App</title>
     <%- include('partials/header-meta') %>
 </head>
-<body data-user-id="<%= currentUser._id %>">
+<body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
     <%- include('partials/navbar') %>
 
     <main class="container-fluid" style="padding: 0 2rem;">

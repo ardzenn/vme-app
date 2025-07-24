@@ -1,10 +1,8 @@
-<!-- The blue button that opens the chat widget -->
 <div class="chat-widget-toggler" id="chat-widget-toggler">
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
     <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="widget-unread-badge" style="display: none; border: 2px solid white;"></span>
 </div>
 
-<!-- The Main Chat Widget Container -->
 <div class="chat-widget-container" id="chat-widget-container">
     
     <div class="conversation-list" id="widget-list-view">
@@ -22,26 +20,26 @@
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#users-tab-panel">Users</button></li>
         </ul>
 
-        <div class="tab-content" style="flex-grow: 1; display: flex; flex-direction: column;">
-            <div class="tab-pane fade show active" id="conversations-tab-panel" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column;">
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="conversations-tab-panel">
                 <div class="p-2 border-bottom">
                     <input type="text" id="chat-search-input" class="form-control form-control-sm" placeholder="Search all chats...">
                 </div>
                 <div class="conversation-list-body" id="conversation-list-body"></div>
             </div>
-            <div class="tab-pane fade" id="groups-tab-panel" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column;">
+            <div class="tab-pane fade" id="groups-tab-panel">
                 <div class="p-2 border-bottom">
                     <input type="text" id="group-search-input" class="form-control form-control-sm" placeholder="Search groups...">
                 </div>
                 <div class="conversation-list-body" id="group-list-body"></div>
             </div>
-            <div class="tab-pane fade" id="users-tab-panel" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column;">
+            <div class="tab-pane fade" id="users-tab-panel">
                 <div class="p-2 border-bottom">
                     <input type="text" id="user-search-input" class="form-control form-control-sm" placeholder="Search users...">
                 </div>
                 <div id="user-list-body" class="conversation-list-body">
                     <% if(locals.conversations) { conversations.forEach(user => { %>
-                        <div class="conversation new-chat-user" data-recipient-id="<%= user._id %>">
+                        <div class="conversation new-chat-user" data-name="<%= (user.firstName || '').toLowerCase() %> <%= (user.lastName || '').toLowerCase() %>" data-recipient-id="<%= user._id %>">
                             <img src="<%= user.profilePicture %>" alt="<%= user.firstName %>">
                             <div><strong><%= user.firstName %> <%= user.lastName %></strong></div>
                         </div>
@@ -51,7 +49,6 @@
         </div>
     </div>
 
-    <!-- The rest of the file (chat window, group info view, modals) is unchanged -->
     <div class="chat-window" id="widget-chat-window">
         <div class="chat-window-header" id="widget-chat-header">
             <button class="btn btn-sm btn-light me-2" id="chat-back-btn">&lt;</button>
@@ -128,6 +125,21 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-danger" id="confirm-delete-group-btn">Delete Group</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="groupInfoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="groupInfoModalTitle">Group Members</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong id="group-member-count"></strong> members</p>
+        <ul class="list-group" id="group-participant-list-modal-view"></ul>
       </div>
     </div>
   </div>

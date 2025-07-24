@@ -3,12 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentUser = JSON.parse(document.body.dataset.currentUser || '{}');
     if (!currentUserId) return;
 
-    const socket = io({ query: { userId: currentUserId, userName: currentUser.firstName } });
+    const socket = io();
 
     // --- Modal Instances & Element Definitions ---
     const createGroupModal = new bootstrap.Modal(document.getElementById('createGroupModal'));
     const removeParticipantModal = new bootstrap.Modal(document.getElementById('removeParticipantModal'));
     const deleteGroupModal = new bootstrap.Modal(document.getElementById('deleteGroupModal'));
+    const groupInfoModal = new bootstrap.Modal(document.getElementById('groupInfoModal'));
     const toggler = document.getElementById('chat-widget-toggler');
     const container = document.getElementById('chat-widget-container');
     const closeBtn = document.getElementById('chat-widget-close');
@@ -106,21 +107,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showGroupInfo = (convo) => {
-        participantList.innerHTML = '';
+        const participantListModal = document.getElementById('group-participant-list-modal-view');
+        document.getElementById('groupInfoModalTitle').textContent = convo.groupName;
+        document.getElementById('group-member-count').textContent = convo.participants.length;
+        participantListModal.innerHTML = '';
+
         convo.participants.forEach(p => {
             const isAdmin = p._id === convo.groupAdmin;
-            const item = document.createElement('div');
-            item.className = 'conversation';
+            const item = document.createElement('li');
+            item.className = 'list-group-item d-flex align-items-center participant-list-item';
             item.innerHTML = `
-                <img src="${p.profilePicture || '/images/default-profile.png'}" alt="${p.firstName}">
-                <div>
-                    <strong>${p.firstName} ${p.lastName}</strong>
-                    ${isAdmin ? '<span class="badge bg-primary rounded-pill ms-2">Admin</span>' : ''}
-                </div>
+                <img src="${p.profilePicture || '/images/default-profile.png'}" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
+                <span>${p.firstName} ${p.lastName}</span>
+                ${isAdmin ? '<span class="badge bg-primary rounded-pill ms-auto">Admin</span>' : ''}
             `;
-            participantList.appendChild(item);
+            participantListModal.appendChild(item);
         });
-        groupInfoView.classList.add('active');
+        
+        groupInfoModal.show();
     };
 
     const renderConversations = (convos) => {
@@ -139,10 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const convoEl = document.createElement('div');
             convoEl.className = 'conversation';
             convoEl.dataset.convoId = convo._id;
-            convoEl.dataset.name = displayName.toLowerCase(); // ADDED: For searching
+            convoEl.dataset.name = displayName.toLowerCase();
             
             const unreadCount = unreadCounts[convo._id] || 0;
-            const badgeHTML = unreadCount > 0 ? `<span class="badge bg-primary rounded-pill ms-auto">${unreadCount}</span>` : '';
+            const badgeHTML = unreadCount > 0 ? `<span class="badge bg-primary rounded-pill ms-auto unread-badge">${unreadCount}</span>` : '';
 
             convoEl.innerHTML = `
                 <img src="${displayPic}" alt="${displayName}">
@@ -155,9 +159,11 @@ document.addEventListener('DOMContentLoaded', () => {
             convoEl.addEventListener('click', () => openChat(convo));
 
             if (isGroup) {
-                groupListBody.appendChild(convoEl);
+                const groupElClone = convoEl.cloneNode(true);
+                groupElClone.addEventListener('click', () => openChat(convo));
+                groupListBody.appendChild(groupElClone);
             }
-            conversationListBody.appendChild(convoEl.cloneNode(true)).addEventListener('click', () => openChat(convo));
+            conversationListBody.appendChild(convoEl);
         });
     };
 
@@ -190,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
         groupInfoView.classList.remove('active');
     });
 
-    // --- UPDATED: Search Listeners for ALL TABS ---
     const setupSearch = (inputElement, listContainer) => {
         if (!inputElement) return;
         inputElement.addEventListener('keyup', () => {
@@ -242,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('createGroupForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const groupName = document.getElementById('groupName').value;
-        const participants = Array.from(document.querySelectorAll('input[name="participants"]:checked')).map(cb => cb.value);
+        const participants = Array.from(document.querySelectorAll('#group-participants-list-modal input[name="participants"]:checked')).map(cb => cb.value);
         try {
             const response = await fetch('/api/conversations/group', {
                 method: 'POST',
@@ -261,7 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // --- Group Management Logic ---
     function handleRemoveParticipant() {
         const listContainer = document.getElementById('remove-participant-list');
         listContainer.innerHTML = '';
@@ -295,13 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
         chatWindow.classList.remove('active');
         loadConversations();
     });
-
-    
-    // --- Group Management Logic (Unchanged) ---
-    function handleRemoveParticipant() { /* ... */ }
-    function handleDeleteGroup() { /* ... */ }
-    document.getElementById('confirm-delete-group-btn').addEventListener('click', async () => { 
-        /* ... */ });
 
     // --- Socket.IO Listeners ---
     socket.on('newMessage', (msg) => {
