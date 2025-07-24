@@ -5,6 +5,20 @@ import { BackgroundSyncPlugin } from 'workbox-background-sync';
 
 // This line is replaced by the Workbox build process with a list of all your files to cache.
 precacheAndRoute(self.__WB_MANIFEST);
+// Cache Pages
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  new StaleWhileRevalidate()
+);
+
+// Cache Google Fonts
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
+  new CacheFirst({
+    cacheName: 'google-fonts',
+    plugins: [{ maxEntries: 20 }],
+  })
+);
 
 // --- Background Sync for Check-ins ---
 const bgSyncPlugin = new BackgroundSyncPlugin('checkinQueue', {
