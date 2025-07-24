@@ -1,75 +1,94 @@
+const Conversation = require('./models/Conversation');
 const Message = require('./models/Message');
-const Order = require('./models/Order');
 const User = require('./models/User');
+const Order = require('./models/Order');
 const Transaction = require('./models/Transaction');
-const DirectMessage = require('./models/DirectMessage');
 
 const connectedUsers = new Map();
 
 function initializeWebsockets(io) {
     io.on('connection', (socket) => {
-        console.log(`✅ WebSocket Connection Established: ${socket.id}`);
-
-        // Get the userId from the initial handshake
         const userId = socket.handshake.query.userId;
-        
+        const userName = socket.handshake.query.userName; // Pass user's first name for typing indicator
+
         if (userId) {
-            // Track the user as online
-            connectedUsers.set(socket.id, userId);
-            // Have the user join a private room named after their own ID for direct messages
-            socket.join(userId);
-            // Broadcast the new count of online users to everyone
+            connectedUsers.set(socket.id, { userId, userName });
+            socket.join(userId); // Join a personal room for notifications
             io.emit('onlineUsers', connectedUsers.size);
+
+            // Automatically join all of the user's existing conversation rooms on connect
+            Conversation.find({ participants: userId }).then(convos => {
+                convos.forEach(convo => socket.join(convo._id.toString()));
+            });
         }
 
-        // --- Handler for Direct Messaging ---
-        socket.on('sendDirectMessage', async ({ recipientId, text }) => {
-            const senderId = connectedUsers.get(socket.id);
-            if (!senderId || !recipientId || !text) return;
+        // --- NEW CHAT SYSTEM HANDLERS ---
+        socket.on('joinNewGroup', (conversationId) => {
+            socket.join(conversationId);
+        });
+
+        socket.on('sendMessage', async ({ conversationId, text }) => {
+            const senderData = connectedUsers.get(socket.id);
+            if (!senderData || !conversationId || !text) return;
 
             try {
-                const message = new DirectMessage({ sender: senderId, recipient: recipientId, text });
+                const message = new Message({ conversation: conversationId, sender: senderData.userId, text });
                 await message.save();
-                const populatedMessage = await DirectMessage.findById(message._id).populate('sender', 'firstName lastName profilePicture');
 
-                // Send the message to both the recipient's and sender's private rooms
-                io.to(recipientId).to(senderId).emit('newDirectMessage', populatedMessage);
+                await Conversation.findByIdAndUpdate(conversationId, { lastMessage: message._id });
+
+                const populatedMessage = await Message.findById(message._id).populate('sender', 'firstName lastName profilePicture');
+
+                // Send the message to everyone in the conversation room
+                io.to(conversationId).emit('newMessage', populatedMessage);
             } catch (err) {
-                console.error("Direct Message Error:", err);
+                console.error("Send Message Error:", err);
             }
         });
 
-        // --- Handler for Order-Specific Chat ---
+        // --- NEW: HANDLERS FOR TYPING INDICATOR ---
+        socket.on('startTyping', ({ conversationId }) => {
+            const senderData = connectedUsers.get(socket.id);
+            if (!senderData) return;
+            
+            // Broadcast to everyone in the room EXCEPT the sender
+            socket.to(conversationId).emit('userTyping', { 
+                conversationId, 
+                sender: { id: senderData.userId, name: senderData.userName } 
+            });
+        });
+
+        socket.on('stopTyping', ({ conversationId }) => {
+            const senderData = connectedUsers.get(socket.id);
+            socket.to(conversationId).emit('userStoppedTyping', { 
+                conversationId,
+                senderId: senderData.userId
+            });
+        });
+
+
+        // --- LEGACY CHAT & COMMENT HANDLERS (Unchanged) ---
         socket.on('joinOrderRoom', (orderId) => {
             socket.join(orderId);
-            console.log(`Socket ${socket.id} joined order room: ${orderId}`);
         });
 
         socket.on('sendOrderMessage', async ({ orderId, userId, text, attachment }) => {
-            if (!orderId || !userId || (!text && !attachment)) {
-                return console.error('Invalid data for sendOrderMessage');
-            }
             try {
-                const message = new Message({ order: orderId, user: userId, text, attachment });
-                await message.save();
-                await Order.findByIdAndUpdate(orderId, { $push: { messages: message._id } });
-                const populatedMessage = await Message.findById(message._id).populate('user', 'firstName lastName profilePicture');
+                const legacyMessage = new Message({ order: orderId, user: userId, text, attachment });
+                await legacyMessage.save();
+                await Order.findByIdAndUpdate(orderId, { $push: { messages: legacyMessage._id } });
+                const populatedMessage = await Message.findById(legacyMessage._id).populate('user', 'firstName lastName profilePicture');
                 io.to(orderId).emit('newOrderMessage', populatedMessage);
             } catch (error) {
                 console.error("Error saving or broadcasting order message:", error);
             }
         });
 
-        // --- Handler for Transaction Comments ---
         socket.on('joinTransactionRoom', (transactionId) => {
             socket.join(transactionId);
-            console.log(`Socket ${socket.id} joined transaction room: ${transactionId}`);
         });
 
         socket.on('sendTransactionComment', async ({ transactionId, userId, text, attachmentUrl }) => {
-            if (!transactionId || !userId || (!text && !attachmentUrl)) {
-                return console.error('Invalid data for sendTransactionComment');
-            }
             try {
                 const comment = { user: userId, text, attachmentUrl, createdAt: new Date() };
                 const updatedTransaction = await Transaction.findByIdAndUpdate(
@@ -85,7 +104,8 @@ function initializeWebsockets(io) {
             }
         });
 
-        // --- Handler for Real-Time Location Updates ---
+
+        // --- LOCATION & DISCONNECT HANDLERS (Unchanged) ---
         socket.on('updateLocation', async ({ lat, lng }) => {
             const userId = socket.handshake.query.userId;
             if (!userId || !lat || !lng) return;
@@ -100,13 +120,11 @@ function initializeWebsockets(io) {
             }
         });
 
-        // --- Handle Disconnect ---
         socket.on('disconnect', () => {
             if (connectedUsers.has(socket.id)) {
                 connectedUsers.delete(socket.id);
                 io.emit('onlineUsers', connectedUsers.size);
             }
-            console.log(`🔌 WebSocket Disconnected: ${socket.id}`);
         });
     });
 }

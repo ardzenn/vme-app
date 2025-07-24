@@ -1,32 +1,20 @@
 <nav class="navbar navbar-expand-lg" style="background-color: var(--white); border-bottom: 1px solid var(--border-color); padding: 0.75rem 2rem;">
   <div class="container-fluid">
-    
     <a class="navbar-brand" href="/dashboard" style="display: flex; align-items: center; gap: 12px;">
       <img src="/images/logo.png" alt="VME Logo" style="height: 40px;">
       <span style="font-weight: 700; color: var(--text-dark); font-size: 1.1rem;">VINTEL MED ENTERPRISES</span>
     </a>
-
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-nav" aria-controls="main-nav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-
     <div class="collapse navbar-collapse" id="main-nav">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-        
         <% if (currentUser) { %>
           <li class="nav-item d-none d-lg-block">
             <span class="navbar-text me-3">
               Hello, <strong><%= currentUser.firstName %></strong>
             </span>
           </li>
-          
-          <li class="nav-item">
-        <a href="/chat" class="btn btn-secondary btn-sm me-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            <span>Chat</span>
-          </a>
-          </li>
-        
           <li class="nav-item">
             <a href="/profile" class="btn btn-secondary btn-sm me-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>

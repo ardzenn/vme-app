@@ -56,27 +56,25 @@ exports.getDashboard = async (req, res) => {
     try {
         const userRole = req.user.role;
 
-        if (userRole === 'Admin') {
-            return res.redirect('/admin-dashboard');
-        } else if (userRole === 'Accounting') {
-            return res.redirect('/accounting-dashboard');
+        if (userRole === 'Admin' || userRole === 'Accounting') {
+            return res.redirect(`/${userRole.toLowerCase()}-dashboard`);
         } else if (userRole === 'Pending') {
             return res.render('pending');
         } else {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            let [orders, checkIns, checkinsTodayCount, pendingOrdersCount, allHospitals, allDoctors] = await Promise.all([
+            let [orders, checkIns, checkinsTodayCount, pendingOrdersCount, allHospitals, allDoctors, conversations] = await Promise.all([
                 Order.find({ user: req.user.id }).sort({ createdAt: -1 }),
                 CheckIn.find({ user: req.user.id }).populate('hospital doctor').sort({ createdAt: -1 }),
                 CheckIn.countDocuments({ user: req.user.id, createdAt: { $gte: today } }),
                 Order.countDocuments({ user: req.user.id, status: 'Pending' }),
                 Hospital.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }).sort({ name: 1 }),
-                Doctor.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }).sort({ name: 1 })
+                Doctor.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }).sort({ name: 1 }),
+                User.find({ _id: { $ne: req.user.id } }).select('firstName lastName profilePicture') // For Chat Widget
             ]);
-
+            
             checkIns = processCheckInsForMap(checkIns);
-
             const totalSales = orders.reduce((sum, order) => {
                 if (['Delivered', 'Order Shipped', 'Processing'].includes(order.status)) {
                     return sum + (order.subtotal || 0);
@@ -94,9 +92,10 @@ exports.getDashboard = async (req, res) => {
                 user: req.user,
                 orders,
                 checkins: checkIns,
-                stats: stats,
+                stats,
                 allHospitals,
-                allDoctors
+                allDoctors,
+                conversations
             });
         }
     } catch (err) {
@@ -111,24 +110,20 @@ exports.getAdminDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        let [users, orders, checkIns, transactions, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
+        let [users, orders, checkIns, transactions, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries, conversations] = await Promise.all([
             User.find().sort({ createdAt: -1 }),
             Order.find().populate('user', 'firstName lastName profilePicture').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
-            Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }), // <-- ADDED
+            Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             User.countDocuments({ role: 'Pending' }),
             CheckIn.countDocuments({ createdAt: { $gte: today } }),
             DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }),
-            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 })
+            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 }),
+            User.find({ _id: { $ne: req.user.id } }).select('firstName lastName profilePicture') // For Chat Widget
         ]);
 
         checkIns = processCheckInsForMap(checkIns);
-        
-        const stats = {
-            totalUsers: users.length,
-            pendingUsers: pendingUsersCount,
-            checkInsToday: checkInsTodayCount
-        };
+        const stats = { totalUsers: users.length, pendingUsers: pendingUsersCount, checkInsToday: checkInsTodayCount };
 
         res.render('admin-dashboard', {
             user: req.user,
@@ -136,9 +131,10 @@ exports.getAdminDashboard = async (req, res) => {
             orders,
             checkins: checkIns,
             transactions,
-            stats: stats,
+            stats,
             dailyPlans,
-            weeklyItineraries
+            weeklyItineraries,
+            conversations
         });
     } catch (err) {
         console.error("Admin Dashboard Error:", err);
@@ -152,26 +148,21 @@ exports.getAccountingDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        let [orders, collections, checkIns, users, transactions, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
+        let [orders, collections, checkIns, users, transactions, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries, conversations] = await Promise.all([
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Collection.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
             User.find().sort({ createdAt: -1 }),
-            Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }), // <-- ADDED
+            Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }), 
             User.countDocuments({ role: 'Pending' }),
             CheckIn.countDocuments({ createdAt: { $gte: today } }),
             DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }),
-            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 })
+            WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 }),
+            User.find({ _id: { $ne: req.user.id } }).select('firstName lastName profilePicture') // For Chat Widget
         ]);
 
-
         checkIns = processCheckInsForMap(checkIns);
-
-        const stats = {
-            totalUsers: users.length,
-            pendingUsers: pendingUsersCount,
-            checkInsToday: checkInsTodayCount
-        };
+        const stats = { totalUsers: users.length, pendingUsers: pendingUsersCount, checkInsToday: checkInsTodayCount };
 
         res.render('accounting-dashboard', { 
             user: req.user, 
@@ -179,12 +170,12 @@ exports.getAccountingDashboard = async (req, res) => {
             collections,
             checkins: checkIns,
             users,
-             transactions,
+            transactions,
             stats,
             dailyPlans,
-            weeklyItineraries
+            weeklyItineraries,
+            conversations
         });
-
     } catch (err) {
         console.error("Accounting Dashboard Error:", err);
         req.flash('error_msg', 'Could not load accounting dashboard data.');
@@ -193,13 +184,35 @@ exports.getAccountingDashboard = async (req, res) => {
 };
 
 exports.getProfilePage = (req, res) => { res.render('profile', { user: req.user }); };
-
 exports.getBookOrderPage = (req, res) => { res.render('bookorder'); };
-
 exports.getChatPage = async (req, res) => {
     try {
-        const conversations = await User.find({ _id: { $ne: req.user.id } }).select('firstName lastName profilePicture');
+        // 1. Find all unique users the current user has messaged with
+        const messagedUserIds = await DirectMessage.distinct('sender', { recipient: req.user.id });
+        const receivedUserIds = await DirectMessage.distinct('recipient', { sender: req.user.id });
+        const uniqueUserIds = [...new Set([...messagedUserIds, ...receivedUserIds].map(id => id.toString()))];
+
+        // 2. Fetch user info and the last message for each conversation
+        const conversations = await Promise.all(uniqueUserIds.map(async (userId) => {
+            const user = await User.findById(userId).select('firstName lastName profilePicture');
+            const lastMessage = await DirectMessage.findOne({
+                $or: [
+                    { sender: req.user.id, recipient: userId },
+                    { sender: userId, recipient: req.user.id }
+                ]
+            }).sort({ createdAt: -1 });
+
+            return {
+                user,
+                lastMessage
+            };
+        }));
+        
+        // 3. Sort conversations by the last message's date
+        conversations.sort((a, b) => (b.lastMessage?.createdAt || 0) - (a.lastMessage?.createdAt || 0));
+
         res.render('chat', { conversations });
+
     } catch (err) {
         console.error("Chat Page Error:", err);
         req.flash('error_msg', 'Could not load chat.');
