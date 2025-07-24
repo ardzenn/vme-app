@@ -68,3 +68,13 @@ exports.submitTransaction = async (req, res) => {
         res.redirect('/transactions');
     }
 };
+
+exports.getMySubmissionsPage = async (req, res) => {
+    try {
+        const transactions = await Transaction.find({ user: req.user.id }).populate('user').sort({ createdAt: -1 });
+        res.render('my-submissions', { transactions }); // Render the new page
+    } catch (err) {
+        req.flash('error_msg', 'Could not load your submission history.');
+        res.redirect('/dashboard');
+    }
+};

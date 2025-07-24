@@ -8,13 +8,13 @@
     <%- include('partials/navbar') %>
 
     <main class="container-fluid" style="padding: 0 2rem;">
-        <<header class="page-header">
+        <header class="page-header">
     <div>
         <h1 style="font-size: 1.875rem;">Dashboard</h1>
         <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
     </div>
     <div class="header-actions">
-        <a href="/transactions" class="btn btn-secondary dashboard-header-btn">Collection/Deposit</a>
+        <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
         <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Manage My Entries</a>
         <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
         <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>

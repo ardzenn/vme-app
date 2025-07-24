@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <title>Admin Dashboard - VME App</title>
-        <%- include('partials/header-meta') %>
+    <%- include('partials/header-meta') %>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body data-user-id="<%= currentUser._id %>">
@@ -15,12 +15,10 @@
                 <h1 style="font-size: 1.875rem;">Admin Dashboard</h1>
                 <p style="margin: 0;">System overview and management.</p>
             </div>
-             <div class="d-flex align-items-center gap-2">
-                <li class="nav-item" role="presentation"><a href="/transactions/history" class="nav-link">Transactions</a></li>.
+            <div class="d-flex align-items-center gap-2">
+                <a href="/analytics" class="btn btn-warning">View Analytics</a>
                 <a href="/products" class="btn btn-dark">View Product Gallery</a>
-                  <a href="/analytics" class="btn btn-warning">View Analytics</a>
             </div>
-            
         </header>
 
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
@@ -34,184 +32,138 @@
         </div>
 
         <ul class="nav nav-tabs" id="adminTab" role="tablist">
-          <% if (currentUser.role === 'Admin') { %>
-          <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#users-panel">User Management</button></li>
-          <% } %>
-    
-    <li class="nav-item" role="presentation"><button class="nav-link <%= currentUser.role === 'Accounting' ? 'active' : '' %>" data-bs-toggle="tab" data-bs-target="#orders-panel">Sales Orders</button></li>
-    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel">Transactions</button></li>
-    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel">Check-in History</button></li>
-    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Itinerary</button></li>
-    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>
-    <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#map-panel">Live Map</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#users-panel">User Management</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#orders-panel">Sales Orders</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel">Transactions</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel">Check-in History</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Plans</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#map-panel">Live Map</button></li>
         </ul>
 
-        <div class="tab-content" id="adminTabContent">
+        <div class="tab-content pt-3" id="adminTabContent">
             <div class="tab-pane fade show active" id="users-panel" role="tabpanel">
-                <div class="card card-tab">
-                    <div class="card-body">
-                        <input type="text" id="userSearch" class="form-control mb-3" placeholder="Search users...">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle" id="userTable">
-                                <thead><tr><th style="width: 40%;">Name</th><th>Current Role</th><th>Assign Role</th></tr></thead>
-                                <tbody>
-                                    <% users.forEach(user => { %>
-                                        <tr data-search="<%= (user.firstName || '').toLowerCase() %> <%= (user.lastName || '').toLowerCase() %> <%= (user.username || '').toLowerCase() %> <%= (user.role || '').toLowerCase() %>">
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <img src="<%= user.profilePicture || '/images/default-profile.png' %>" alt="Avatar" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
-                                                    <div>
-                                                        <strong><%= user.firstName || 'N/A' %> <%= user.lastName || '' %></strong>
-                                                        <div class="text-muted small"><%= user.username || 'N/A' %></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td><span class="badge bg-<%= user.role === 'Pending' ? 'warning text-dark' : 'secondary' %>"><%= user.role || 'N/A' %></span></td>
-                                            <td>
-                                                <form action="/users/update-role/<%= user._id %>" method="POST" class="d-flex">
-                                                    <select name="role" class="form-select form-select-sm me-2">
-                                                        <option value="Pending" <%= user.role === 'Pending' ? 'selected' : '' %>>Pending</option>
-                                                        <option value="MSR" <%= user.role === 'MSR' ? 'selected' : '' %>>MSR</option>
-                                                        <option value="KAS" <%= user.role === 'KAS' ? 'selected' : '' %>>KAS</option>
-                                                        <option value="Accounting" <%= user.role === 'Accounting' ? 'selected' : '' %>>Accounting</option>
-                                                        <option value="Admin" <%= user.role === 'Admin' ? 'selected' : '' %>>Admin</option>
-                                                    </select>
-                                                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    <% }) %>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="userSearch" class="form-control mb-3" placeholder="Search users...">
+                    <div class="table-responsive"><table class="table table-hover align-middle" id="userTable">
+                        <thead><tr><th>Name</th><th>Role</th><th>Assign Role</th></tr></thead>
+                        <tbody>
+                            <% users.forEach(user => { %>
+                                <tr data-search="<%= (user.firstName || '').toLowerCase() %> <%= (user.lastName || '').toLowerCase() %> <%= (user.username || '').toLowerCase() %>">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img src="<%= user.profilePicture %>" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
+                                            <div><strong><%= user.firstName %> <%= user.lastName %></strong><div class="text-muted small"><%= user.username %></div></div>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-secondary"><%= user.role %></span></td>
+                                    <td>
+                                        <form action="/users/update-role/<%= user._id %>" method="POST" class="d-flex">
+                                            <select name="role" class="form-select form-select-sm me-2"><option value="Pending" <%= user.role === 'Pending' ? 'selected' : '' %>>Pending</option><option value="MSR" <%= user.role === 'MSR' ? 'selected' : '' %>>MSR</option><option value="KAS" <%= user.role === 'KAS' ? 'selected' : '' %>>KAS</option><option value="Accounting" <%= user.role === 'Accounting' ? 'selected' : '' %>>Accounting</option><option value="Admin" <%= user.role === 'Admin' ? 'selected' : '' %>>Admin</option></select>
+                                            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
             </div>
-
             <div class="tab-pane fade" id="orders-panel" role="tabpanel">
-                <div class="card card-tab">
-                    <div class="card-body">
-                        <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search orders...">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle" id="orderTable">
-                                <thead><tr><th>User</th><th>Reference</th><th>Customer</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
-                                <tbody>
-                                    <% orders.forEach(order => { %>
-                                        <tr data-search="<%= (order.user ? order.user.firstName + ' ' + order.user.lastName : 'N/A').toLowerCase() %> <%= (order.reference || '').toLowerCase() %>">
-                                            <td>
-                                                <% if (order.user) { %>
-                                                    <div class="d-flex align-items-center">
-                                                        <img src="<%= order.user.profilePicture || '/images/default-profile.png' %>" alt="Avatar" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
-                                                        <div><strong><%= order.user.firstName %> <%= order.user.lastName %></strong></div>
-                                                    </div>
-                                                <% } else { %>N/A<% } %>
-                                            </td>
-                                            <td><%= order.reference || 'N/A' %></td>
-                                            <td><%= order.customerName || 'N/A' %></td>
-                                            <td><span class="badge bg-primary"><%= order.status || 'N/A' %></span></td>
-                                            <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
-                                            <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View</button></td>
-                                        </tr>
-                                    <% }) %>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                 <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search orders...">
+                    <div class="table-responsive"><table class="table table-hover align-middle" id="orderTable">
+                        <thead><tr><th>User</th><th>Reference</th><th>Customer</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% orders.forEach(order => { %>
+                                <tr data-search="<%= (order.user ? (order.user.firstName || '') + ' ' + (order.user.lastName || '') : '').toLowerCase() %> <%= (order.reference || '').toLowerCase() %>">
+                                    <td><%= order.user ? `${order.user.firstName} ${order.user.lastName}` : 'N/A' %></td>
+                                    <td><%= order.reference %></td>
+                                    <td><%= order.customerName %></td>
+                                    <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View</button></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
             </div>
-
+            <div class="tab-pane fade" id="transactions-panel" role="tabpanel">
+                 <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="txnSearch" class="form-control mb-3" placeholder="Search transactions...">
+                    <div class="table-responsive"><table class="table table-hover" id="txnTable">
+                        <thead><tr><th>Submitted By</th><th>Type</th><th>Customer/Hospital</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% transactions.forEach(txn => { %>
+                                <tr data-search="<%= (txn.user.firstName || '').toLowerCase() %> <%= (txn.user.lastName || '').toLowerCase() %>">
+                                    <td><%= txn.user.firstName %> <%= txn.user.lastName %></td>
+                                    <td><span class="badge bg-<%= txn.type === 'Collection' ? 'info' : 'success' %>"><%= txn.type %></span></td>
+                                    <td><%= txn.customer || txn.hospital %></td>
+                                    <td><a href="/transactions/<%= txn._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
+            </div>
             <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
-                <div class="card card-tab">
-                    <div class="card-body">
-                        <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search check-ins...">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle" id="checkinTable">
-                                <thead><tr><th>User</th><th>Hospital</th><th>Location</th><th>Proof</th><th>Date</th></tr></thead>
-                                <tbody>
-                                <% checkins.forEach(checkin => { %>
-                                    <tr data-search="<%= (checkin.user ? checkin.user.firstName + ' ' + checkin.user.lastName : '').toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %>">
-                                        <td>
-                                            <% if (checkin.user) { %>
-                                                <div class="d-flex align-items-center">
-                                                    <img src="<%= checkin.user.profilePicture || '/images/default-profile.png' %>" alt="Avatar" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
-                                                    <div><strong><%= checkin.user.firstName %> <%= checkin.user.lastName %></strong></div>
-                                                </div>
-                                            <% } else { %> N/A <% } %>
-                                        </td>
-                                        <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
-                                        <td>
-                                            <% if (checkin.mapImageUrl) { %>
-                                                <a href="http://googleusercontent.com/maps.google.com/3<%= checkin.location.lat %>,<%= checkin.location.lng %>" target="_blank">
-                                                    <img src="<%= checkin.mapImageUrl %>" alt="Map" style="width: 150px; border-radius: 0.25rem;">
-                                                </a>
-                                            <% } else { %> No Location <% } %>
-                                        </td>
-                                        <td>
-                                            <% if (checkin.proof) { %>
-                                                <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
-                                            <% } else { %> No Proof <% } %>
-                                        </td>
-                                        <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
-                                    </tr>
-                                <% }) %>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+               <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search check-ins...">
+                    <div class="table-responsive"><table class="table table-hover align-middle" id="checkinTable">
+                        <thead><tr><th>User</th><th>Hospital</th><th>Location</th><th>Proof</th><th>Signature</th><th>Date</th></tr></thead>
+                        <tbody>
+                            <% checkins.forEach(checkin => { %>
+                                <tr data-search="<%= (checkin.user ? (checkin.user.firstName || '') + ' ' + (checkin.user.lastName || '') : '').toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %>">
+                                    <td><%= checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A' %></td>
+                                    <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
+                                    <td><% if (checkin.mapImageUrl) { %><a href="http://googleusercontent.com/maps/google.com/0<%= checkin.location.lat %>,<%= checkin.location.lng %>" target="_blank"><img src="<%= checkin.mapImageUrl %>" alt="Map" style="width: 150px; border-radius: 0.25rem;"></a><% } else { %> No Location <% } %></td>
+                                    <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %> No Proof <% } %></td>
+                                    <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %> No Signature <% } %></td>
+                                    <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
             </div>
-
             <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
-                <div class="card card-tab">
-                    <div class="card-body">
-                        <input type="text" id="dailyPlanSearch" class="form-control mb-3" placeholder="Search daily plans...">
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="dailyPlanTable">
-                                <thead><tr><th>Submitted By</th><th>Plan Date</th><th>First Client Call</th><th>Actions</th></tr></thead>
-                                <tbody>
-                                    <% dailyPlans.forEach(plan => { %>
-                                        <tr data-search="<%= plan.user.firstName.toLowerCase() %> <%= plan.user.lastName.toLowerCase() %>">
-                                            <td><%= plan.user.firstName %> <%= plan.user.lastName %></td>
-                                            <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
-                                            <td><%= plan.firstClientCall %></td>
-                                            <td><a href="/planning/daily/<%= plan._id %>" class="btn btn-sm btn-primary">View Details</a></td>
-                                        </tr>
-                                    <% }) %>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="dailyPlanSearch" class="form-control mb-3" placeholder="Search daily plans...">
+                    <div class="table-responsive"><table class="table table-hover" id="dailyPlanTable">
+                        <thead><tr><th>Submitted By</th><th>Plan Date</th><th>First Client Call</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% dailyPlans.forEach(plan => { %>
+                                <tr data-search="<%= (plan.user.firstName || '').toLowerCase() %> <%= (plan.user.lastName || '').toLowerCase() %>">
+                                    <td><%= plan.user.firstName %> <%= plan.user.lastName %></td>
+                                    <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
+                                    <td><%= plan.firstClientCall %></td>
+                                    <td><a href="/planning/daily/<%= plan._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
             </div>
-
             <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
-                <div class="card card-tab">
-                     <div class="card-body">
-                        <input type="text" id="weeklyItinerarySearch" class="form-control mb-3" placeholder="Search weekly itineraries...">
-                        <div class="table-responsive">
-                            <table class="table table-hover" id="weeklyItineraryTable">
-                                <thead><tr><th>Submitted By</th><th>Week Start Date</th><th>Actions</th></tr></thead>
-                                <tbody>
-                                    <% weeklyItineraries.forEach(itinerary => { %>
-                                        <tr data-search="<%= itinerary.user.firstName.toLowerCase() %> <%= itinerary.user.lastName.toLowerCase() %>">
-                                            <td><%= itinerary.user.firstName %> <%= itinerary.user.lastName %></td>
-                                            <td><%= new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
-                                            <td><a href="/planning/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details</a></td>
-                                        </tr>
-                                    <% }) %>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="weeklyItinerarySearch" class="form-control mb-3" placeholder="Search weekly itineraries...">
+                    <div class="table-responsive"><table class="table table-hover" id="weeklyItineraryTable">
+                        <thead><tr><th>Submitted By</th><th>Week Start Date</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% weeklyItineraries.forEach(itinerary => { %>
+                                <tr data-search="<%= (itinerary.user.firstName || '').toLowerCase() %> <%= (itinerary.user.lastName || '').toLowerCase() %>">
+                                    <td><%= itinerary.user.firstName %> <%= itinerary.user.lastName %></td>
+                                    <td><%= new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
+                                    <td><a href="/planning/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
             </div>
-
             <div class="tab-pane fade" id="map-panel" role="tabpanel">
-                <div class="card card-tab">
-                    <div class="card-body">
-                        <div id="map" style="height: 600px; width: 100%; border-radius: 0.5rem;"></div>
-                    </div>
-                </div>
+                <div class="card card-tab"><div class="card-body">
+                    <div id="map" style="height: 600px; width: 100%; border-radius: 0.5rem;"></div>
+                </div></div>
             </div>
         </div>
     </main>
@@ -238,18 +190,18 @@
             const setupSearch = (inputId, tableId) => {
                 const searchInput = document.getElementById(inputId);
                 if (!searchInput) return;
-                const table = document.getElementById(tableId);
-                const rows = table.getElementsByTagName('tr');
+                const tableRows = document.querySelectorAll(`#${tableId} tbody tr`);
                 searchInput.addEventListener('keyup', () => {
                     const filter = searchInput.value.toLowerCase();
-                    for (let i = 1; i < rows.length; i++) {
-                        const searchData = rows[i].getAttribute('data-search') || '';
-                        rows[i].style.display = searchData.includes(filter) ? '' : 'none';
-                    }
+                    tableRows.forEach(row => {
+                        const searchData = row.dataset.search || '';
+                        row.style.display = searchData.includes(filter) ? '' : 'none';
+                    });
                 });
             };
             setupSearch('userSearch', 'userTable');
             setupSearch('orderSearch', 'orderTable');
+            setupSearch('txnSearch', 'txnTable');
             setupSearch('checkinSearch', 'checkinTable');
             setupSearch('dailyPlanSearch', 'dailyPlanTable');
             setupSearch('weeklyItinerarySearch', 'weeklyItineraryTable');
@@ -257,11 +209,11 @@
             const initialUsers = <%- JSON.stringify(users || []) %>;
             const userMarkers = {};
             let map;
-            const mapTab = document.getElementById('map-tab');
-            if (mapTab) {
-                mapTab.addEventListener('shown.bs.tab', event => {
+            const mapTabButton = document.querySelector('button[data-bs-target="#map-panel"]');
+            if (mapTabButton) {
+                mapTabButton.addEventListener('shown.bs.tab', event => {
                     if (!map) {
-                        map = L.map('map').setView([14.6760, 121.0437], 10);
+                        map = L.map('map').setView([12.8797, 121.7740], 6); // Centered on Philippines
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                         initialUsers.forEach(user => {
                             if (user.lastLocation && user.lastLocation.coordinates && user.lastLocation.coordinates.length === 2) {
@@ -273,13 +225,25 @@
                             }
                         });
                     }
-                    setTimeout(() => map.invalidateSize(), 100);
+                    setTimeout(() => map.invalidateSize(), 10);
                 });
             }
 
             const socket = io({ query: { userId: document.body.dataset.userId } });
-            socket.on('locationUpdate', ({ userId, lat, lng }) => { /* ... */ });
-            socket.on('onlineUsers', (count) => { /* ... */ });
+            socket.on('locationUpdate', ({ userId, lat, lng }) => {
+                const user = initialUsers.find(u => u._id === userId);
+                if (!user || !map) return;
+                if (userMarkers[userId]) {
+                    userMarkers[userId].setLatLng([lat, lng]);
+                } else {
+                    const marker = L.marker([lat, lng]).addTo(map).bindPopup(`<b>${user.firstName} ${user.lastName}</b><br>${user.role}`);
+                    userMarkers[userId] = marker;
+                }
+            });
+            const onlineUsersCountEl = document.getElementById('online-users-count');
+            socket.on('onlineUsers', (count) => {
+                if(onlineUsersCountEl) onlineUsersCountEl.textContent = count;
+            });
         });
     </script>
 </body>

@@ -6,6 +6,7 @@ const DailyPlan = require('../models/DailyPlan');
 const WeeklyItinerary = require('../models/WeeklyItinerary');
 const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
+const Transaction = require('../models/Transaction');
 
 // --- Helper function to avoid repeating map URL code ---
 const processCheckInsForMap = (checkIns) => {
@@ -110,10 +111,11 @@ exports.getAdminDashboard = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        let [users, orders, checkIns, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
+        let [users, orders, checkIns, transactions, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
             User.find().sort({ createdAt: -1 }),
             Order.find().populate('user', 'firstName lastName profilePicture').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
+            Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }), // <-- ADDED
             User.countDocuments({ role: 'Pending' }),
             CheckIn.countDocuments({ createdAt: { $gte: today } }),
             DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }),
@@ -133,6 +135,7 @@ exports.getAdminDashboard = async (req, res) => {
             users,
             orders,
             checkins: checkIns,
+            transactions,
             stats: stats,
             dailyPlans,
             weeklyItineraries
@@ -148,17 +151,19 @@ exports.getAccountingDashboard = async (req, res) => {
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        let [orders, collections, checkIns, users, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
+        
+        let [orders, collections, checkIns, users, transactions, pendingUsersCount, checkInsTodayCount, dailyPlans, weeklyItineraries] = await Promise.all([
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Collection.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
             User.find().sort({ createdAt: -1 }),
+            Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }), // <-- ADDED
             User.countDocuments({ role: 'Pending' }),
             CheckIn.countDocuments({ createdAt: { $gte: today } }),
             DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }),
             WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 })
         ]);
+
 
         checkIns = processCheckInsForMap(checkIns);
 
@@ -174,6 +179,7 @@ exports.getAccountingDashboard = async (req, res) => {
             collections,
             checkins: checkIns,
             users,
+             transactions,
             stats,
             dailyPlans,
             weeklyItineraries

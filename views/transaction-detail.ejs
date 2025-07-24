@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= transaction.type %> Details - VME App</title>
     <%- include('partials/header-meta') %>
 </head>
@@ -26,17 +24,11 @@
                             <h5 class="card-title mb-3">Collection Information</h5>
                             <p><strong>Customer:</strong> <%= transaction.customer || 'N/A' %></p>
                             <p><strong>Date Collected:</strong> <%= transaction.dateCollected ? new Date(transaction.dateCollected).toLocaleDateString() : 'N/A' %></p>
-                            <p><strong>PR/CR:</strong> <%= transaction.prCr || 'N/A' %></p>
-                            <p><strong>S.I/D.R:</strong> <%= transaction.siDr || 'N/A' %></p>
-                            <p><strong>Date of Check:</strong> <%= transaction.dateOfCheck ? new Date(transaction.dateOfCheck).toLocaleDateString() : 'N/A' %></p>
-                            <p><strong>Bank/Check No.:</strong> <%= transaction.bankCheckNo || 'N/A' %></p>
                             <p><strong>Amount:</strong> ₱<%= (transaction.amount || 0).toLocaleString() %></p>
                         <% } else { %>
                             <h5 class="card-title mb-3">Deposit Information</h5>
-                            <p><strong>Details:</strong> <%= transaction.details || 'N/A' %></p>
                             <p><strong>Hospital:</strong> <%= transaction.hospital || 'N/A' %></p>
                             <p><strong>Date Deposited:</strong> <%= transaction.dateDeposited ? new Date(transaction.dateDeposited).toLocaleDateString() : 'N/A' %></p>
-                            <p><strong>Payment Method:</strong> <%= transaction.paymentMethod || 'N/A' %></p>
                             <p><strong>Total Amount Deposited:</strong> ₱<%= (transaction.totalAmountDeposited || 0).toLocaleString() %></p>
                         <% } %>
                         <hr>
@@ -50,10 +42,9 @@
                 <div class="card">
                     <div class="card-header"><h5 class="mb-0">Communication</h5></div>
                     <div class="card-body chat-container">
-                        <div id="chat-messages" class="chat-messages flex-grow-1">
-                            </div>
+                        <div id="chat-messages" class="chat-messages flex-grow-1"></div>
                         <div class="chat-input-area mt-3">
-                            <input type="file" id="chat-file-input" name="commentAttachment" style="display: none;">
+                            <input type="file" id="chat-file-input" name="commentAttachment" style="display: none;" accept="image/*,application/pdf">
                             <button id="chat-attach-btn" class="btn btn-secondary" type="button" title="Attach file">📎</button>
                             <input type="text" id="chat-message-text" class="form-control" placeholder="Type a comment...">
                             <button id="send-message-btn" class="btn btn-primary" type="button">Send</button>
@@ -88,27 +79,15 @@
                 const profilePic = comment.user.profilePicture || '/images/default-profile.png';
                 const timestamp = new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const userName = comment.user.firstName || 'User';
-
                 let attachmentHTML = '';
                 if (comment.attachmentUrl) {
                     if (/\.(jpg|jpeg|png|gif|webp)$/i.test(comment.attachmentUrl)) {
                         attachmentHTML = `<a href="${comment.attachmentUrl}" target="_blank"><img src="${comment.attachmentUrl}" class="chat-attachment-img"></a>`;
                     } else {
-                        const filename = comment.attachmentUrl.split('/').pop();
-                        attachmentHTML = `<a href="${comment.attachmentUrl}" target="_blank" class="chat-attachment-file">📄 ${filename}</a>`;
+                        attachmentHTML = `<a href="${comment.attachmentUrl}" target="_blank" class="chat-attachment-file">📄 ${comment.attachmentUrl.split('/').pop()}</a>`;
                     }
                 }
-                
-                const messageHTML = `
-                    <div class="chat-message ${messageClass}">
-                        <img src="${profilePic}" class="chat-profile-pic">
-                        <div class="chat-bubble">
-                            <div class="username">${userName}</div>
-                            ${comment.text ? `<div class="chat-text">${comment.text}</div>` : ''}
-                            ${attachmentHTML}
-                            <div class="timestamp">${timestamp}</div>
-                        </div>
-                    </div>`;
+                const messageHTML = `<div class="chat-message ${messageClass}"><img src="${profilePic}" class="chat-profile-pic"><div class="chat-bubble"><div class="username">${userName}</div>${comment.text ? `<div class="chat-text">${comment.text}</div>` : ''}${attachmentHTML}<div class="timestamp">${timestamp}</div></div></div>`;
                 chatBox.innerHTML += messageHTML;
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
@@ -124,15 +103,16 @@
                 let attachmentUrl = null;
                 if (attachedFile) {
                     const formData = new FormData();
-                    formData.append('attachment', attachedFile);
+                    formData.append('commentAttachment', attachedFile); // Ensure this name matches
                     try {
                         const response = await fetch(`/transactions/${transactionId}/comment/attach`, { method: 'POST', body: formData });
                         const result = await response.json();
                         if (result.success) {
                             attachmentUrl = result.url;
-                        } else { throw new Error('File upload failed'); }
+                        } else { throw new Error('File upload failed on server'); }
                     } catch (error) {
-                        alert('Could not upload the file.'); return;
+                        alert('Could not upload the file.');
+                        return;
                     }
                 }
                 const text = messageInput.value.trim();
