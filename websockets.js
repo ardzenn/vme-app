@@ -9,7 +9,8 @@ const connectedUsers = new Map();
 function initializeWebsockets(io) {
     io.on('connection', (socket) => {
         const userId = socket.handshake.query.userId;
-        const userName = socket.handshake.query.userName; // Pass user's first name for typing indicator
+        // Get user's first name for typing indicator
+        const userName = socket.handshake.query.userName; 
 
         if (userId) {
             connectedUsers.set(socket.id, { userId, userName });
@@ -35,11 +36,13 @@ function initializeWebsockets(io) {
                 const message = new Message({ conversation: conversationId, sender: senderData.userId, text });
                 await message.save();
 
-                await Conversation.findByIdAndUpdate(conversationId, { lastMessage: message._id });
+                // Also update the conversation's updatedAt timestamp for sorting
+                await Conversation.findByIdAndUpdate(conversationId, { 
+                    lastMessage: message._id,
+                    updatedAt: Date.now() 
+                });
 
                 const populatedMessage = await Message.findById(message._id).populate('sender', 'firstName lastName profilePicture');
-
-                // Send the message to everyone in the conversation room
                 io.to(conversationId).emit('newMessage', populatedMessage);
             } catch (err) {
                 console.error("Send Message Error:", err);
@@ -60,6 +63,7 @@ function initializeWebsockets(io) {
 
         socket.on('stopTyping', ({ conversationId }) => {
             const senderData = connectedUsers.get(socket.id);
+            if (!senderData) return;
             socket.to(conversationId).emit('userStoppedTyping', { 
                 conversationId,
                 senderId: senderData.userId

@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const socket = io({ query: { userId: currentUserId, userName: currentUser.firstName } });
 
-    // --- Modal & Element Definitions ---
+    // --- Modal Instances & Element Definitions ---
     const createGroupModal = new bootstrap.Modal(document.getElementById('createGroupModal'));
     const removeParticipantModal = new bootstrap.Modal(document.getElementById('removeParticipantModal'));
     const deleteGroupModal = new bootstrap.Modal(document.getElementById('deleteGroupModal'));
@@ -16,14 +16,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const conversationListBody = document.getElementById('conversation-list-body');
     const groupListBody = document.getElementById('group-list-body');
     const userListBody = document.getElementById('user-list-body');
+    const chatSearchInput = document.getElementById('chat-search-input');
+    const groupSearchInput = document.getElementById('group-search-input');
     const userSearchInput = document.getElementById('user-search-input');
     const chatWindow = document.getElementById('widget-chat-window');
+    const chatHeaderInfo = document.getElementById('chat-header-info');
     const messageForm = document.getElementById('widget-message-form');
     const messageInput = document.getElementById('widget-message-input');
     const chatMessages = document.getElementById('widget-chat-messages');
-    
+    const manageBtnContainer = document.getElementById('manage-group-button-container');
+    const groupInfoView = document.getElementById('widget-group-info-view');
+    const infoBackBtn = document.getElementById('info-back-btn');
+    const participantList = document.getElementById('group-participant-list');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const widgetUnreadBadge = document.getElementById('widget-unread-badge');
+
     let allConversations = [];
     let currentConversation = null;
+    let typingTimeout;
+    let unreadCounts = {};
+    let currentlyTyping = {};
 
     // --- Helper Functions ---
     const appendMessage = (msg, chatBox) => {
@@ -46,8 +58,36 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById('widget-recipient-name').textContent = displayName;
         document.getElementById('widget-recipient-pic').src = displayPic;
+
+        manageBtnContainer.innerHTML = '';
+        chatHeaderInfo.classList.remove('is-group');
+        chatHeaderInfo.onclick = null;
+
+        if (isGroup) {
+            chatHeaderInfo.classList.add('is-group');
+            chatHeaderInfo.style.cursor = 'pointer';
+            chatHeaderInfo.onclick = () => showGroupInfo(convo);
+
+            if (convo.groupAdmin === currentUserId) {
+                const manageBtnHTML = `
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">⋮</button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" id="remove-participant-action">Remove Participant</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" id="delete-group-action">Delete Group</a></li>
+                    </ul>
+                </div>`;
+                manageBtnContainer.innerHTML = manageBtnHTML;
+                document.getElementById('remove-participant-action').addEventListener('click', handleRemoveParticipant);
+                document.getElementById('delete-group-action').addEventListener('click', handleDeleteGroup);
+            }
+        } else {
+            chatHeaderInfo.style.cursor = 'default';
+        }
         
         chatWindow.classList.add('active');
+        groupInfoView.classList.remove('active');
+        
         chatMessages.innerHTML = '<p class="text-center text-muted">Loading messages...</p>';
         try {
             const response = await fetch(`/api/conversations/${convo._id}/messages`);
@@ -57,21 +97,61 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             chatMessages.innerHTML = '<p class="text-center text-danger">Could not load messages.</p>';
         }
+
+        if (unreadCounts[convo._id]) {
+            delete unreadCounts[convo._id];
+        }
+        renderConversations(allConversations);
+        updateOverallUnreadBadge();
+    };
+
+    const showGroupInfo = (convo) => {
+        participantList.innerHTML = '';
+        convo.participants.forEach(p => {
+            const isAdmin = p._id === convo.groupAdmin;
+            const item = document.createElement('div');
+            item.className = 'conversation';
+            item.innerHTML = `
+                <img src="${p.profilePicture || '/images/default-profile.png'}" alt="${p.firstName}">
+                <div>
+                    <strong>${p.firstName} ${p.lastName}</strong>
+                    ${isAdmin ? '<span class="badge bg-primary rounded-pill ms-2">Admin</span>' : ''}
+                </div>
+            `;
+            participantList.appendChild(item);
+        });
+        groupInfoView.classList.add('active');
     };
 
     const renderConversations = (convos) => {
         conversationListBody.innerHTML = '';
         groupListBody.innerHTML = '';
         
+        convos.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
         convos.forEach(convo => {
             const isGroup = convo.isGroup;
             const otherUser = convo.participants.find(p => p._id !== currentUserId);
             const displayName = isGroup ? convo.groupName : (otherUser ? `${otherUser.firstName} ${otherUser.lastName}` : 'User');
             const displayPic = isGroup ? '/images/group-default.png' : (otherUser ? otherUser.profilePicture : '/images/default-profile.png');
+            const lastMessageText = convo.lastMessage ? `${convo.lastMessage.sender.firstName}: ${convo.lastMessage.text}` : 'No messages yet.';
             
             const convoEl = document.createElement('div');
             convoEl.className = 'conversation';
-            convoEl.innerHTML = `<img src="${displayPic}" alt="${displayName}"><div><strong>${displayName}</strong></div>`;
+            convoEl.dataset.convoId = convo._id;
+            convoEl.dataset.name = displayName.toLowerCase(); // ADDED: For searching
+            
+            const unreadCount = unreadCounts[convo._id] || 0;
+            const badgeHTML = unreadCount > 0 ? `<span class="badge bg-primary rounded-pill ms-auto">${unreadCount}</span>` : '';
+
+            convoEl.innerHTML = `
+                <img src="${displayPic}" alt="${displayName}">
+                <div>
+                    <strong>${displayName}</strong>
+                    <p class="text-muted mb-0 small">${lastMessageText}</p>
+                </div>
+                ${badgeHTML}`;
+            
             convoEl.addEventListener('click', () => openChat(convo));
 
             if (isGroup) {
@@ -81,6 +161,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const updateOverallUnreadBadge = () => {
+        const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+        if (totalUnread > 0) {
+            widgetUnreadBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+            widgetUnreadBadge.style.display = 'block';
+        } else {
+            widgetUnreadBadge.style.display = 'none';
+        }
+    };
+    
     const loadConversations = async () => {
         try {
             const res = await fetch('/api/conversations');
@@ -96,6 +186,24 @@ document.addEventListener('DOMContentLoaded', () => {
         chatWindow.classList.remove('active');
         currentConversation = null;
     });
+    infoBackBtn.addEventListener('click', () => {
+        groupInfoView.classList.remove('active');
+    });
+
+    // --- UPDATED: Search Listeners for ALL TABS ---
+    const setupSearch = (inputElement, listContainer) => {
+        if (!inputElement) return;
+        inputElement.addEventListener('keyup', () => {
+            const searchTerm = inputElement.value.toLowerCase();
+            listContainer.querySelectorAll('.conversation').forEach(el => {
+                const name = el.dataset.name || el.textContent.toLowerCase();
+                el.style.display = name.includes(searchTerm) ? 'flex' : 'none';
+            });
+        });
+    };
+    setupSearch(chatSearchInput, conversationListBody);
+    setupSearch(groupSearchInput, groupListBody);
+    setupSearch(userSearchInput, userListBody);
 
     userListBody.querySelectorAll('.new-chat-user').forEach(el => {
         el.addEventListener('click', async () => {
@@ -112,29 +220,23 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) { alert('Could not start chat.'); }
         });
     });
-    
-    userSearchInput.addEventListener('keyup', () => {
-        const searchTerm = userSearchInput.value.toLowerCase();
-        userListBody.querySelectorAll('.new-chat-user').forEach(userEl => {
-            const name = userEl.textContent.toLowerCase();
-            userEl.style.display = name.includes(searchTerm) ? 'flex' : 'none';
-        });
+
+    messageInput.addEventListener('input', () => {
+        if (!currentConversation) return;
+        socket.emit('startTyping', { conversationId: currentConversation._id });
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            socket.emit('stopTyping', { conversationId: currentConversation._id });
+        }, 1500);
     });
 
-
-
-    // --- CORRECTED MESSAGE SENDING LOGIC ---
     messageForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const text = messageInput.value.trim();
         if (!text || !currentConversation) return;
-
-        // Simply emit the message to the server. Do NOT display it here.
-        // The server will broadcast it back to ALL clients, including this one.
         socket.emit('sendMessage', { conversationId: currentConversation._id, text });
-
-        // Clear the input field immediately
         messageInput.value = '';
+        socket.emit('stopTyping', { conversationId: currentConversation._id });
     });
 
     document.getElementById('createGroupForm').addEventListener('submit', async (e) => {
@@ -149,11 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const newGroup = await response.json();
             if(!response.ok) throw new Error(newGroup.message || 'Server error');
-            
             socket.emit('joinNewGroup', newGroup._id);
             createGroupModal.hide();
             e.target.reset();
-            
             await loadConversations();
             openChat(newGroup);
         } catch (err) {
@@ -161,18 +261,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // --- Socket.IO Listeners ---
-    socket.on('newMessage', (msg) => {
-        // When a new message arrives from the server, update the UI.
-        // This now works for both the sender and the receiver.
-        if (currentConversation && msg.conversation === currentConversation._id) {
-            appendMessage(msg, chatMessages);
-        }
-        
-        // Always refresh the conversation list to show the new "last message"
+    // --- Group Management Logic ---
+    function handleRemoveParticipant() {
+        const listContainer = document.getElementById('remove-participant-list');
+        listContainer.innerHTML = '';
+        currentConversation.participants.forEach(p => {
+            if (p._id !== currentUserId) {
+                const item = document.createElement('div');
+                item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                item.innerHTML = `<span>${p.firstName} ${p.lastName}</span><button class="btn btn-sm btn-danger remove-btn">&times;</button>`;
+                item.querySelector('.remove-btn').onclick = async () => {
+                    if (confirm(`Are you sure you want to remove ${p.firstName}?`)) {
+                        await fetch(`/api/conversations/${currentConversation._id}/participants/${p._id}`, { method: 'DELETE' });
+                        removeParticipantModal.hide();
+                        chatWindow.classList.remove('active');
+                        loadConversations();
+                    }
+                };
+                listContainer.appendChild(item);
+            }
+        });
+        removeParticipantModal.show();
+    }
+    
+    function handleDeleteGroup() {
+        deleteGroupModal.show();
+    }
+
+    document.getElementById('confirm-delete-group-btn').addEventListener('click', async () => {
+        if (!currentConversation) return;
+        await fetch(`/api/conversations/${currentConversation._id}`, { method: 'DELETE' });
+        deleteGroupModal.hide();
+        chatWindow.classList.remove('active');
         loadConversations();
     });
 
-    // Initial Load
+    
+    // --- Group Management Logic (Unchanged) ---
+    function handleRemoveParticipant() { /* ... */ }
+    function handleDeleteGroup() { /* ... */ }
+    document.getElementById('confirm-delete-group-btn').addEventListener('click', async () => { 
+        /* ... */ });
+
+    // --- Socket.IO Listeners ---
+    socket.on('newMessage', (msg) => {
+        if (currentConversation && msg.conversation === currentConversation._id) {
+            appendMessage(msg, chatMessages);
+        } else {
+            unreadCounts[msg.conversation] = (unreadCounts[msg.conversation] || 0) + 1;
+        }
+        loadConversations();
+        updateOverallUnreadBadge();
+    });
+
+    socket.on('userTyping', ({ conversationId, sender }) => {
+        if (currentConversation && conversationId === currentConversation._id) {
+            currentlyTyping[sender.id] = sender.name;
+            const typers = Object.values(currentlyTyping).join(', ');
+            typingIndicator.textContent = `${typers} is typing...`;
+            typingIndicator.style.display = 'block';
+        }
+    });
+
+    socket.on('userStoppedTyping', ({ conversationId, senderId }) => {
+        if (currentConversation && conversationId === currentConversation._id) {
+            delete currentlyTyping[senderId];
+            const typers = Object.values(currentlyTyping);
+            if (typers.length > 0) {
+                typingIndicator.textContent = `${typers.join(', ')} is typing...`;
+            } else {
+                typingIndicator.style.display = 'none';
+            }
+        }
+    });
+
+    // --- Initial Load ---
     loadConversations();
 });

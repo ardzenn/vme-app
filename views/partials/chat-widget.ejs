@@ -1,8 +1,10 @@
+<!-- The blue button that opens the chat widget -->
 <div class="chat-widget-toggler" id="chat-widget-toggler">
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
     <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="widget-unread-badge" style="display: none; border: 2px solid white;"></span>
 </div>
 
+<!-- The Main Chat Widget Container -->
 <div class="chat-widget-container" id="chat-widget-container">
     
     <div class="conversation-list" id="widget-list-view">
@@ -21,10 +23,16 @@
         </ul>
 
         <div class="tab-content" style="flex-grow: 1; display: flex; flex-direction: column;">
-            <div class="tab-pane fade show active" id="conversations-tab-panel" style="overflow-y: auto; flex-grow: 1;">
+            <div class="tab-pane fade show active" id="conversations-tab-panel" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column;">
+                <div class="p-2 border-bottom">
+                    <input type="text" id="chat-search-input" class="form-control form-control-sm" placeholder="Search all chats...">
+                </div>
                 <div class="conversation-list-body" id="conversation-list-body"></div>
             </div>
-            <div class="tab-pane fade" id="groups-tab-panel" style="overflow-y: auto; flex-grow: 1;">
+            <div class="tab-pane fade" id="groups-tab-panel" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column;">
+                <div class="p-2 border-bottom">
+                    <input type="text" id="group-search-input" class="form-control form-control-sm" placeholder="Search groups...">
+                </div>
                 <div class="conversation-list-body" id="group-list-body"></div>
             </div>
             <div class="tab-pane fade" id="users-tab-panel" style="overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column;">
@@ -43,14 +51,18 @@
         </div>
     </div>
 
+    <!-- The rest of the file (chat window, group info view, modals) is unchanged -->
     <div class="chat-window" id="widget-chat-window">
         <div class="chat-window-header" id="widget-chat-header">
             <button class="btn btn-sm btn-light me-2" id="chat-back-btn">&lt;</button>
-            <img id="widget-recipient-pic" src="">
-            <h5 id="widget-recipient-name" class="mb-0 me-auto"></h5>
+            <div id="chat-header-info" class="d-flex align-items-center me-auto">
+                <img id="widget-recipient-pic" src="">
+                <h5 id="widget-recipient-name" class="mb-0 ms-2"></h5>
+            </div>
             <div id="manage-group-button-container"></div>
         </div>
         <div id="widget-chat-messages" class="chat-messages flex-grow-1 p-3"></div>
+        <div id="typing-indicator" class="p-2 text-muted small" style="display: none; height: 30px; font-style: italic;"></div>
         <div class="chat-input-area p-3 border-top bg-light">
             <form id="widget-message-form">
                 <div class="input-group">
@@ -59,6 +71,14 @@
                 </div>
             </form>
         </div>
+    </div>
+
+    <div class="chat-window" id="widget-group-info-view">
+        <div class="chat-window-header">
+            <button class="btn btn-sm btn-light me-2" id="info-back-btn">&lt;</button>
+            <h5 class="mb-0">Group Members</h5>
+        </div>
+        <div id="group-participant-list" class="conversation-list-body"></div>
     </div>
 </div>
 
@@ -70,11 +90,11 @@
         <form id="createGroupForm">
           <div class="mb-3"><label class="form-label">Group Name</label><input type="text" id="groupName" class="form-control" required></div>
           <div class="mb-3"><label class="form-label">Select Participants</label>
-            <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;" id="group-participants-list">
+            <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;" id="group-participants-list-modal">
                 <% if(locals.conversations) { conversations.forEach(user => { %>
                     <div class="form-check">
-                      <input class="form-check-input" type="checkbox" name="participants" value="<%= user._id %>" id="user-<%= user._id %>">
-                      <label class="form-check-label" for="user-<%= user._id %>"><%= user.firstName %> <%= user.lastName %></label>
+                      <input class="form-check-input" type="checkbox" name="participants" value="<%= user._id %>" id="modal-user-<%= user._id %>">
+                      <label class="form-check-label" for="modal-user-<%= user._id %>"><%= user.firstName %> <%= user.lastName %></label>
                     </div>
                 <% }); } %>
             </div>
@@ -92,8 +112,7 @@
       <div class="modal-header"><h5 class="modal-title">Remove Participant</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
         <p>Select a participant to remove from the group.</p>
-        <div id="remove-participant-list" class="list-group">
-          </div>
+        <div id="remove-participant-list" class="list-group"></div>
       </div>
     </div>
   </div>
