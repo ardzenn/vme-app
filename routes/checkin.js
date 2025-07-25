@@ -7,7 +7,7 @@ const { ensureAuthenticated } = require('../middleware/auth');
 // It handles the submission of the check-in form from the modal.
 router.post('/', 
     ensureAuthenticated, 
-    checkInController.uploadCheckInImages, 
+    checkInController.uploadProofImage, 
     checkInController.createCheckIn
 );
 

@@ -93,6 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Data & All UI Elements ---
     let allDoctors = <%- JSON.stringify(locals.allDoctors || []) %>;
     
+    // --- Modal Elements ---
+    const checkinModalEl = document.getElementById('checkinModal');
+
+    // --- Form Elements ---
     const hospitalSelectUI = document.getElementById('hospital-selection-ui');
     const hospitalCreateUI = document.getElementById('hospital-creation-ui');
     const showAddHospitalBtn = document.getElementById('show-add-hospital-btn');
@@ -100,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNewHospitalBtn = document.getElementById('save-new-hospital-btn');
     const hospitalSelect = document.getElementById('hospital-select');
     const newHospitalNameInput = document.getElementById('new-hospital-name-input');
-
     const doctorSelectUI = document.getElementById('doctor-selection-ui');
     const doctorCreateUI = document.getElementById('doctor-creation-ui');
     const showAddDoctorBtn = document.getElementById('show-add-doctor-btn');
@@ -108,14 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNewDoctorBtn = document.getElementById('save-new-doctor-btn');
     const doctorSelect = document.getElementById('doctor-select');
     const newDoctorNameInput = document.getElementById('new-doctor-name-input');
-
-    const checkinModalEl = document.getElementById('checkinModal');
-    const sigCanvas = document.getElementById('signature-pad');
     const checkinForm = document.getElementById('checkinForm');
+
+    // --- Signature & Camera Elements ---
+    const sigCanvas = document.getElementById('signature-pad');
     const clearSigButton = document.getElementById('clear-signature');
     const sigDataInput = document.getElementById('signature-data');
     let signaturePad;
-
     const startCameraButton = document.getElementById('start-camera-btn');
     const cameraContainer = document.getElementById('camera-container');
     const videoPreview = document.getElementById('video-preview');
@@ -260,42 +262,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UPDATED FORM SUBMISSION LOGIC FOR SERVICE WORKER ---
     checkinForm.addEventListener('submit', (event) => {
-        event.preventDefault();
         if (signaturePad && !signaturePad.isEmpty()) {
             sigDataInput.value = signaturePad.toDataURL('image/png');
         }
-        const formData = new FormData(checkinForm);
-        const statusDiv = document.createElement('div');
-        statusDiv.className = 'alert';
-        checkinForm.prepend(statusDiv);
-        
-        fetch('/checkin', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (response.ok) {
-                statusDiv.classList.add('alert-success');
-                statusDiv.textContent = 'Check-in submitted successfully!';
-                setTimeout(() => window.location.href = '/dashboard', 1000);
-            } else {
-                throw new Error('Server error.');
-            }
-        })
-        .catch(error => {
-            statusDiv.classList.add('alert-warning');
-            statusDiv.textContent = 'You appear to be offline. Your check-in has been saved and will be sent automatically when you reconnect.';
-            setTimeout(() => {
-                if (signaturePad) signaturePad.clear();
-                checkinForm.reset();
-                photoPreview.style.display = 'none';
-                const modal = bootstrap.Modal.getInstance(checkinModalEl);
-                if(modal) modal.hide();
-                statusDiv.remove();
-            }, 4000);
-        });
-
-        if (stream) { stream.getTracks().forEach(track => track.stop()); }
+        // This allows the form to submit normally now
     });
 });
 </script>

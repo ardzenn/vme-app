@@ -2,32 +2,27 @@ const CheckIn = require('../models/CheckIn');
 const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
 const upload = require('../config/cloudinary'); // Use our powerful Cloudinary uploader
+const cloudinary = require('cloudinary').v2;
 
-// This middleware is specifically designed to handle MULTIPLE files ('proof' and 'signature')
-exports.uploadCheckInImages = upload.fields([
-    { name: 'proof', maxCount: 1 },
-    { name: 'signature', maxCount: 1 }
-]);
+// This middleware is specifically designed to handle an optional 'proof' file upload
+exports.uploadProofImage = upload.single('proof');
 
 // This is the main function to create the check-in
 exports.createCheckIn = async (req, res) => {
     try {
-        const { hospitalName, doctorName, activity, notes, lat, lng } = req.body;
+        const { hospitalName, doctorName, activity, notes, lat, lng, proof_base64, signature } = req.body;
 
-        // --- Robust validation check ---
         if (!hospitalName || !doctorName || !activity) {
             req.flash('error_msg', 'Hospital, Doctor, and Activity are all required fields.');
             return res.redirect('/dashboard');
         }
 
-        // Find or create the hospital
         let hospital = await Hospital.findOne({ name: hospitalName.trim() });
         if (!hospital) {
             hospital = new Hospital({ name: hospitalName.trim(), createdBy: req.user.id });
             await hospital.save();
         }
 
-        // Find or create the doctor, linked to the hospital
         let doctor = await Doctor.findOne({ name: doctorName.trim(), hospital: hospital.id });
         if (!doctor) {
             doctor = new Doctor({ name: doctorName.trim(), hospital: hospital.id, createdBy: req.user.id });
@@ -46,16 +41,30 @@ exports.createCheckIn = async (req, res) => {
             },
         };
 
-        // If files were uploaded to Cloudinary, save their secure URLs
-        // We now look in req.files (plural) instead of req.file
-        if (req.files) {
-            if (req.files.proof) {
-                newCheckInData.proof = req.files.proof[0].path;
-            }
-            if (req.files.signature) {
-                newCheckInData.signature = req.files.signature[0].path;
-            }
+        // --- NEW, ROBUST IMAGE HANDLING ---
+
+        // 1. Handle the Proof of Visit (either from file upload or selfie)
+        if (req.file) {
+            newCheckInData.proof = req.file.path; // Use the path from Cloudinary upload
+        } else if (proof_base64) {
+            // If it's a base64 selfie, upload it to Cloudinary
+            const uploadedImage = await cloudinary.uploader.upload(proof_base64, {
+                folder: 'vme-app-uploads',
+                resource_type: 'image'
+            });
+            newCheckInData.proof = uploadedImage.secure_url;
         }
+
+        // 2. Handle the Signature (always a base64 string)
+        if (signature) {
+            const uploadedSignature = await cloudinary.uploader.upload(signature, {
+                folder: 'vme-app-uploads',
+                resource_type: 'image'
+            });
+            newCheckInData.signature = uploadedSignature.secure_url;
+        }
+        
+        // --- END OF NEW IMAGE HANDLING ---
 
         const newCheckIn = new CheckIn(newCheckInData);
         await newCheckIn.save();
