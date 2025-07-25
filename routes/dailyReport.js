@@ -1,31 +1,22 @@
-// in routes/dailyReport.js
 const express = require('express');
 const router = express.Router();
-const reportController = require('../controllers/dailyReportController');
-const { ensureAuthenticated, ensureAdmin, ensureAccounting } = require('../middleware/auth');
+const dailyReportController = require('../controllers/dailyReportController');
+const { ensureAuthenticated } = require('../middleware/auth');
 
-// MSR/KAS: View the form to create a report
-router.get('/', ensureAuthenticated, reportController.getReportForm);
+// GET route to display the report form
+router.get('/', ensureAuthenticated, dailyReportController.getReportForm);
 
-// MSR/KAS: Submit the form
-router.post('/', ensureAuthenticated, reportController.uploadAttachments, reportController.submitReport);
+// POST route to submit the new report
+router.post('/', 
+    ensureAuthenticated, 
+    dailyReportController.uploadAttachments, 
+    dailyReportController.submitReport
+);
 
-// Admin/Accounting: View list of all submitted reports
-router.get('/history', ensureAuthenticated, (req, res, next) => {
-    if (req.user.role === 'Admin' || req.user.role === 'Accounting') {
-        return next();
-    }
-    req.flash('error_msg', 'Access denied.');
-    res.redirect('/dashboard');
-}, reportController.listReports);
+// GET route to view the history of all reports (for Admins/Accounting)
+router.get('/history', ensureAuthenticated, dailyReportController.listReports);
 
-// Admin/Accounting: View one specific report
-router.get('/:id', ensureAuthenticated, (req, res, next) => {
-    if (req.user.role === 'Admin' || req.user.role === 'Accounting') {
-        return next();
-    }
-    req.flash('error_msg', 'Access denied.');
-    res.redirect('/dashboard');
-}, reportController.getReportDetails);
+// GET route to view a single report's details
+router.get('/:id', ensureAuthenticated, dailyReportController.getReportDetails);
 
 module.exports = router;

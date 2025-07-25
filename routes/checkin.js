@@ -1,12 +1,14 @@
-const express_checkin = require('express');
-const router_checkin = express_checkin.Router();
-const checkInController_checkin = require('../controllers/checkInController');
-const { ensureAuthenticated: ensureAuthenticated_checkin } = require('../middleware/auth');
+const express = require('express');
+const router = express.Router();
+const checkInController = require('../controllers/checkInController');
+const { ensureAuthenticated } = require('../middleware/auth');
 
-// This route now uses three middleware functions in order:
-// 1. ensureAuthenticated: to make sure the user is logged in
-// 2. checkInController.uploadProof: to process the file upload from the form
-// 3. checkInController.createCheckIn: the main controller logic that saves the data.
-router_checkin.post('/', ensureAuthenticated_checkin, checkInController_checkin.uploadProof, checkInController_checkin.createCheckIn);
+// This is the ONLY route this file should have.
+// It handles the submission of the check-in form from the modal.
+router.post('/', 
+    ensureAuthenticated, 
+    checkInController.uploadCheckInImages, 
+    checkInController.createCheckIn
+);
 
-module.exports = router_checkin;
+module.exports = router;

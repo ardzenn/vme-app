@@ -373,7 +373,7 @@ a:hover { text-decoration: underline; }
     }
 }
 
-/* Simple fade-in animation for a nice touch */
+
 @keyframes fadeInUp {
     from {
         opacity: 0;

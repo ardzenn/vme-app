@@ -1,44 +1,24 @@
 const Order = require('../models/Order');
 const Message = require('../models/Message');
 const crypto = require('crypto');
-const multer = require('multer');
-const path = require('path');
+const upload = require('../config/cloudinary'); // Use the new Cloudinary uploader
 
-// --- Multer Configuration for Attachments --- 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        let dest = './public/uploads/others/';
-        if (req.originalUrl.includes('/book')) {
-            dest = './public/uploads/orders/';
-        } else if (req.originalUrl.includes('/messages/attach')) {
-            dest = './public/uploads/chat/'; 
-        }
-        cb(null, dest);
-    },
-    filename: function (req, file, cb) {
-        cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-    }
-});
-const upload = multer({ storage: storage });
+// This middleware is now just for a single file upload using Cloudinary
 exports.uploadAttachment = upload.single('attachment');
-
-// --- Controller Functions ---
 
 exports.bookOrder = async (req, res) => {
     try {
         const { customerName, email, contactNumber, hospital, area, note, product, quantity, price } = req.body;
         
-        // --- CORRECTED PRODUCT & SUBTOTAL LOGIC ---
         let processedProducts = [];
         let subtotal = 0;
 
         if (Array.isArray(product)) {
-            // Handle multiple products
             for (let i = 0; i < product.length; i++) {
                 const q = parseFloat(quantity[i]) || 0;
                 const p = parseFloat(price[i]) || 0;
                 const total = q * p;
-                if (product[i]) { // Only add if product name is not empty
+                if (product[i]) {
                     processedProducts.push({
                         product: product[i],
                         quantity: q,
@@ -49,7 +29,6 @@ exports.bookOrder = async (req, res) => {
                 }
             }
         } else if (product) { 
-            // Handle case with only one product
             const q = parseFloat(quantity) || 0;
             const p = parseFloat(price) || 0;
             const total = q * p;
@@ -65,8 +44,9 @@ exports.bookOrder = async (req, res) => {
             products: processedProducts, subtotal, reference
         };
 
+        // If a file was uploaded to Cloudinary, save its secure URL
         if (req.file) {
-            newOrderData.attachment = `/uploads/orders/${req.file.filename}`;
+            newOrderData.attachment = req.file.path;
         }
 
         const newOrder = new Order(newOrderData);
@@ -99,7 +79,7 @@ exports.getOrderDetailsAndMessages = async (req, res) => {
             .populate('user', 'firstName lastName role profilePicture')
             .populate({
                 path: 'messages',
-                populate: { path: 'user', select: 'firstName lastName profilePicture' }
+                populate: { path: 'sender', select: 'firstName lastName profilePicture' }
             });
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
@@ -116,15 +96,16 @@ exports.addMessageToOrder = async (req, res) => {
         const orderId = req.params.id;
         
         const message = new Message({
-            user: req.user.id,
+            order: orderId,
+            sender: req.user.id,
             text: text,
-            attachment: req.file ? `/uploads/orders/${req.file.filename}` : null
+            attachment: req.file ? req.file.path : null
         });
         await message.save();
 
         await Order.findByIdAndUpdate(orderId, { $push: { messages: message._id } });
         
-        const populatedMessage = await Message.findById(message._id).populate('user', 'firstName lastName profilePicture');
+        const populatedMessage = await Message.findById(message._id).populate('sender', 'firstName lastName profilePicture');
         
         res.json({ success: true, message: populatedMessage });
     } catch (err) {
@@ -136,6 +117,5 @@ exports.attachFileToMessage = (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'No file was uploaded.' });
     }
-    const fileUrl = `/uploads/chat/${req.file.filename}`;
-    res.json({ success: true, url: fileUrl });
+    res.json({ success: true, url: req.file.path });
 };

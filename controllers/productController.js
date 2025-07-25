@@ -1,24 +1,16 @@
-// in controllers/productController.js
 const Product = require('../models/Product');
-const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 const csv = require('csv-parser');
+const upload = require('../config/cloudinary');
 
+// --- Multer for CSV Upload (uses local disk, which is fine for temporary CSV files) ---
+const csvUpload = require('multer')({ dest: 'temp-csv/' });
 
-// --- Multer Configuration for Product Images ---
-const storage = multer.diskStorage({
-    destination: './public/uploads/products/',
-    filename: function (req, file, cb) {
-        cb(null, `product-${Date.now()}${path.extname(file.originalname)}`);
-    }
-});
-const upload = multer({ storage: storage });
-
+// --- Middleware Exports ---
 exports.uploadProductImage = upload.single('productImage');
+exports.uploadCsvFile = csvUpload.single('productCsv');
 
 // --- Views ---
-// For MSR/KAS to view the gallery
 exports.getProductGallery = async (req, res) => {
     try {
         const products = await Product.find().sort({ category: 1, name: 1 });
@@ -29,7 +21,6 @@ exports.getProductGallery = async (req, res) => {
     }
 };
 
-// For Admin/Accounting to manage products
 exports.getManageProducts = async (req, res) => {
     try {
         const products = await Product.find().sort({ category: 1, name: 1 });
@@ -40,22 +31,17 @@ exports.getManageProducts = async (req, res) => {
     }
 };
 
-// --- API Logic ---
-exports.createProduct = async (req, res) => {
+// --- API Functions ---
+exports.addProduct = async (req, res) => {
     try {
-        const { name, description, category } = req.body;
-        if (!req.file) {
-            req.flash('error_msg', 'Product image is required.');
-            return res.redirect('/products/manage');
+        const { name, description, category, price } = req.body;
+        const newProductData = { name, description, category, price: parseFloat(price) };
+        if (req.file) {
+            newProductData.imageUrl = req.file.path;
         }
-        const newProduct = new Product({
-            name,
-            description,
-            category,
-            imageUrl: `/uploads/products/${req.file.filename}`
-        });
+        const newProduct = new Product(newProductData);
         await newProduct.save();
-        req.flash('success_msg', 'Product added successfully.');
+        req.flash('success_msg', 'Product added successfully!');
         res.redirect('/products/manage');
     } catch (err) {
         req.flash('error_msg', 'Failed to add product.');
@@ -74,7 +60,6 @@ exports.deleteProduct = async (req, res) => {
     }
 };
 
-// This is for to upload many files
 exports.importProducts = (req, res) => {
     if (!req.file) {
         req.flash('error_msg', 'Please upload a CSV file.');
@@ -87,14 +72,21 @@ exports.importProducts = (req, res) => {
         .on('data', (data) => results.push(data))
         .on('end', async () => {
             try {
-                await Product.insertMany(results, { ordered: false });
-                fs.unlinkSync(req.file.path); // Clean up the uploaded file
+                // Map CSV headers to your schema fields
+                const productsToInsert = results.map(row => ({
+                    name: row.Name,
+                    description: row.Description,
+                    category: row.Category,
+                    price: parseFloat(row.Price)
+                }));
+                await Product.insertMany(productsToInsert, { ordered: false });
                 req.flash('success_msg', `${results.length} products imported successfully.`);
-                res.redirect('/products/manage');
             } catch (err) {
+                 req.flash('error_msg', 'An error occurred during bulk import. Check CSV format.');
+            } finally {
                 fs.unlinkSync(req.file.path);
-                req.flash('error_msg', 'Error importing products. Please check your CSV file format.');
                 res.redirect('/products/manage');
+                
             }
         });
 };

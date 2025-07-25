@@ -1,51 +1,36 @@
 const CheckIn = require('../models/CheckIn');
 const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
-const multer = require('multer');
-const path = require('path');
+const upload = require('../config/cloudinary'); // Use our powerful Cloudinary uploader
 
-// --- Multer Configuration (No changes needed here) ---
-const storage = multer.diskStorage({
-    destination: './public/uploads/proofs/',
-    filename: function (req, file, cb) {
-        cb(null, `checkin-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
-    }
-});
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5000000 }, // 5MB Limit
-    fileFilter: function (req, file, cb) {
-        const filetypes = /jpeg|jpg|png|gif/;
-        const mimetype = filetypes.test(file.mimetype);
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        if (mimetype && extname) {
-            return cb(null, true);
-        }
-        cb('Error: File upload only supports image files.');
-    }
-});
+// This middleware is specifically designed to handle MULTIPLE files ('proof' and 'signature')
+exports.uploadCheckInImages = upload.fields([
+    { name: 'proof', maxCount: 1 },
+    { name: 'signature', maxCount: 1 }
+]);
 
-exports.uploadProof = upload.single('proof');
-
-//Main Controller Function 
+// This is the main function to create the check-in
 exports.createCheckIn = async (req, res) => {
-    const { hospitalName, doctorName, activity, signature, proof_base64, lat, lng } = req.body;
-
-    if (!hospitalName || !doctorName || !activity) {
-        req.flash('error_msg', 'Hospital, Doctor, and Activity are required fields.');
-        return res.redirect('back');
-    }
-
     try {
-        let hospital = await Hospital.findOne({ name: hospitalName });
+        const { hospitalName, doctorName, activity, notes, lat, lng } = req.body;
+
+        // --- Robust validation check ---
+        if (!hospitalName || !doctorName || !activity) {
+            req.flash('error_msg', 'Hospital, Doctor, and Activity are all required fields.');
+            return res.redirect('/dashboard');
+        }
+
+        // Find or create the hospital
+        let hospital = await Hospital.findOne({ name: hospitalName.trim() });
         if (!hospital) {
-            hospital = new Hospital({ name: hospitalName, createdBy: req.user.id }); // Assume user-created
+            hospital = new Hospital({ name: hospitalName.trim(), createdBy: req.user.id });
             await hospital.save();
         }
 
-        let doctor = await Doctor.findOne({ name: doctorName, hospital: hospital.id });
+        // Find or create the doctor, linked to the hospital
+        let doctor = await Doctor.findOne({ name: doctorName.trim(), hospital: hospital.id });
         if (!doctor) {
-            doctor = new Doctor({ name: doctorName, hospital: hospital.id, createdBy: req.user.id }); // Assume user-created
+            doctor = new Doctor({ name: doctorName.trim(), hospital: hospital.id, createdBy: req.user.id });
             await doctor.save();
         }
 
@@ -53,35 +38,45 @@ exports.createCheckIn = async (req, res) => {
             user: req.user.id,
             hospital: hospital.id,
             doctor: doctor.id,
-            activity: activity,
-            signature: signature
+            activity,
+            notes,
+            location: {
+                lat: parseFloat(lat),
+                lng: parseFloat(lng)
+            },
         };
 
-       
-        const latitude = parseFloat(lat);
-        const longitude = parseFloat(lng);
-
-        // Only add location if the coordinates are valid numbers
-        if (!isNaN(latitude) && !isNaN(longitude)) {
-            newCheckInData.location = { lat: latitude, lng: longitude };
-        }
-        
-
-        if (req.file) {
-            newCheckInData.proof = `/uploads/proofs/${req.file.filename}`;
-        } else if (proof_base64) {
-            newCheckInData.proof = proof_base64;
+        // If files were uploaded to Cloudinary, save their secure URLs
+        // We now look in req.files (plural) instead of req.file
+        if (req.files) {
+            if (req.files.proof) {
+                newCheckInData.proof = req.files.proof[0].path;
+            }
+            if (req.files.signature) {
+                newCheckInData.signature = req.files.signature[0].path;
+            }
         }
 
         const newCheckIn = new CheckIn(newCheckInData);
         await newCheckIn.save();
 
-        req.flash('success_msg', `Successfully checked in at ${hospital.name} with Dr. ${doctor.name}.`);
+        req.flash('success_msg', 'Check-in submitted successfully!');
         res.redirect('/dashboard');
 
     } catch (err) {
-        console.error("Check-in error:", err);
-        req.flash('error_msg', 'An unexpected error occurred during check-in.');
-        res.redirect('back');
+        console.error("Check-in Error:", err);
+        req.flash('error_msg', 'Failed to submit check-in.');
+        res.redirect('/dashboard');
+    }
+};
+
+exports.getCheckIns = async (req, res) => {
+    try {
+        const checkIns = await CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 });
+        res.render('checkin-history', { checkIns }); // Render a view or send JSON
+    } catch (err) {
+        console.error("Get check-ins error:", err);
+        req.flash('error_msg', 'Failed to load check-ins.');
+        res.redirect('/dashboard');
     }
 };

@@ -5,7 +5,7 @@
     <%- include('partials/header-meta') %>
 </head>
 <body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
-    
+
     <%- include('partials/navbar') %>
 
     <main class="container-fluid" style="padding: 0 2rem;">
@@ -32,7 +32,7 @@
 
       <ul class="nav nav-tabs" id="accountingTab" role="tablist">
         <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#orders-panel">Sales Orders</button></li>
-        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel">Transactions</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel">Collections</button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel">Check-in History</button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Plans</button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>

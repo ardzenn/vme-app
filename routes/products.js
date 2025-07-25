@@ -1,26 +1,35 @@
-// in routes/products.js
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
-const { ensureAuthenticated, ensureAdmin, ensureAccounting } = require('../middleware/auth');
+const { ensureAuthenticated, ensureAdmin } = require('../middleware/auth');
 
-// Middleware to protect management routes
-const canManageProducts = (req, res, next) => {
-    if (req.user.role === 'Admin' || req.user.role === 'Accounting') {
-        return next();
-    }
-    req.flash('error_msg', 'Access Denied.');
-    res.redirect('/dashboard');
-};
-
-// Route for MSR/KAS to view the product gallery
+// GET route to display the main product gallery for all users
 router.get('/', ensureAuthenticated, productController.getProductGallery);
 
-// Routes for Admin/Accounting to manage products
-router.get('/manage', ensureAuthenticated, canManageProducts, productController.getManageProducts);
-router.post('/manage/add', ensureAuthenticated, canManageProducts, productController.uploadProductImage, productController.createProduct);
-router.post('/manage/delete/:id', ensureAuthenticated, canManageProducts, productController.deleteProduct);
-router.post('/manage/import', ensureAuthenticated, canManageProducts, productController.uploadProductImage, productController.importProducts);
+// GET route for Admins to manage products
+router.get('/manage', ensureAuthenticated, ensureAdmin, productController.getManageProducts);
 
+// POST route to add a single new product
+router.post('/add', 
+    ensureAuthenticated, 
+    ensureAdmin, 
+    productController.uploadProductImage, 
+    productController.addProduct
+);
+
+// POST route to delete a product
+router.post('/delete/:id', 
+    ensureAuthenticated, 
+    ensureAdmin, 
+    productController.deleteProduct
+);
+
+// POST route to bulk add products from a CSV file
+router.post('/import', 
+    ensureAuthenticated, 
+    ensureAdmin, 
+    productController.uploadCsvFile, 
+    productController.importProducts
+);
 
 module.exports = router;
