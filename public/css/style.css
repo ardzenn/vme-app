@@ -246,6 +246,7 @@ a:hover { text-decoration: underline; }
         padding-top: 2rem;
     }
 }
+}
 /* --- 10. COLLECTION DETAILS CHAT SCROLL --- */
 .card {
   height: 100%;
@@ -311,6 +312,82 @@ a:hover { text-decoration: underline; }
   background: var(--text-secondary);
   border-radius: 4px;
 }
+
 #chat-messages::-webkit-scrollbar-thumb:hover {
   background: var(--primary-green);
+}
+
+
+/* Auth Pages */
+
+.auth-container {
+max-width: 400px;
+margin: 5rem auto;
+padding: 2rem;
+background-color: var(--surface-card);
+border-radius: 0.75rem;
+box-shadow: var(--shadow-md);
+display: block; / Ensure visible */
+}
+
+.auth-form {
+display: flex;
+flex-direction: column;
+gap: 1rem;
+}
+
+.auth-form .form-group {
+display: flex;
+flex-direction: column;
+gap: 0.5rem;
+}
+
+.auth-form label {
+font-weight: 500;
+color: var(--text-secondary);
+}
+
+.auth-form .form-control {
+padding: 0.75rem 1rem;
+font-size: 1rem;
+display: block;
+width: 100%;
+visibility: visible; /* Force visibility */
+}
+
+.auth-form .btn {
+margin-top: 1rem;
+padding: 0.75rem;
+font-size: 1rem;
+}
+
+.auth-form .links {
+text-align: center;
+margin-top: 1rem;
+color: var(--text-secondary);
+}
+
+.auth-form .error-msg, .success-msg {
+padding: 0.75rem;
+border-radius: 0.5rem;
+margin-bottom: 1rem;
+text-align: center;
+}
+
+.error-msg {
+background-color: rgba(var(--system-danger), 0.1);
+color: var(--system-danger);
+}
+
+.success-msg {
+background-color: rgba(var(--system-success), 0.1);
+color: var(--system-success);
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 576px) {
+.auth-container {
+margin: 2rem auto;
+padding: 1.5rem;
+}
 }
