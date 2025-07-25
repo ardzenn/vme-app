@@ -9,8 +9,7 @@ const connectedUsers = new Map();
 function initializeWebsockets(io) {
     io.on('connection', (socket) => {
         const userId = socket.handshake.query.userId;
-        // Get user's first name for typing indicator
-        const userName = socket.handshake.query.userName; 
+        const userName = socket.handshake.query.userName; // Get user's first name for typing indicator
 
         if (userId) {
             connectedUsers.set(socket.id, { userId, userName });
@@ -37,9 +36,9 @@ function initializeWebsockets(io) {
                 await message.save();
 
                 // Also update the conversation's updatedAt timestamp for sorting
-                await Conversation.findByIdAndUpdate(conversationId, { 
+                await Conversation.findByIdAndUpdate(conversationId, {
                     lastMessage: message._id,
-                    updatedAt: Date.now() 
+                    updatedAt: Date.now()
                 });
 
                 const populatedMessage = await Message.findById(message._id).populate('sender', 'firstName lastName profilePicture');
@@ -53,18 +52,18 @@ function initializeWebsockets(io) {
         socket.on('startTyping', ({ conversationId }) => {
             const senderData = connectedUsers.get(socket.id);
             if (!senderData) return;
-            
+
             // Broadcast to everyone in the room EXCEPT the sender
-            socket.to(conversationId).emit('userTyping', { 
-                conversationId, 
-                sender: { id: senderData.userId, name: senderData.userName } 
+            socket.to(conversationId).emit('userTyping', {
+                conversationId,
+                sender: { id: senderData.userId, name: senderData.userName }
             });
         });
 
         socket.on('stopTyping', ({ conversationId }) => {
             const senderData = connectedUsers.get(socket.id);
             if (!senderData) return;
-            socket.to(conversationId).emit('userStoppedTyping', { 
+            socket.to(conversationId).emit('userStoppedTyping', {
                 conversationId,
                 senderId: senderData.userId
             });
@@ -100,7 +99,7 @@ function initializeWebsockets(io) {
                     { $push: { comments: comment } },
                     { new: true }
                 ).populate('comments.user', 'firstName lastName profilePicture');
-                
+
                 const newComment = updatedTransaction.comments[updatedTransaction.comments.length - 1];
                 io.to(transactionId).emit('newTransactionComment', newComment);
             } catch (error) {

@@ -4,21 +4,17 @@ const multer = require('multer');
 const path = require('path');
 
 // --- Multer Configuration for File Uploads ---
-// This sets up how and where to save uploaded files.
 const storage = multer.diskStorage({
     destination: './public/uploads/',
     filename: function (req, file, cb) {
-        // Create a unique filename: userId-timestamp.extension
         cb(null, `${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
     }
 });
 
-// This middleware will process the image upload.
 const upload = multer({
     storage: storage,
     limits: { fileSize: 2000000 }, // 2MB Limit
     fileFilter: function (req, file, cb) {
-        // Allow images only (jpeg, jpg, png, gif)
         const filetypes = /jpeg|jpg|png|gif/;
         const mimetype = filetypes.test(file.mimetype);
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
@@ -27,7 +23,7 @@ const upload = multer({
         }
         cb('Error: File upload only supports the following filetypes - ' + filetypes);
     }
-}).single('profilePicture'); // 'profilePicture' must match the name attribute in your form's file input
+}).single('profilePicture');
 
 
 // --- Controller Functions ---
@@ -36,7 +32,6 @@ const upload = multer({
 exports.updateProfile = (req, res) => {
     upload(req, res, async (err) => {
         if (err) {
-            // Handle upload errors (e.g., wrong file type, file too large)
             req.flash('error_msg', err);
             return res.redirect('/profile');
         }
@@ -48,14 +43,12 @@ exports.updateProfile = (req, res) => {
                 return res.redirect('/profile');
             }
 
-            // Update text fields
             user.firstName = req.body.firstName;
             user.lastName = req.body.lastName;
             user.birthdate = req.body.birthdate;
             user.area = req.body.area;
             user.address = req.body.address;
 
-            // If a new file was uploaded, update the profile picture path
             if (req.file) {
                 user.profilePicture = `/uploads/${req.file.filename}`;
             }
@@ -83,6 +76,25 @@ exports.updateUserRole = async (req, res) => {
     } catch (err) {
         console.error("Role update error:", err);
         req.flash('error_msg', 'Failed to update user role.');
+        res.redirect('/admin-dashboard');
+    }
+};
+
+// NEW: Handles an admin deleting a user.
+exports.deleteUser = async (req, res) => {
+    try {
+        // Safety check: prevent an admin from deleting their own account
+        if (req.params.id === req.user.id) {
+            req.flash('error_msg', 'You cannot delete your own account.');
+            return res.redirect('/admin-dashboard');
+        }
+
+        await User.findByIdAndDelete(req.params.id);
+        req.flash('success_msg', 'User has been deleted successfully.');
+        res.redirect('/admin-dashboard');
+    } catch (err) {
+        console.error("Delete user error:", err);
+        req.flash('error_msg', 'Failed to delete user.');
         res.redirect('/admin-dashboard');
     }
 };

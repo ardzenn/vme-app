@@ -13,7 +13,7 @@ router.get('/my-submissions', ensureAuthenticated, transactionController.getMySu
 router.get('/history', ensureAuthenticated, transactionController.getTransactionHistory);
 router.get('/:id', ensureAuthenticated, transactionController.getTransactionDetails);
 
-// FIXED: This now correctly handles the upload and sends a response
+// This now correctly handles the upload and sends a response
 router.post('/:id/comment/attach', ensureAuthenticated, transactionController.uploadCommentAttachment, (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded.' });

@@ -14,16 +14,16 @@
         <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
     </div>
     <div class="header-actions">
-        <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
-        <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Manage My Entries</a>
-        <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
-        <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>
-        <a href="/report" class="btn btn-success dashboard-header-btn">Daily Coverage Report</a>
-        <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
-        <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
-            Check-in
-        </button>
-    </div>
+    <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn" style="margin-right: 15px; background-color: #4CAF50; color: white;">Collections</a>
+    <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn" style="margin-right: 15px; background-color: #4CAF50; color: white;">Manage My Entries</a>
+    <a href="/products" class="btn btn-dark dashboard-header-btn" style="margin-right: 15px; background-color: #FFCA28; color: black;">Product Gallery</a>
+    <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn" style="margin-right: 15px; background-color: #4CAF50; color: white;">Itinerary</a>
+    <a href="/report" class="btn btn-success dashboard-header-btn" style="margin-right: 15px; background-color: #4CAF50; color: white;">Daily Coverage Report</a>
+    <a href="/bookorder" class="btn btn-primary dashboard-header-btn" style="margin-right: 15px; background-color: #FFCA28; color: black;">Book New Order</a>
+    <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal" style="background-color: #4CAF50; color: white;">
+        Check-in
+    </button>
+</div>
 </header>
 
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>

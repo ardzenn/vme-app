@@ -9,4 +9,7 @@ router.post('/update-role/:id', ensureAuthenticated, ensureAdmin, userController
 // Wires the URL POST /profile to the updateProfile controller function
 router.post('/profile', ensureAuthenticated, userController.updateProfile);
 
+//Wires the URL POST /delete/:id to the deleteUser controller function
+router.post('/delete/:id', ensureAuthenticated, ensureAdmin, userController.deleteUser);
+
 module.exports = router;

@@ -1,23 +1,23 @@
-/* VME App - Professional Redesign */
+/* VINTEL MED ENTERPRSIES CSS*/
 
 /* 1. FONT IMPORT & CSS VARIABLES */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   /* Color Palette from New Logo */
-  --primary-green: #00897B; /* A clean, modern teal/green */
+  --primary-green: #00897B; 
   --primary-green-dark: #00695C;
-  --accent-gold: #FFCA28;   /* A warm, friendly yellow */
+  --accent-gold: #FFCA28;   
   
   /* UI Colors */
-  --background-main: #F4F5F7; /* A slightly warmer off-white */
-  --surface-card: #FFFFFF;    /* White for cards and modals */
-  --border-color: #E5E7EB;     /* Light gray for borders */
+  --background-main: #F4F5F7; 
+  --surface-card: #FFFFFF;    
+  --border-color: #E5E7EB;     
   
   /* Text Colors */
-  --text-primary: #1F2937;     /* Dark gray for primary text */
-  --text-secondary: #6B7280;   /* Medium gray for secondary text */
-  --text-on-primary: #FFFFFF;  /* White text on green backgrounds */
+  --text-primary: #1F2937;    
+  --text-secondary: #6B7280;   
+  --text-on-primary: #FFFFFF;  
 
   /* System Colors */
   --system-success: #16A34A;
@@ -112,6 +112,7 @@ a:hover { text-decoration: underline; }
 }
 .stat-card .stat-title { font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); }
 .stat-card .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); }
+
 .table th { color: var(--text-secondary); }
 
 /* 6. TABS */
@@ -136,7 +137,7 @@ a:hover { text-decoration: underline; }
 .tab-content { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; }
 .tab-pane { flex-grow: 1; display: none; flex-direction: column; }
 .tab-pane.fade.show.active { display: flex; }
-.conversation-list-body{overflow-y:auto;flex-grow:1; min-height: 0;} /* THIS FIXES THE SCROLLING */
+.conversation-list-body{overflow-y:auto;flex-grow:1; min-height: 0;}
 
 .conversation{display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;cursor:pointer;border-bottom:1px solid var(--border-color)}
 .conversation:hover{background-color:var(--background-main)}
@@ -145,10 +146,171 @@ a:hover { text-decoration: underline; }
 .chat-window{display:none; flex-direction: column; height: 100%;}
 .chat-window.active{display:flex;position:absolute;top:0;left:0;width:100%;height:100%;background-color:white}
 
-.chat-messages{flex-grow:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1rem; min-height: 0;} /* THIS FIXES THE SCROLLING */
+.chat-messages{flex-grow:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1rem; min-height: 0;}
 .chat-message{display:flex;gap:10px;max-width:80%}
 .chat-profile-pic{width:32px;height:32px;border-radius:50%;object-fit:cover;align-self:flex-end}
 .chat-bubble{padding:.6rem 1rem;border-radius:1.25rem;line-height:1.4}
 .chat-message-received .chat-bubble{background-color:var(--background-main);border-top-left-radius:.25rem}
 .chat-message-sent{align-self:flex-end;flex-direction:row-reverse}
 .chat-message-sent .chat-bubble{background-color:var(--primary-green);color:var(--white)}
+
+/* --- 9. ORDER DETAIL MODAL RESPONSIVENESS & SCROLL FIX --- */
+#orderDetailModal .modal-dialog {
+    max-width: 90vw; 
+    width: 800px; 
+}
+
+#orderDetailModal .modal-content {
+    max-height: 80vh; 
+    overflow-y: auto; 
+}
+
+#orderDetailModal .modal-body {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    overflow-y: auto; 
+    padding: 1rem;
+    max-height: calc(80vh - 120px); 
+}
+
+#orderDetailModal .order-info {
+    flex: 1;
+    overflow-y: auto; 
+    padding-right: 1rem;
+    max-height: 100%;
+}
+
+#orderDetailModal .chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border-color);
+    padding-left: 1rem;
+    height: 100%;
+    min-height: 300px;
+    max-height: 100%; 
+}
+
+#modal_chatMessages {
+    flex-grow: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 1rem;
+    max-height: 300px;
+
+#orderDetailModal .chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 1rem;
+    max-height: 300px; 
+}
+
+#orderDetailModal .product-list {
+    max-height: 200px;
+    overflow-y: auto; 
+}
+
+/* Responsive stacking for smaller screens */
+@media (max-width: 768px) {
+    #orderDetailModal .modal-body {
+        flex-direction: column;
+        overflow-y: auto; /* Maintain scrolling */
+    }
+    #orderDetailModal .chat-container {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding-left: 0;
+        padding-top: 1rem;
+        margin-top: 1rem;
+        max-height: 400px; /* Adjust for mobile */
+    }
+    #modal_chatMessages, #orderDetailModal .chat-messages {
+        max-height: 250px; /* Adjust for mobile */
+    }
+    #orderDetailModal .modal-dialog {
+        width: 95vw;
+    }
+    #orderDetailModal .modal-content {
+        max-height: 90vh; /* Adjust for mobile */
+    }
+}
+
+/* Stacks columns on medium screens and below */
+@media (max-width: 991.98px) {
+    #orderDetailModal .border-start-lg {
+        border-left: none !important;
+        border-top: 1px solid var(--border-color);
+        margin-top: 1rem;
+        padding-top: 2rem;
+    }
+}
+/* --- 10. COLLECTION DETAILS CHAT SCROLL --- */
+.card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chat container styles */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; 
+  overflow: hidden; 
+  max-height: 400px; 
+}
+
+/* Chat messages area - make it scrollable */
+#chat-messages.chat-messages.flex-grow-1 {
+  flex-grow: 1; 
+  overflow-y: auto;
+  min-height: 0; 
+  padding: 1rem; 
+  background-color: var(--background-main); 
+  border: 1px solid var(--border-color); 
+  border-radius: 0.5rem; 
+}
+
+/* Chat input area - keep it at the bottom */
+.chat-input-area {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; 
+  margin-top: 1rem; 
+  flex-shrink: 0; 
+}
+
+/* Input and button styles  */
+#chat-message-text {
+  flex-grow: 1; 
+}
+
+#chat-attach-btn,
+#send-message-btn {
+  flex-shrink: 0; 
+}
+
+/* Attachment preview */
+#chat-attachment-preview {
+  margin-top: 0.5rem;
+  max-height: 100px; /* Limit preview height */
+  overflow: hidden; /* Hide overflow */
+  flex-shrink: 0;
+}
+
+/* Scrollbar styling  */
+#chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+#chat-messages::-webkit-scrollbar-track {
+  background: var(--background-main);
+}
+#chat-messages::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border-radius: 4px;
+}
+#chat-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-green);
+}
