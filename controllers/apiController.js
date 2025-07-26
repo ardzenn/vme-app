@@ -1,92 +1,128 @@
-const User = require('../models/User');
 const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
-/**
- * Updates the user's last known location.
- * This is typically called by a periodic fetch() from the client-side.
- */
+const multer = require('multer');
+const csv = require('csv-parser');
+const fs = require('fs');
+const User = require('../models/User');
+
+const upload = multer({ dest: 'temp-uploads/' });
+exports.uploadCsv = upload.single('clientCsv');
+
 exports.updateLocation = async (req, res) => {
-    if (!req.user) {
-        return res.status(401).json({ message: 'Not authenticated.' });
-    }
-
-    const { latitude, longitude } = req.body;
-
-    if (!latitude || !longitude) {
-        return res.status(400).json({ message: 'Latitude and longitude are required.' });
-    }
-
     try {
-        await User.findByIdAndUpdate(req.user.id, {
-            lastLocation: {
-                type: 'Point',
-                coordinates: [longitude, latitude] // GeoJSON format: [longitude, latitude]
-            },
-            lastLocationUpdate: Date.now()
-        });
-        res.status(200).json({ message: 'Location updated successfully.' });
+        const { lat, lng } = req.body;
+        if (lat && lng) {
+            await User.findByIdAndUpdate(req.user.id, {
+                lastLocation: {
+                    type: 'Point',
+                    coordinates: [lng, lat]
+                },
+                lastLocationUpdate: Date.now()
+            });
+            const io = req.app.get('io');
+            const user = await User.findById(req.user.id).select('firstName lastName role lastLocation');
+            io.emit('locationUpdate', user);
+        }
+        res.status(200).json({ success: true });
     } catch (err) {
-        console.error("Location update error:", err);
-        res.status(500).json({ message: 'Server error while updating location.' });
+        res.status(500).json({ success: false });
     }
 };
+
 exports.addHospital = async (req, res) => {
     try {
         const { name } = req.body;
-        if (!name) {
-            return res.status(400).json({ success: false, message: 'Hospital name is required.' });
-        }
-        const existingHospital = await Hospital.findOne({ name });
-        if (existingHospital) {
-            return res.status(409).json({ success: false, message: 'Hospital already exists.' });
-        }
-        const newHospital = new Hospital({ name, createdBy: req.user.id });
-        await newHospital.save();
-        res.status(201).json({ success: true, hospital: newHospital });
-    } catch (err) {
-        res.status(500).json({ success: false, message: 'Server error.' });
+        const hospital = new Hospital({ name, createdBy: req.user.id });
+        await hospital.save();
+        // Always return JSON for the script to handle
+        res.json({ success: true, message: 'Hospital added successfully!' });
+    } catch (error) {
+        res.status(400).json({ success: false, message: 'A hospital with this name may already exist in your list.' });
     }
 };
 
 exports.addDoctor = async (req, res) => {
     try {
         const { name, hospitalId } = req.body;
-        if (!name || !hospitalId) {
-            return res.status(400).json({ success: false, message: 'Doctor name and hospital are required.' });
-        }
-        // UPDATED: Assigns the creator's ID when saving
-        const newDoctor = new Doctor({ name, hospital: hospitalId, createdBy: req.user.id });
-        await newDoctor.save();
-        res.status(201).json({ success: true, doctor: newDoctor });
-    } catch (err) {
-        res.status(500).json({ success: false, message: 'Server error.' });
+        const doctor = new Doctor({ name, hospital: hospitalId, createdBy: req.user.id });
+        await doctor.save();
+        // Always return JSON for the script to handle
+        res.json({ success: true, message: 'Doctor added successfully!' });
+    } catch (error) {
+        res.status(400).json({ success: false, message: 'This doctor may already exist for the selected hospital.' });
     }
 };
 
-
 exports.deleteHospital = async (req, res) => {
     try {
-        const hospital = await Hospital.findById(req.params.id);
-        if (!hospital || hospital.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({ success: false, message: 'Permission denied.' });
+        const hospital = await Hospital.findOne({ _id: req.params.id, createdBy: req.user.id });
+        if (!hospital) {
+            return res.status(404).json({ success: false, message: 'Hospital not found.' });
         }
         await Doctor.deleteMany({ hospital: req.params.id, createdBy: req.user.id });
-        await Hospital.findByIdAndDelete(req.params.id);
-        res.status(200).json({ success: true, message: 'Hospital and its doctors deleted.' });
-    } catch (err) {
+        await hospital.deleteOne();
+        res.json({ success: true });
+    } catch(err){
         res.status(500).json({ success: false, message: 'Server error.' });
     }
 };
 
 exports.deleteDoctor = async (req, res) => {
     try {
-        const doctor = await Doctor.findById(req.params.id);
-        if (!doctor || doctor.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({ success: false, message: 'Permission denied.' });
+        const doctor = await Doctor.findOne({ _id: req.params.id, createdBy: req.user.id });
+        if (!doctor) {
+            return res.status(404).json({ success: false, message: 'Doctor not found.' });
         }
-        await Doctor.findByIdAndDelete(req.params.id);
-        res.status(200).json({ success: true, message: 'Doctor deleted.' });
-    } catch (err) {
+        await doctor.deleteOne();
+        res.json({ success: true });
+    } catch(err){
         res.status(500).json({ success: false, message: 'Server error.' });
     }
+};
+
+exports.importClients = (req, res) => {
+    if (!req.file) {
+        req.flash('error_msg', 'Please upload a CSV file.');
+        return res.redirect('/manage-entries');
+    }
+
+    const results = [];
+    fs.createReadStream(req.file.path)
+        .pipe(csv({ headers: ['Hospital', 'Doctor'], skipLines: 0 }))
+        .on('data', (data) => results.push(data))
+        .on('end', async () => {
+            fs.unlinkSync(req.file.path);
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const row of results) {
+                try {
+                    const hospitalName = row.Hospital?.trim();
+                    const doctorName = row.Doctor?.trim();
+
+                    if (!hospitalName || !doctorName) {
+                        errorCount++;
+                        continue;
+                    }
+
+                    let hospital = await Hospital.findOneAndUpdate(
+                        { name: hospitalName, createdBy: req.user.id },
+                        { $setOnInsert: { name: hospitalName, createdBy: req.user.id } },
+                        { upsert: true, new: true }
+                    );
+
+                    await Doctor.findOneAndUpdate(
+                        { name: doctorName, hospital: hospital._id, createdBy: req.user.id },
+                        { $setOnInsert: { name: doctorName, hospital: hospital._id, createdBy: req.user.id } },
+                        { upsert: true }
+                    );
+
+                    successCount++;
+                } catch (err) {
+                    errorCount++;
+                }
+            }
+            req.flash('success_msg', `${successCount} clients imported successfully. ${errorCount > 0 ? `${errorCount} rows failed or were duplicates.` : ''}`);
+            res.redirect('/manage-entries');
+        });
 };

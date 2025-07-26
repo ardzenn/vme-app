@@ -10,59 +10,158 @@
         <header class="page-header">
             <div>
                 <h1>Client Masterlist</h1>
-                <p class="text-secondary">Add, edit, or remove your personal list of hospitals and doctors.</p>
-            </div>
+                <p class="text-secondary">Add, import, edit, or remove your personal list of hospitals and doctors.</p>
+             </div>
         </header>
 
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header"><h4>My Hospitals</h4></div>
+        <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
+
+        <div class="row g-5">
+            <div class="col-lg-5">
+                <div class="card mb-4">
+                    <div class="card-header"><h5 class="mb-0">Add New Hospital</h5></div>
                     <div class="card-body">
-                        <ul class="list-group">
+                        <form id="addHospitalForm" action="/api/hospitals/add" method="POST">
+                            <div class="input-group">
+                                <input type="text" name="name" class="form-control" placeholder="Hospital Name" required>
+                                <button class="btn btn-primary" type="submit">Add Hospital</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header"><h5 class="mb-0">Add New Doctor</h5></div>
+                    <div class="card-body">
+                        <form id="addDoctorForm" action="/api/doctors/add" method="POST">
+                            <div class="mb-3">
+                                <label for="doctor-name" class="form-label">Doctor's Name</label>
+                                <input type="text" id="doctor-name" name="name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="hospital-assignment" class="form-label">Assign to Hospital</label>
+                                <select id="hospital-assignment" name="hospitalId" class="form-select" required>
+                                    <option value="" disabled selected>Select a hospital...</option>
+                                    <% myHospitals.forEach(hospital => { %>
+                                        <option value="<%= hospital._id %>"><%= hospital.name %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Add Doctor</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Bulk Import from CSV</h5></div>
+                    <div class="card-body">
+                        <form action="/api/clients/import" method="POST" enctype="multipart/form-data">
+                             <div class="mb-3">
+                                <label for="clientCsv" class="form-label">Upload CSV File</label>
+                                <input type="file" id="clientCsv" name="clientCsv" class="form-control" required accept=".csv">
+                                 <div class="form-text">CSV must have two columns: Hospital, Doctor</div>
+                            </div>
+                            <button type="submit" class="btn btn-secondary w-100">Import Clients</button>
+                         </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">My Hospitals</h5>
+                        <input type="text" id="hospitalSearch" class="form-control form-control-sm w-50" placeholder="Search hospitals...">
+                    </div>
+                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                         <ul class="list-group" id="hospitalList">
                             <% myHospitals.forEach(hospital => { %>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <%= hospital.name %>
+                                <li class="list-group-item d-flex justify-content-between align-items-center" data-name="<%= hospital.name.toLowerCase() %>">
+                                     <%= hospital.name %>
                                     <button class="btn btn-sm btn-outline-danger delete-hospital-btn" data-id="<%= hospital._id %>">Delete</button>
-                                </li>
+                                 </li>
                             <% }) %>
                         </ul>
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header"><h4>My Doctors</h4></div>
-                    <div class="card-body">
-                        <ul class="list-group">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">My Doctors</h5>
+                        <input type="text" id="doctorSearch" class="form-control form-control-sm w-50" placeholder="Search doctors...">
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                         <ul class="list-group" id="doctorList">
                             <% myDoctors.forEach(doctor => { %>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
+                                <li class="list-group-item d-flex justify-content-between align-items-center" data-name="<%= doctor.name.toLowerCase() %>" data-hospital="<%= doctor.hospital ? doctor.hospital.name.toLowerCase() : '' %>">
+                                     <div>
                                         <strong><%= doctor.name %></strong>
                                         <div class="small text-secondary"><%= doctor.hospital ? doctor.hospital.name : 'No hospital assigned' %></div>
                                     </div>
                                     <button class="btn btn-sm btn-outline-danger delete-doctor-btn" data-id="<%= doctor._id %>">Delete</button>
-                                </li>
+                                 </li>
                             <% }) %>
                         </ul>
                     </div>
-                </div>
+                 </div>
             </div>
         </div>
     </main>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- ADD HOSPITAL FORM SUBMISSION ---
+            document.getElementById('addHospitalForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const result = await response.json();
+                    alert(result.message || 'An error occurred.');
+                }
+            });
+
+            // --- ADD DOCTOR FORM SUBMISSION ---
+            document.getElementById('addDoctorForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const result = await response.json();
+                    alert(result.message || 'An error occurred.');
+                }
+            });
+
+            // --- DELETE HOSPITAL BUTTONS ---
             document.querySelectorAll('.delete-hospital-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
-                    if (confirm('Are you sure you want to delete this hospital and all of its associated doctors? This cannot be undone.')) {
+                     if (confirm('Are you sure you want to delete this hospital and all of its associated doctors? This cannot be undone.')) {
                         const id = e.target.dataset.id;
                         await fetch(`/api/hospitals/${id}`, { method: 'DELETE' });
-                        window.location.reload();
+                         window.location.reload();
                     }
                 });
             });
 
+            // --- DELETE DOCTOR BUTTONS ---
             document.querySelectorAll('.delete-doctor-btn').forEach(button => {
                 button.addEventListener('click', async (e) => {
                     if (confirm('Are you sure you want to delete this doctor?')) {
@@ -70,6 +169,26 @@
                         await fetch(`/api/doctors/${id}`, { method: 'DELETE' });
                         window.location.reload();
                     }
+                });
+            });
+
+            // --- SEARCH BARS ---
+            const hospitalSearch = document.getElementById('hospitalSearch');
+            const doctorSearch = document.getElementById('doctorSearch');
+
+            hospitalSearch.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('#hospitalList li').forEach(li => {
+                    li.style.display = li.dataset.name.includes(term) ? '' : 'none';
+                });
+            });
+
+            doctorSearch.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('#doctorList li').forEach(li => {
+                    const nameMatch = li.dataset.name.includes(term);
+                    const hospitalMatch = li.dataset.hospital.includes(term);
+                    li.style.display = (nameMatch || hospitalMatch) ? '' : 'none';
                 });
             });
         });

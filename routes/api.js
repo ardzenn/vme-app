@@ -5,13 +5,18 @@ const orderController = require('../controllers/orderController');
 const chatController = require('../controllers/chatController');
 const { ensureAuthenticated } = require('../middleware/auth');
 
-// --- Non-Chat API Routes ---
+// --- Location API Route ---
 router.post('/location', ensureAuthenticated, apiController.updateLocation);
+
+// --- Order API Route ---
 router.get('/orders/:id', ensureAuthenticated, orderController.getOrderDetailsAndMessages);
+
+// --- Client Masterlist API Routes ---
 router.post('/hospitals/add', ensureAuthenticated, apiController.addHospital);
 router.post('/doctors/add', ensureAuthenticated, apiController.addDoctor);
 router.delete('/hospitals/:id', ensureAuthenticated, apiController.deleteHospital);
 router.delete('/doctors/:id', ensureAuthenticated, apiController.deleteDoctor);
+router.post('/clients/import', ensureAuthenticated, apiController.uploadCsv, apiController.importClients);
 
 // --- CHAT API ROUTES ---
 router.get('/users', ensureAuthenticated, chatController.getAllUsers);

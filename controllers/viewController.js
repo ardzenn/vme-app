@@ -32,11 +32,12 @@ exports.getMSRDashboard = async (req, res) => {
             ]).then(result => result[0] ? result[0].total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')
         };
         
+        // Queries are now filtered to the specific user's own created clients
         const [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries] = await Promise.all([
             CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10).populate('hospital doctor'),
             Order.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10),
-            Hospital.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }),
-            Doctor.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }),
+            Hospital.find({ createdBy: req.user.id }),
+            Doctor.find({ createdBy: req.user.id }).populate('hospital'),
             DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 }).limit(10),
             WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 }).limit(10)
         ]);
@@ -60,12 +61,12 @@ exports.getAdminDashboard = async (req, res) => {
             User.find(),
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
-            CheckIn.find({ createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }).sort({ createdAt: -1 }).populate('user hospital doctor'),
+            CheckIn.find().sort({ createdAt: -1 }).populate('user hospital doctor'),
             DailyPlan.find().populate('user', 'firstName lastName').sort({ planDate: -1 }),
             WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 }),
             DailyReport.find().populate('user', 'firstName lastName').sort({ reportDate: -1 })
         ]);
-        res.render('admin-dashboard', { stats, users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports });
+        res.render('admin-dashboard', { stats, users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports, currentUser: req.user });
     } catch (err) {
         console.error("Admin Dashboard Error:", err);
         req.flash('error_msg', 'Could not load admin dashboard.');
@@ -89,7 +90,7 @@ exports.getAccountingDashboard = async (req, res) => {
             WeeklyItinerary.find().populate('user').sort({ weekStartDate: -1 }),
             DailyReport.find().populate('user').sort({ reportDate: -1 })
         ]);
-        res.render('accounting-dashboard', { stats, users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports });
+        res.render('accounting-dashboard', { stats, users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports, currentUser: req.user });
     } catch (err) {
         console.error("Accounting Dashboard Error:", err);
         req.flash('error_msg', 'Could not load accounting dashboard.');
@@ -97,13 +98,10 @@ exports.getAccountingDashboard = async (req, res) => {
     }
 };
 
-// --- Other Page Renders ---
 exports.getProfilePage = (req, res) => {
     res.render('profile', { user: req.user });
 };
 
-// **THIS IS THE CORRECTED FUNCTION**
-// It fetches products from the database before rendering the page.
 exports.getBookOrderPage = async (req, res) => {
     try {
         const products = await Product.find().sort({ name: 1 });
@@ -116,8 +114,8 @@ exports.getBookOrderPage = async (req, res) => {
 
 exports.getManageEntriesPage = async (req, res) => {
     try {
-        const myHospitals = await Hospital.find({ createdBy: req.user.id });
-        const myDoctors = await Doctor.find({ createdBy: req.user.id }).populate('hospital');
+        const myHospitals = await Hospital.find({ createdBy: req.user.id }).sort({ name: 1 });
+        const myDoctors = await Doctor.find({ createdBy: req.user.id }).populate('hospital').sort({ name: 1 });
         res.render('manage-entries', { myHospitals, myDoctors });
     } catch (err) {
         req.flash('error_msg', 'Could not load your entries.');
@@ -127,8 +125,8 @@ exports.getManageEntriesPage = async (req, res) => {
 
 exports.getCheckInPage = async (req, res) => {
     try {
-        const allHospitals = await Hospital.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }).sort({ name: 1 });
-        const allDoctors = await Doctor.find({ $or: [{ createdBy: null }, { createdBy: req.user.id }] }).sort({ name: 1 });
+        const allHospitals = await Hospital.find({ createdBy: req.user.id }).sort({ name: 1 });
+        const allDoctors = await Doctor.find({ createdBy: req.user.id }).sort({ name: 1 });
         res.render('checkin-form', { allHospitals, allDoctors });
     } catch (err) {
         req.flash('error_msg', 'Could not load check-in page.');

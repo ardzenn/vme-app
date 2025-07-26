@@ -1,24 +1,24 @@
-const mongoose_checkin = require('mongoose');
-const { Schema: Schema_checkin } = mongoose_checkin;
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const checkInSchema = new Schema_checkin({
-  user: { type: Schema_checkin.Types.ObjectId, ref: 'User', required: true },
-  hospital: { type: Schema_checkin.Types.ObjectId, ref: 'Hospital', required: true },
-  doctor: { type: Schema_checkin.Types.ObjectId, ref: 'Doctor', required: true },
+const checkInSchema = new Schema({
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  hospital: { type: Schema.Types.ObjectId, ref: 'Hospital', required: true },
+  doctor: { type: Schema.Types.ObjectId, ref: 'Doctor', required: true },
   activity: { type: String, required: true },
-  
-  // Stores the path to an uploaded file OR a base64 data URL from the camera
+  notes: { type: String },
   proof: { type: String }, 
-  
-  // Stores the base64 data URL from the signature pad
   signature: { type: String }, 
-  
-  // Stores the location data
   location: { 
     lat: Number, 
-    lng: Number,
-    timestamp: { type: Date, default: Date.now } 
-  }
+    lng: Number 
+  },
+
+  mapImageUrl: { type: String },
+
 }, { timestamps: true });
 
-module.exports = mongoose_checkin.models.CheckIn || mongoose_checkin.model('CheckIn', checkInSchema);
+// Add a 2dsphere index for geospatial queries in the future
+checkInSchema.index({ location: '2dsphere' });
+
+module.exports = mongoose.models.CheckIn || mongoose.model('CheckIn', checkInSchema);

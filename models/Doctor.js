@@ -1,13 +1,14 @@
-const mongoose_Doctor = require('mongoose');
-const { Schema: Schema_Doctor } = mongoose_Doctor;
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const doctorSchema = new Schema_Doctor({
-  name: { type: String, required: true, trim: true },
-  specialty: { type: String, trim: true },
-  hospital: { type: Schema_Doctor.Types.ObjectId, ref: 'Hospital', required: true },
-  createdBy: { type: Schema_Doctor.Types.ObjectId, ref: 'User', default: null }
-});
+const doctorSchema = new Schema({
+    name: { type: String, required: true, trim: true },
+    hospital: { type: Schema.Types.ObjectId, ref: 'Hospital', required: true },
+    // Track who created a new data in doctor
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
 
-doctorSchema.index({ name: 1, hospital: 1 }, { unique: true });
+// Ensure a user cannot add the same doctor to the same hospital twice
+doctorSchema.index({ name: 1, hospital: 1, createdBy: 1 }, { unique: true });
 
-module.exports = mongoose_Doctor.models.Doctor || mongoose_Doctor.model('Doctor', doctorSchema);
+module.exports = mongoose.models.Doctor || mongoose.model('Doctor', doctorSchema);

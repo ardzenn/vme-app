@@ -2,8 +2,8 @@ const Order = require('../models/Order');
 const Message = require('../models/Message');
 const crypto = require('crypto');
 const upload = require('../config/cloudinary');
+const { createNotification } = require('../services/notificationService');
 
-// This defines the middleware that looks for a file in a field named 'attachment'
 exports.uploadAttachment = upload.single('attachment');
 
 exports.bookOrder = async (req, res) => {
@@ -52,7 +52,14 @@ exports.bookOrder = async (req, res) => {
 exports.updateOrder = async (req, res) => {
     try {
         const { salesInvoice, status, paymentStatus } = req.body;
-        await Order.findByIdAndUpdate(req.params.id, { salesInvoice, status, paymentStatus });
+        const order = await Order.findByIdAndUpdate(req.params.id, { salesInvoice, status, paymentStatus });
+
+        if (order && order.user.toString() !== req.user.id.toString()) {
+            const io = req.app.get('io');
+            const notificationText = `Your order #${order.reference} status was updated to "${status}".`;
+            createNotification(io, order.user, notificationText, `/dashboard`);
+        }
+
         req.flash('success_msg', 'Order updated successfully!');
         res.redirect('back');
     } catch (err) {
@@ -83,7 +90,6 @@ exports.addMessageToOrder = async (req, res) => {
         const { text } = req.body;
         const orderId = req.params.id;
         
-        // This function now correctly checks for req.file provided by the middleware
         const message = new Message({
             order: orderId,
             sender: req.user.id,

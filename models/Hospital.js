@@ -1,10 +1,13 @@
-const mongoose_Hospital = require('mongoose');
-const { Schema: Schema_Hospital } = mongoose_Hospital;
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const hospitalSchema = new Schema_Hospital({
-  name: { type: String, required: true, unique: true, trim: true },
-  address: { type: String, trim: true },
-   createdBy: { type: Schema_Hospital.Types.ObjectId, ref: 'User', default: null }
-});
+const hospitalSchema = new Schema({
+    name: { type: String, required: true, trim: true },
+    // to track who made a new data in hospital
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
 
-module.exports = mongoose_Hospital.models.Hospital || mongoose_Hospital.model('Hospital', hospitalSchema);
+// Ensure a user cannot add the same hospital twice
+hospitalSchema.index({ name: 1, createdBy: 1 }, { unique: true });
+
+module.exports = mongoose.models.Hospital || mongoose.model('Hospital', hospitalSchema);
