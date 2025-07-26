@@ -16,6 +16,9 @@
                 <p style="margin: 0;">System overview and management.</p>
             </div>
             <div class="d-flex align-items-center gap-2">
+                <!-- UPDATED LINK: Points to the new daily check-in report -->
+                <a href="/report/check-ins" class="btn btn-success">Daily Check-in Report</a>
+                <a href="/planning/coverage-report" class="btn btn-info">Weekly Coverage Report</a>
                 <a href="/analytics" class="btn btn-warning">View Analytics</a>
                 <a href="/products" class="btn btn-dark">View Product Gallery</a>
             </div>
@@ -112,29 +115,51 @@
                     </table></div>
                 </div></div>
             </div>
+
             <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
-               <div class="card card-tab"><div class="card-body">
-                    <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search check-ins...">
-                    <div class="table-responsive"><table class="table table-hover align-middle" id="checkinTable">
-                        <thead><tr><th>User</th><th>Hospital</th><th>Location</th><th>Proof</th><th>Signature</th><th>Date</th></tr></thead>
-                        <tbody>
-                         <% checkins.forEach(checkin => { %>
-                          <tr data-search="<%= (checkin.user ? (checkin.user.firstName || '') + ' ' + (checkin.user.lastName || '') : '').toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %>">
-                             <td><%= checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A' %></td>
-                            <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
-                               <td>
-                          <% if (checkin.mapImageUrl) { %>
-                             <img src="<%= checkin.mapImageUrl %>" alt="Map" style="width: 150px; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.mapImageUrl %>')">
-                          <% } else { %> No Location <% } %>
-                           </td>
-                          <td><% if (checkin.proof) { %><img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')"><% } else { %> No Proof <% } %></td>
-                       <td><% if (checkin.signature) { %><img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')"><% } else { %> No Signature <% } %></td>
-                     <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
-                         </tr>
-                                 <% }) %>
+               <div class="card card-tab">
+                    <div class="card-body">
+                        <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search your check-ins...">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="checkinTable">
+                                <thead>
+                                    <tr>
+                                        <th>Hospital</th>
+                                        <th>Doctor</th>
+                                        <th>Activity</th>
+                                        <th>Proof</th>
+                                        <th>Signature</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if(checkins.length > 0) { %>
+                                        <% checkins.forEach(checkin => { %>
+                                            <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
+                                                <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
+                                                <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
+                                                <td><%= checkin.activity || 'N/A' %></td>
+                                                <td>
+                                                    <% if (checkin.proof) { %>
+                                                        <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
+                                                    <% } else { %><span class="text-muted">No Proof</span><% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (checkin.signature) { %>
+                                                        <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
+                                                    <% } else { %><span class="text-muted">No Signature</span><% } %>
+                                                </td>
+                                                <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr><td colspan="7" class="text-center p-4">No check-in history found.</td></tr>
+                                    <% } %>
                                 </tbody>
-                    </table></div>
-                </div></div>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
                 <div class="card card-tab"><div class="card-body">
@@ -147,7 +172,7 @@
                                     <td><%= plan.user.firstName %> <%= plan.user.lastName %></td>
                                     <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
                                     <td><%= plan.firstClientCall %></td>
-                                    <td><a href="/planning/daily/<%= plan._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                    <td><a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-primary">View Details</a></td>
                                 </tr>
                             <% }) %>
                         </tbody>
@@ -164,7 +189,7 @@
                                 <tr data-search="<%= (itinerary.user.firstName || '').toLowerCase() %> <%= (itinerary.user.lastName || '').toLowerCase() %>">
                                     <td><%= itinerary.user.firstName %> <%= itinerary.user.lastName %></td>
                                     <td><%= new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
-                                    <td><a href="/planning/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                    <td><a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details</a></td>
                                 </tr>
                             <% }) %>
                         </tbody>
@@ -173,7 +198,7 @@
             </div>
             <div class="tab-pane fade" id="map-panel" role="tabpanel">
                 <div class="card card-tab"><div class="card-body">
-                    <div id="map"></div>
+                    <div id="map" style="height: 60vh; width: 100%;"></div>
                 </div></div>
             </div>
         </div>

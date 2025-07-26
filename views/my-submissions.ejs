@@ -1,60 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Collection & Deposit - VME App</title>
+    <title>My Submissions - VME App</title>
     <%- include('partials/header-meta') %>
 </head>
 <body>
     <%- include('partials/navbar') %>
-    <main class="container my-5" style="max-width: 800px;">
+    <main class="container my-5">
         <header class="page-header">
             <div>
-                <h1>Collection & Deposit</h1>
-                <p class="text-muted">Select a form to submit your financial documents.</p>
+                <h1>My Submissions</h1>
+                <p class="text-secondary">Your history of submitted Collections and Deposits.</p>
             </div>
+            <a href="/transactions" class="btn btn-primary">Submit New</a>
         </header>
 
-        <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
-        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
-
-        <div class="btn-group w-100 mb-4">
-            <button class="btn btn-primary active" id="show-collection-btn">Collection Form</button>
-            <button class="btn btn-outline-primary" id="show-deposit-btn">Deposit Form</button>
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Customer/Hospital</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if(transactions.length > 0) { %>
+                                <% transactions.forEach(txn => { %>
+                                    <tr>
+                                        <td><span class="badge bg-<%= txn.type === 'Collection' ? 'info' : 'success' %>"><%= txn.type %></span></td>
+                                        <td><%= txn.customer || txn.hospital || 'N/A' %></td>
+                                        <td>₱<%= (txn.amount || 0).toLocaleString() %></td>
+                                        <td><%= new Date(txn.createdAt).toLocaleDateString() %></td>
+                                        <td><a href="/transactions/<%= txn._id %>" class="btn btn-sm btn-outline-primary">View Details</a></td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="5" class="text-center p-4">You have not made any submissions yet.</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-
-        <form action="/transactions" method="POST" enctype="multipart/form-data" id="collection-form">
-            <input type="hidden" name="type" value="Collection">
-            <div class="card">
-                <div class="card-header"><h4>Collection Details</h4></div>
-                <div class="card-body row g-3">
-                    <div class="col-12"><label class="form-label">Customer</label><input type="text" name="customer" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label">Date Collected</label><input type="date" name="dateCollected" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label">PR/CR</label><input type="text" name="prCr" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label">S.I/D.R</label><input type="text" name="siDr" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label">Date of Check</label><input type="date" name="dateOfCheck" class="form-control" required></div>
-                    <div class="col-12"><label class="form-label">Bank/Check No.</label><input type="text" name="bankCheckNo" class="form-control" required></div>
-                    <div class="col-12"><label class="form-label">Amount</label><input type="number" name="amount" class="form-control" step="0.01" required></div>
-                    <div class="col-12"><label class="form-label">Attach / Upload File (Optional)</label><input type="file" name="attachment" class="form-control"></div>
-                    <div class="col-12"><button type="submit" class="btn btn-primary w-100 mt-3">Submit Collection</button></div>
-                </div>
-            </div>
-        </form>
-
-        <form action="/transactions" method="POST" enctype="multipart/form-data" id="deposit-form" style="display: none;">
-            <input type="hidden" name="type" value="Deposit">
-             <div class="card">
-                <div class="card-header"><h4>Deposit Details</h4></div>
-                <div class="card-body row g-3">
-                    <div class="col-12"><label class="form-label">Details</label><input type="text" name="details" class="form-control" required></div>
-                    <div class="col-12"><label class="form-label">Hospital</label><input type="text" name="hospital" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label">Date Deposited</label><input type="date" name="dateDeposited" class="form-control" required></div>
-                    <div class="col-md-6"><label class="form-label">Cheque or Cash?</label><select name="paymentMethod" class="form-select" required><option>Cheque</option><option>Cash</option></select></div>
-                    <div class="col-12"><label class="form-label">Total Amount Deposited</label><input type="number" name="totalAmountDeposited" class="form-control" step="0.01" required></div>
-                    <div class="col-12"><label class="form-label">Attach / Upload File (Optional)</label><input type="file" name="attachment" class="form-control"></div>
-                    <div class="col-12"><button type="submit" class="btn btn-primary w-100 mt-3">Submit Deposit</button></div>
-                </div>
-            </div>
-        </form>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

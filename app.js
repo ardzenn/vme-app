@@ -130,6 +130,7 @@ async function startServer() {
         app.use('/analytics', require('./routes/analytics'));
         app.use('/push', require('./routes/push'));
         app.use('/transactions', require('./routes/transactions'));
+        app.use('/planning', require('./routes/planning'));
 
         app.get('/health', (req, res) => {
             res.status(200).json({ status: 'ok', uptime: process.uptime() });

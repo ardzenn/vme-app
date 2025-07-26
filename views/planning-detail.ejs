@@ -4,8 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plan Details - VME App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+    <%- include('partials/header-meta') %>
+    <style>
+        .details-card h5 {
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: #495057;
+        }
+        .table th {
+            width: 30%;
+        }
+    </style>
 </head>
 <body>
     <%- include('partials/navbar') %>
@@ -18,38 +29,155 @@
                     Reviewing plan submitted by: <strong><%= plan.user.firstName %> <%= plan.user.lastName %></strong>
                 </p>
             </div>
-            <a href="/planning/history" class="btn btn-secondary">Back to History</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
         </header>
 
-        <div class="card mb-4">
+        <div class="card mb-4 details-card">
             <div class="card-body">
-                <% if (planType === 'daily') { %>
-                    <h4 class="card-title">Daily Call Plan for <%= new Date(plan.planDate).toLocaleDateString() %></h4>
-                    <p><strong>First Client Call:</strong> <%= plan.firstClientCall %></p>
-                    <p><strong>Areas to Visit:</strong> <%= plan.areasToVisit %></p>
-                    <hr>
-                    <h5>Places to Visit:</h5>
-                    <ul><% plan.placesToVisit.forEach(place => { %><li><%= place %></li><% }) %></ul>
-                    <hr>
-                    <h5>Sales Objectives:</h5>
-                    <ul><% plan.salesObjectives.forEach(obj => { %><li><%= obj %></li><% }) %></ul>
 
-                <% } else { %>
-                    <h4 class="card-title">Weekly Itinerary for <%= new Date(plan.weekStartDate).toLocaleDateString() %></h4>
-                    <p>Details for the weekly itinerary will be displayed here.</p>
+                <% if (planType === 'daily') { %>
+                    <h4 class="card-title mb-4">Daily Call Plan for <%= new Date(plan.planDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></h4>
+
+                    <h5>Primary Information</h5>
+                    <table class="table table-bordered table-sm mb-4">
+                        <tbody>
+                            <tr><th>First Client Call:</th><td><%= plan.firstClientCall || 'N/A' %></td></tr>
+                            <tr><th>Areas to Visit:</th><td><%= plan.areasToVisit || 'N/A' %></td></tr>
+                        </tbody>
+                    </table>
+
+                    <h5>Hospitals & Places to Visit</h5>
+                    <% if(plan.itinerary && plan.itinerary.length > 0) { %>
+                        <ul class="list-group mb-4">
+                            <% plan.itinerary.forEach(item => { %>
+                                <li class="list-group-item"><%= item %></li>
+                            <% }) %>
+                        </ul>
+                    <% } else { %>
+                        <p class="text-muted">No places to visit were listed.</p>
+                    <% } %>
+                    
+                    <h5>Sales Objectives</h5>
+                     <% if(plan.salesObjectives && plan.salesObjectives.length > 0) { %>
+                        <ul class="list-group mb-4">
+                            <% plan.salesObjectives.forEach(obj => { %>
+                                <li class="list-group-item"><%= obj.objective %></li>
+                            <% }) %>
+                        </ul>
+                    <% } else { %>
+                        <p class="text-muted">No sales objectives were submitted.</p>
+                    <% } %>
+
+                    <h5>Target Collections (90 Days and Below)</h5>
+                    <% if(plan.targetCollections && plan.targetCollections.current && plan.targetCollections.current.length > 0) { %>
+                        <table class="table table-striped table-sm mb-4">
+                            <thead><tr><th>Client</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody>
+                            <% plan.targetCollections.current.forEach(col => { %>
+                                <tr><td><%= col.client %></td><td class="text-end">₱<%= (col.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></td></tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                    <% } else { %>
+                        <p class="text-muted">No current collection targets were submitted.</p>
+                    <% } %>
+                    
+                    <h5>Target Collections (Overdue)</h5>
+                     <% if(plan.targetCollections && plan.targetCollections.overdue && plan.targetCollections.overdue.length > 0) { %>
+                        <table class="table table-striped table-sm mb-4">
+                            <thead><tr><th>Client</th><th>SI/DR Number</th><th>Date</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody>
+                            <% plan.targetCollections.overdue.forEach(col => { %>
+                                <tr>
+                                    <td><%= col.client %></td>
+                                    <td><%= col.siDrNumber || 'N/A' %></td>
+                                    <td><%= col.date ? new Date(col.date).toLocaleDateString() : 'N/A' %></td>
+                                    <td class="text-end">₱<%= (col.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                    <% } else { %>
+                        <p class="text-muted">No overdue collection targets were submitted.</p>
+                    <% } %>
+
+                <% } else if (planType === 'weekly') { %>
+                    <h4 class="card-title mb-4">Weekly Itinerary for: <%= plan.weekPeriod || `Week of ${new Date(plan.weekStartDate).toLocaleDateString()}` %></h4>
+
+                    <h5 class="mt-4">Weekly Summary</h5>
+                     <table class="table table-bordered table-sm mb-4">
+                        <tbody>
+                            <tr><th>Total Target Sales:</th><td><strong>₱<%= (plan.totalTargetSales || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></strong></td></tr>
+                            <tr><th>Total Target Collections:</th><td><strong>₱<%= (plan.totalTargetCollections || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></strong></td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <hr>
+
+                    <% if (plan.dailyPlans && plan.dailyPlans.length > 0) { %>
+                        <% plan.dailyPlans.forEach(dayPlan => { %>
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <strong><%= new Date(dayPlan.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></strong>
+                                    <span class="text-muted ms-2">(Area: <%= dayPlan.area || 'N/A' %>)</span>
+                                </div>
+                                <div class="card-body">
+                                    <h6>Places to Visit</h6>
+                                    <% if(dayPlan.placesToVisit && dayPlan.placesToVisit.length > 0) { %>
+                                        <% dayPlan.placesToVisit.forEach(place => { %>
+                                            <p class="mb-1"><strong><%= place.place %></strong></p>
+                                            <% if (place.doctors && place.doctors.length > 0) { %>
+                                            <ul class="list-unstyled ps-4">
+                                                <% place.doctors.forEach(doctor => { %>
+                                                    <li><small>- <%= doctor %></small></li>
+                                                <% }) %>
+                                            </ul>
+                                            <% } %>
+                                        <% }) %>
+                                    <% } else { %><p class="text-muted small">No places listed.</p><% } %>
+                                    
+                                    <h6 class="mt-3">Sales Objectives</h6>
+                                    <% if(dayPlan.salesObjectives && dayPlan.salesObjectives.length > 0) { %>
+                                        <ul class="list-group list-group-flush">
+                                        <% dayPlan.salesObjectives.forEach(obj => { %>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center p-1">
+                                                <%= obj.client %>
+                                                <span class="badge bg-success rounded-pill">₱<%= (obj.amount || 0).toLocaleString() %></span>
+                                            </li>
+                                        <% }) %>
+                                        </ul>
+                                    <% } else { %><p class="text-muted small">No sales objectives.</p><% } %>
+
+                                    <h6 class="mt-3">Collection Objectives</h6>
+                                    <% if(dayPlan.collectionObjectives && dayPlan.collectionObjectives.length > 0) { %>
+                                        <ul class="list-group list-group-flush">
+                                        <% dayPlan.collectionObjectives.forEach(obj => { %>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center p-1">
+                                                <%= obj.client %>
+                                                <span class="badge bg-info rounded-pill">₱<%= (obj.amount || 0).toLocaleString() %></span>
+                                            </li>
+                                        <% }) %>
+                                        </ul>
+                                    <% } else { %><p class="text-muted small">No collection objectives.</p><% } %>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p class="text-muted">No daily plans were submitted for this week.</p>
+                    <% } %>
                 <% } %>
             </div>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Management Comments</h5>
+                <h4>Comments</h4>
             </div>
             <div class="card-body">
                 <% if(plan.comments && plan.comments.length > 0) { %>
                     <% plan.comments.forEach(comment => { %>
                         <div class="d-flex mb-3">
-                            <img src="<%= comment.user.profilePicture %>" class="rounded-circle me-3" width="40" height="40">
+                            <img src="<%= comment.user.profilePicture || '/images/default-avatar.png' %>" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
                             <div>
                                 <strong><%= comment.user.firstName %> <%= comment.user.lastName %></strong>
                                 <small class="text-muted ms-2"><%= new Date(comment.createdAt).toLocaleString() %></small>

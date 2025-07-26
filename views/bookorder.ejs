@@ -1,69 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Order</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>Book New Order - VME App</title>
+    <%- include('partials/header-meta') %>
 </head>
 <body>
-    <div class="container">
+    <%- include('partials/navbar') %>
+
+    <main class="container book-order-form-container">
+        <header class="page-header" style="padding-top: 0;">
+            <div>
+                <h1>Book a New Order</h1>
+                <p>Fill in the details below to create a new sales order.</p>
+            </div>
+        </header>
+
+        <% if (locals.error_msg && error_msg.length > 0) { %>
+            <div class="alert alert-danger"><%= error_msg %></div>
+        <% } %>
+
         <div class="card">
-            <h2>Book a New Order</h2>
-            <p>Fill in the details below to create a new sales order.</p>
-            <form id="bookOrderForm" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label>Sales Representative</label>
-                    <input type="text" name="salesRep" required>
-                </div>
-                <div class="form-group">
-                    <label>Position</label>
-                    <input type="text" name="position" required>
-                </div>
-                <fieldset>
-                    <legend>Customer Details</legend>
-                    <div class="form-group">
-                        <label>Customer Name</label>
-                        <input type="text" name="customerName" required>
+            <div class="card-body">
+                <form action="/orders/book" method="POST" enctype="multipart/form-data">
+                    
+                    <h5 class="mb-3">Customer Details</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6 mb-3">
+                            <label for="customerName" class="form-label">Customer Name</label>
+                            <input type="text" class="form-control" id="customerName" name="customerName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="hospital" class="form-label">Hospital/Clinic</label>
+                            <input type="text" class="form-control" id="hospital" name="hospital">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="contactNumber" class="form-label">Contact Number</label>
+                            <input type="tel" class="form-control" id="contactNumber" name="contactNumber">
+                        </div>
+                         <div class="col-md-12 mb-3">
+                            <label for="area" class="form-label">Area</label>
+                            <input type="text" class="form-control" id="area" name="area">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" name="customerEmail" required>
+
+                    <hr class="my-4">
+
+                    <h5 class="mb-3">Products</h5>
+                    <div id="products-container">
+                        <!-- Product rows will be added here by JavaScript -->
                     </div>
-                    <div class="form-group">
-                        <label>Contact Number</label>
-                        <input type="tel" name="customerContact" required>
+                    <button type="button" id="add-product-btn" class="btn btn-outline-secondary">+ Add Another Product</button>
+
+                    <div class="subtotal-display">
+                        Subtotal: <span id="subtotal-display">₱0.00</span>
                     </div>
-                    <div class="form-group">
-                        <label>Hospital/Clinic</label>
-                        <input type="text" name="hospital" required>
+
+                    <hr class="my-4">
+                    
+                    <div class="mb-3">
+                        <label for="note" class="form-label">Notes</label>
+                        <textarea class="form-control" id="note" name="note" rows="3"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label>Area</label>
-                        <input type="text" name="area" required>
+
+                    <div class="mb-4">
+                        <label for="attachment" class="form-label">Attach Image (e.g., Purchase Order)</label>
+                        <input type="file" class="form-control" id="attachment" name="attachment" accept="image/*">
                     </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Products</legend>
-                    <div id="productsContainer">
-                        <!-- Dynamic products added via JS -->
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Submit Order</button>
                     </div>
-                    <button type="button" onclick="addProduct()">Add Product</button>
-                </fieldset>
-                <div class="form-group">
-                    <label>Notes</label>
-                    <textarea name="notes"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Attach Image (e.g., Purchase Order)</label>
-                    <input type="file" name="attachment">
-                </div>
-                <p>Subtotal: <span id="subtotal">0.00</span></p>
-                <button type="button" class="btn btn-secondary">Cancel</button>
-                <button type="submit" class="btn btn-primary">Submit Order</button>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
-    <script src="/js/script.js"></script> <!-- Includes the updated submission handler -->
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const productsContainer = document.getElementById('products-container');
+            const addProductBtn = document.getElementById('add-product-btn');
+            const subtotalDisplay = document.getElementById('subtotal-display');
+            const subtotalInput = document.getElementById('subtotal-input');
+            let productIndex = 0;
+
+            function addProductRow() {
+                const productRow = document.createElement('div');
+                productRow.classList.add('row', 'g-3', 'align-items-center', 'mb-2', 'product-row');
+                productRow.innerHTML = `
+                    <div class="col-md-5"><input type="text" name="products[${productIndex}][product]" class="form-control" placeholder="Product Name" required></div>
+                    <div class="col-md-2"><input type="number" name="products[${productIndex}][quantity]" class="form-control quantity" placeholder="Qty" value="1" min="1" required></div>
+                    <div class="col-md-2"><input type="number" name="products[${productIndex}][price]" class="form-control price" placeholder="Price" step="0.01" min="0" required></div>
+                    <div class="col-md-2"><span class="total-display fw-bold">₱0.00</span><input type="hidden" name="products[${productIndex}][total]" class="total-input"></div>
+                    <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm remove-product-btn">X</button></div>
+                `;
+                productsContainer.appendChild(productRow);
+                productIndex++;
+            }
+
+            function updateTotals() {
+                let currentSubtotal = 0;
+                document.querySelectorAll('.product-row').forEach(row => {
+                    const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+                    const price = parseFloat(row.querySelector('.price').value) || 0;
+                    const total = quantity * price;
+                    row.querySelector('.total-display').innerText = `₱${total.toFixed(2)}`;
+                    row.querySelector('.total-input').value = total.toFixed(2);
+                    currentSubtotal += total;
+                });
+                subtotalDisplay.innerText = `₱${currentSubtotal.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}`;
+                subtotalInput.value = currentSubtotal.toFixed(2);
+            }
+
+            addProductBtn.addEventListener('click', addProductRow);
+            productsContainer.addEventListener('input', updateTotals);
+            productsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-product-btn')) {
+                    e.target.closest('.product-row').remove();
+                    updateTotals();
+                }
+            });
+            addProductRow();
+        });
+    </script>
 </body>
 </html>

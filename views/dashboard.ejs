@@ -9,22 +9,22 @@
 
     <main class="container-fluid" style="padding: 0 2rem;">
         <header class="page-header">
-    <div>
-        <h1 style="font-size: 1.875rem;">Dashboard</h1>
-        <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
-    </div>
-    <div class="header-actions">
-        <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
-        <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Manage My Entries</a>
-        <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
-        <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>
-        <a href="/report" class="btn btn-success dashboard-header-btn">Daily Coverage Report</a>
-        <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
-        <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
-            Check-in
-        </button>
-    </div>
-</header>
+            <div>
+                <h1 style="font-size: 1.875rem;">Dashboard</h1>
+                <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
+            </div>
+            <div class="header-actions">
+                <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
+                <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Manage My Entries</a>
+                <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
+                <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>
+                <a href="/report" class="btn btn-success dashboard-header-btn">Daily Report Form</a>
+                <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
+                <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
+                    Check-in
+                </button>
+            </div>
+        </header>
 
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
@@ -41,6 +41,13 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="checkins-tab" data-bs-toggle="tab" data-bs-target="#checkins-panel" type="button" role="tab">My Check-in History</button>
+            </li>
+            <!-- ADDED: New tabs for plans -->
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="daily-plans-tab" data-bs-toggle="tab" data-bs-target="#daily-plans-panel" type="button" role="tab">My Daily Plans</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="weekly-itineraries-tab" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel" type="button" role="tab">My Weekly Itineraries</button>
             </li>
         </ul>
 
@@ -73,7 +80,6 @@
                 </div>
             </div>      
                         
-
             <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
                <div class="card card-tab">
                     <div class="card-body">
@@ -85,7 +91,6 @@
                                         <th>Hospital</th>
                                         <th>Doctor</th>
                                         <th>Activity</th>
-                                      
                                         <th>Proof</th>
                                         <th>Signature</th>
                                         <th>Date</th>
@@ -112,7 +117,7 @@
                                             </tr>
                                         <% }) %>
                                     <% } else { %>
-                                        <tr><td colspan="7" class="text-center p-4">No check-in history found.</td></tr>
+                                        <tr><td colspan="6" class="text-center p-4">No check-in history found.</td></tr>
                                     <% } %>
                                 </tbody>
                             </table>
@@ -120,6 +125,81 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ADDED: New panel for daily plans -->
+            <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Plan Date</th>
+                                        <th>First Client Call</th>
+                                        <th>Areas</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if(dailyPlans && dailyPlans.length > 0) { %>
+                                        <% dailyPlans.forEach(plan => { %>
+                                            <tr>
+                                                <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
+                                                <td><%= plan.firstClientCall %></td>
+                                                <td><%= plan.areasToVisit %></td>
+                                                <td>
+                                                    <a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                    <a href="/planning/daily-plan-form/<%= plan._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr><td colspan="4" class="text-center p-4">No daily plans found.</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ADDED: New panel for weekly itineraries -->
+            <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Week Period</th>
+                                        <th>Total Sales Target</th>
+                                        <th>Total Collection Target</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if(weeklyItineraries && weeklyItineraries.length > 0) { %>
+                                        <% weeklyItineraries.forEach(itinerary => { %>
+                                            <tr>
+                                                <td><%= itinerary.weekPeriod || new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
+                                                <td>₱<%= (itinerary.totalTargetSales || 0).toLocaleString() %></td>
+                                                <td>₱<%= (itinerary.totalTargetCollections || 0).toLocaleString() %></td>
+                                                <td>
+                                                    <a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                    <a href="/planning/weekly-itinerary-form/<%= itinerary._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr><td colspan="4" class="text-center p-4">No weekly itineraries found.</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -142,7 +222,6 @@
         }
         
         document.addEventListener('DOMContentLoaded', () => {
-            // Table search functionality
             const addTableFilter = (inputId, tableId) => {
                 const searchInput = document.getElementById(inputId);
                 if (searchInput) {
@@ -157,16 +236,11 @@
             addTableFilter('orderSearch', 'orderTable');
             addTableFilter('checkinSearch', 'checkinTable');
 
-            // Service Worker Registration
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('/sw.js')
-                        .then(registration => {
-                            console.log('Service Worker registered successfully:', registration);
-                        })
-                        .catch(error => {
-                            console.log('Service Worker registration failed:', error);
-                        });
+                        .then(registration => console.log('Service Worker registered.'))
+                        .catch(error => console.log('Service Worker registration failed:', error));
                 });
             }
         });

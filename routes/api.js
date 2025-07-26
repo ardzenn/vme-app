@@ -30,6 +30,8 @@ router.post('/hospitals/add', ensureAuthenticated, apiController.addHospital);
 router.post('/doctors/add', ensureAuthenticated, apiController.addDoctor);
 router.delete('/hospitals/:id', ensureAuthenticated, apiController.deleteHospital);
 router.delete('/doctors/:id', ensureAuthenticated, apiController.deleteDoctor);
+router.delete('/hospitals/:id', ensureAuthenticated, apiController.deleteHospital);
+router.delete('/doctors/:id', ensureAuthenticated, apiController.deleteDoctor);
 
 
 module.exports = router;

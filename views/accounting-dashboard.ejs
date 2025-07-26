@@ -15,6 +15,9 @@
                 <p style="margin: 0;">System overview and financial management.</p>
             </div>
             <div class="d-flex align-items-center gap-2">
+                <!-- UPDATED LINK: Points to the new daily check-in report -->
+                <a href="/report/check-ins" class="btn btn-success">Daily Check-in Report</a>
+                <a href="/planning/coverage-report" class="btn btn-info">Weekly Coverage Report</a>
                 <a href="/analytics" class="btn btn-warning">View Analytics</a>
                 <a href="/products" class="btn btn-dark">View Product Gallery</a>
             </div>
@@ -117,7 +120,7 @@
                                     <td><%= plan.user.firstName %> <%= plan.user.lastName %></td>
                                     <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
                                     <td><%= plan.firstClientCall %></td>
-                                    <td><a href="/planning/daily/<%= plan._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                    <td><a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-primary">View Details</a></td>
                                 </tr>
                             <% }) %>
                         </tbody>
@@ -134,7 +137,7 @@
                                 <tr data-search="<%= (itinerary.user.firstName || '').toLowerCase() %> <%= (itinerary.user.lastName || '').toLowerCase() %>">
                                     <td><%= itinerary.user.firstName %> <%= itinerary.user.lastName %></td>
                                     <td><%= new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
-                                    <td><a href="/planning/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                    <td><a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details</a></td>
                                 </tr>
                             <% }) %>
                         </tbody>

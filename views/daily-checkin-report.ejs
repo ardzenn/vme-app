@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Daily Check-in Report - VME App</title>
+    <%- include('partials/header-meta') %>
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    <main class="container-fluid my-5" style="padding: 0 2rem;">
+        <header class="page-header">
+            <div>
+                <h1>Daily Check-in Report</h1>
+                <p class="text-secondary">A detailed log of all user check-ins.</p>
+            </div>
+            <div>
+                <a href="#" id="export-btn" class="btn btn-success">Export to CSV</a>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="/report/check-ins" class="row g-3 align-items-end mb-4">
+                    <div class="col-md-4">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" id="startDate" name="startDate" class="form-control" value="<%= filters.startDate %>">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="endDate" class="form-label">End Date</label>
+                        <input type="date" id="endDate" name="endDate" class="form-control" value="<%= filters.endDate %>">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="userId" class="form-label">User</label>
+                        <select id="userId" name="userId" class="form-select">
+                            <option value="">All Users</option>
+                            <% users.forEach(user => { %>
+                                <option value="<%= user._id %>" <%= filters.userId == user._id ? 'selected' : '' %>>
+                                    <%= user.firstName %> <%= user.lastName %>
+                                </option>
+                            <% }) %>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Hospital</th>
+                                <th>Doctor</th>
+                                <th>Activity</th>
+                                <th>Proof</th>
+                                <th>Signature</th>
+                                <th>Date & Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if(checkIns.length > 0) { %>
+                                <% checkIns.forEach(checkin => { %>
+                                    <tr>
+                                        <td><%= checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A' %></td>
+                                        <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
+                                        <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
+                                        <td><%= checkin.activity || 'N/A' %></td>
+                                        <td>
+                                            <% if (checkin.proof) { %>
+                                                <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
+                                            <% } else { %><span class="text-muted small">No Proof</span><% } %>
+                                        </td>
+                                        <td>
+                                            <% if (checkin.signature) { %>
+                                                <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
+                                            <% } else { %><span class="text-muted small">No Signature</span><% } %>
+                                        </td>
+                                        <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="7" class="text-center p-5">No check-in data found for the selected filters.</td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <%- include('partials/image-zoom-modal') %>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageZoomModalEl = document.getElementById('imageZoomModal');
+            if (imageZoomModalEl) {
+                const imageZoomModal = new bootstrap.Modal(imageZoomModalEl);
+                const modalZoomImage = document.getElementById('modalZoomImage');
+                window.showImageInModal = function(src) {
+                    if (modalZoomImage && src) {
+                        modalZoomImage.src = src;
+                        imageZoomModal.show();
+                    }
+                }
+            }
+
+            // ADDED: Script to update the export link with current filters
+            const exportBtn = document.getElementById('export-btn');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const userIdInput = document.getElementById('userId');
+
+            const updateExportLink = () => {
+                const params = new URLSearchParams({
+                    startDate: startDateInput.value,
+                    endDate: endDateInput.value,
+                    userId: userIdInput.value
+                });
+                exportBtn.href = `/report/check-ins/export?${params.toString()}`;
+            };
+            
+            startDateInput.addEventListener('change', updateExportLink);
+            endDateInput.addEventListener('change', updateExportLink);
+            userIdInput.addEventListener('change', updateExportLink);
+            
+            // Set initial link on page load
+            updateExportLink();
+        });
+    </script>
+</body>
+</html>

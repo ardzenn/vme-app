@@ -1,39 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Plans - VME App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+    <%- include('partials/header-meta') %>
 </head>
 <body>
     <%- include('partials/navbar') %>
-
-    <main class="container-fluid my-5">
+    <main class="container my-5">
         <header class="page-header">
             <div>
-                <h1>My Submitted Plans</h1>
-                <p class="text-muted">Review your submitted daily and weekly plans.</p>
+                <h1>My Plans & Itineraries</h1>
+                <p class="text-secondary">Submit or edit your daily and weekly plans here.</p>
             </div>
-            <div>
-                <a href="/planning/daily" class="btn btn-primary">Submit New Daily Plan</a>
-                <a href="/planning/weekly" class="btn btn-info text-white">Submit New Weekly Itinerary</a>
+            <div class="d-flex gap-2">
+                <a href="/planning/daily-plan-form" class="btn btn-secondary">New Daily Plan</a>
+                <a href="/planning/weekly-itinerary-form" class="btn btn-primary">New Weekly Itinerary</a>
             </div>
         </header>
+        
+        <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
-        <ul class="nav nav-tabs mb-3" id="myPlansTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#daily-plans-panel" type="button" role="tab">My Daily Call Plans</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel" type="button" role="tab">My Weekly Itineraries</button>
-            </li>
-        </ul>
-
-        <div class="tab-content" id="myPlansTabContent">
-            <div class="tab-pane fade show active" id="daily-plans-panel" role="tabpanel">
-                <div class="card card-tab">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><h4>My Daily Call Plans</h4></div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover">
@@ -51,12 +42,13 @@
                                                 <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
                                                 <td><%= plan.firstClientCall %></td>
                                                 <td>
-                                                    <a href="/planning/daily/<%= plan._id %>" class="btn btn-sm btn-primary">View Details & Comments</a>
+                                                    <a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-outline-secondary">View</a>
+                                                    <a href="/planning/daily-plan-form/<%= plan._id %>" class="btn btn-sm btn-primary">Edit</a>
                                                 </td>
                                             </tr>
                                         <% }) %>
                                     <% } else { %>
-                                        <tr><td colspan="3" class="text-center p-5">You have not submitted any daily plans yet.</td></tr>
+                                        <tr><td colspan="3" class="text-center p-4">No daily plans yet.</td></tr>
                                     <% } %>
                                 </tbody>
                             </table>
@@ -65,33 +57,31 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
-                <div class="card card-tab">
-                     <div class="card-body">
-                        <div class="table-responsive">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header"><h4>My Weekly Itineraries</h4></div>
+                    <div class="card-body">
+                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Week Start Date</th>
-                                        <th>Total Target Sales</th>
-                                        <th>Total Target Collections</th>
+                                        <th>Week Of</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <% if(weeklyItineraries.length > 0) { %>
+                                     <% if(weeklyItineraries.length > 0) { %>
                                         <% weeklyItineraries.forEach(itinerary => { %>
                                             <tr>
                                                 <td><%= new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
-                                                <td>₱<%= (itinerary.totalTargetSales || 0).toLocaleString() %></td>
-                                                <td>₱<%= (itinerary.totalTargetCollections || 0).toLocaleString() %></td>
                                                 <td>
-                                                    <a href="/planning/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details & Comments</a>
+                                                    <a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-outline-secondary">View</a>
+                                                    <a href="/planning/weekly-itinerary-form/<%= itinerary._id %>" class="btn btn-sm btn-primary">Edit</a>
                                                 </td>
                                             </tr>
                                         <% }) %>
                                     <% } else { %>
-                                        <tr><td colspan="4" class="text-center p-5">You have not submitted any weekly itineraries yet.</td></tr>
+                                        <tr><td colspan="2" class="text-center p-4">No weekly itineraries yet.</td></tr>
                                     <% } %>
                                 </tbody>
                             </table>
@@ -101,7 +91,5 @@
             </div>
         </div>
     </main>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

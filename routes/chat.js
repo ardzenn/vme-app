@@ -1,11 +1,13 @@
 const express = require('express');
-const viewController = require('../controllers/viewController');
+const router = express.Router();
+const chatController = require('../controllers/chatController');
 const { ensureAuthenticated } = require('../middleware/auth');
 
-const router = express.Router();
+// GET route to display the main chat page
+router.get('/', ensureAuthenticated, chatController.getChatPage);
 
-// This route is responsible for rendering the main chat page.
-// The real-time messaging will then be handled by Socket.IO on the client-side.
-router.get('/', ensureAuthenticated, viewController.getChatPage);
+// API route to get message history for a 1-on-1 chat
+// (Used by the pop-up chat widget)
+router.get('/history/:userId', ensureAuthenticated, chatController.getMessageHistory);
 
 module.exports = router;

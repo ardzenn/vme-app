@@ -366,6 +366,8 @@ a:hover { text-decoration: underline; }
     animation: fadeInUp 0.8s ease-out 0.2s forwards;
 }
 
+
+
 /* Make the image panel visible on large screens */
 @media (min-width: 992px) {
     .login-image-container {
@@ -382,5 +384,53 @@ a:hover { text-decoration: underline; }
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Book Order */ 
+
+.book-order-form-container {
+    max-width: 800px;
+    margin: 2rem auto;
+}
+.product-entry {
+    display: grid;
+    grid-template-columns: 1fr 100px 120px 120px 40px;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.product-entry:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.product-entry .form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+#add-product-btn {
+    width: 100%;
+    padding: 0.75rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+    border-style: dashed;
+}
+.subtotal-display {
+    text-align: right;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+}
+@media (max-width: 767.98px) {
+    .product-entry {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .product-entry .form-label {
+        margin-top: 0.5rem;
     }
 }

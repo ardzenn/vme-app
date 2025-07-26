@@ -1,106 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage My Entries - VME App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+    <%- include('partials/header-meta') %>
 </head>
 <body>
     <%- include('partials/navbar') %>
-
     <main class="container my-5">
         <header class="page-header">
             <div>
                 <h1>Manage My Entries</h1>
-                <p class="text-muted">View and delete the private hospitals and doctors you have added.</p>
+                <p class="text-secondary">Add, edit, or remove your personal list of hospitals and doctors.</p>
             </div>
         </header>
 
-        <div class="row g-5">
-            <div class="col-md-6">
+        <div class="row g-4">
+            <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">My Hospitals</h5>
-                    </div>
-                    <ul class="list-group list-group-flush" id="hospital-list">
-                        <% if(myHospitals.length > 0) { %>
-                            <% myHospitals.forEach(h => { %>
-                                <li class="list-group-item d-flex justify-content-between align-items-center" data-id="<%= h._id %>">
-                                    <%= h.name %>
-                                    <button class="btn btn-sm btn-outline-danger delete-hospital-btn">Delete</button>
+                    <div class="card-header"><h4>My Hospitals</h4></div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            <% myHospitals.forEach(hospital => { %>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <%= hospital.name %>
+                                    <button class="btn btn-sm btn-outline-danger delete-hospital-btn" data-id="<%= hospital._id %>">Delete</button>
                                 </li>
                             <% }) %>
-                        <% } else { %>
-                            <li class="list-group-item text-muted">You have not added any private hospitals.</li>
-                        <% } %>
-                    </ul>
+                        </ul>
+                    </div>
                 </div>
             </div>
-
-            <div class="col-md-6">
+            <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">My Doctors</h5>
-                    </div>
-                    <ul class="list-group list-group-flush" id="doctor-list">
-                        <% if(myDoctors.length > 0) { %>
-                            <% myDoctors.forEach(d => { %>
-                                <li class="list-group-item d-flex justify-content-between align-items-center" data-id="<%= d._id %>">
+                    <div class="card-header"><h4>My Doctors</h4></div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            <% myDoctors.forEach(doctor => { %>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
-                                        <strong><%= d.name %></strong><br>
-                                        <small class="text-muted"><%= d.hospital.name %></small>
+                                        <strong><%= doctor.name %></strong>
+                                        <div class="small text-secondary"><%= doctor.hospital ? doctor.hospital.name : 'No hospital assigned' %></div>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-danger delete-doctor-btn">Delete</button>
+                                    <button class="btn btn-sm btn-outline-danger delete-doctor-btn" data-id="<%= doctor._id %>">Delete</button>
                                 </li>
                             <% }) %>
-                        <% } else { %>
-                             <li class="list-group-item text-muted">You have not added any private doctors.</li>
-                        <% } %>
-                    </ul>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-hospital-btn')) {
-                const li = e.target.closest('li');
-                const id = li.dataset.id;
-                if (confirm('Are you sure? This will also delete all doctors you added for this hospital.')) {
-                    try {
-                        const res = await fetch(`/api/hospitals/${id}`, { method: 'DELETE' });
-                        if (res.ok) {
-                            li.remove();
-                            // We may need to refresh the doctor list as well
-                            window.location.reload(); 
-                        } else {
-                            alert('Failed to delete.');
-                        }
-                    } catch (err) {
-                        alert('An error occurred.');
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.delete-hospital-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    if (confirm('Are you sure you want to delete this hospital and all of its associated doctors? This cannot be undone.')) {
+                        const id = e.target.dataset.id;
+                        await fetch(`/api/hospitals/${id}`, { method: 'DELETE' });
+                        window.location.reload();
                     }
-                }
-            }
-            if (e.target.classList.contains('delete-doctor-btn')) {
-                const li = e.target.closest('li');
-                const id = li.dataset.id;
-                if (confirm('Are you sure?')) {
-                     try {
-                        const res = await fetch(`/api/doctors/${id}`, { method: 'DELETE' });
-                        if (res.ok) {
-                            li.remove();
-                        } else {
-                            alert('Failed to delete.');
-                        }
-                    } catch (err) {
-                        alert('An error occurred.');
+                });
+            });
+
+            document.querySelectorAll('.delete-doctor-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    if (confirm('Are you sure you want to delete this doctor?')) {
+                        const id = e.target.dataset.id;
+                        await fetch(`/api/doctors/${id}`, { method: 'DELETE' });
+                        window.location.reload();
                     }
-                }
-            }
+                });
+            });
         });
     </script>
 </body>

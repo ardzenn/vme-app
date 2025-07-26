@@ -1,28 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const passport = require('passport');
 const authController = require('../controllers/authController');
-const { body } = require('express-validator');
 
-// --- Validation Rules ---
-const signupValidation = [
-    body('username', 'Please enter a valid email address.').isEmail(),
-    body('firstName', 'First name is required.').not().isEmpty(),
-    body('password', 'Password must be at least 6 characters.').isLength({ min: 6 })
-];
+// --- GET Routes (to display pages) ---
+router.get('/login', authController.getLoginPage);
+router.get('/signup', authController.getSignupPage);
+router.get('/forgot-password', authController.getForgotPasswordPage);
+router.get('/reset-password/:token', authController.getResetPasswordPage);
+router.get('/logout', authController.postLogout); // Logout can be a GET request for simplicity
 
-// --- Routes ---
-router.post('/signup', signupValidation, authController.signup);
-
-router.post('/login', passport.authenticate('local', {
-    failureRedirect: '/login',
-    failureFlash: true
-}), authController.login);
-
-router.get('/logout', authController.logout);
-
+// --- POST Routes (to handle form submissions) ---
+router.post('/login', authController.postLogin);
+router.post('/signup', authController.postSignup);
 router.post('/forgot-password', authController.forgotPassword);
-
 router.post('/reset-password/:token', authController.resetPassword);
 
 module.exports = router;

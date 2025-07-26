@@ -4,121 +4,169 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Call Plan - VME App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+    <%- include('partials/header-meta') %>
+    <style>
+        .card-body h5 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+    </style>
 </head>
 <body>
     <%- include('partials/navbar') %>
 
-    <main class="container my-5" style="max-width: 900px;">
+    <main class="container my-5" style="max-width: 800px;">
         <header class="page-header">
             <div>
                 <h1>Daily Call Plan</h1>
-                <p class="text-muted">Plan your calls for today.</p>
+                <p class="text-muted">Outline your objectives and targets for the day.</p>
             </div>
         </header>
-        
-        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
+
+        <% if (locals.error_msg && error_msg.length > 0) { %>
+            <div class="alert alert-danger"><%= error_msg %></div>
+        <% } %>
 
         <form action="/planning/daily" method="POST">
             <div class="card">
                 <div class="card-body">
+                    <div class="mb-3">
+                        <label for="planDate" class="form-label">Plan Date</label>
+                        <input type="date" id="planDate" name="planDate" class="form-control" value="<%= planDate %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="firstClientCall" class="form-label">First Client Call</label>
+                        <input type="text" id="firstClientCall" name="firstClientCall" class="form-control" placeholder="e.g., Davao City Hall" value="<%= plan.firstClientCall || '' %>">
+                    </div>
                     <div class="mb-4">
-                        <label for="planDate" class="form-label fw-bold">PLAN DATE:</label>
-                        <input type="date" id="planDate" name="planDate" class="form-control" required value="<%= new Date().toISOString().split('T')[0] %>">
+                        <label for="areasToVisit" class="form-label">Areas to Visit Today</label>
+                        <input type="text" id="areasToVisit" name="areasToVisit" class="form-control" placeholder="e.g., Digos, Davao del Sur" value="<%= plan.areasToVisit || '' %>">
                     </div>
-                    
-                    <div class="mb-4">
-                        <label for="firstClientCall" class="form-label fw-bold">FIRST CLIENT CALL:</label>
-                        <input type="text" id="firstClientCall" name="firstClientCall" class="form-control" placeholder="e.g., Davao City Hall">
-                    </div>
-                    <div class="mb-4">
-                        <label for="areasToVisit" class="form-label fw-bold">AREAS TO VISIT TODAY:</label>
-                        <input type="text" id="areasToVisit" name="areasToVisit" class="form-control" placeholder="e.g., Davao, Digos, Davao del Sur">
-                    </div>
-                    <div id="places-container" class="mb-4">
-                        <label class="form-label fw-bold">HOSPITALS & CAPITOL TO VISIT:</label>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addPlaceRow()">+ Add Place</button>
-                    <hr class="my-4">
 
-                    <div id="sales-objectives-container" class="mb-4">
-                        <label class="form-label fw-bold">2.) SALES OBJECTIVES FOR THE DAY:</label>
+                    <!-- 1. Hospitals & Capitol to Visit -->
+                    <h5 class="mt-4">1. Hospitals & Capitol to Visit</h5>
+                    <div id="itinerary-container">
+                        <% plan.itinerary.forEach((item, index) => { %>
+                            <div class="input-group mb-2">
+                                <span class="input-group-text"><%= index + 1 %>.</span>
+                                <input type="text" name="itinerary[]" class="form-control" placeholder="Place Name" value="<%= item %>">
+                                <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>
+                            </div>
+                        <% }) %>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addObjectiveRow()">+ Add Objective</button>
-                    <hr class="my-4">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItineraryItem()">+ Add Place</button>
 
-                    <div id="current-collections-container" class="mb-4">
-                        <label class="form-label fw-bold">3.) TARGET COLLECTIONS FOR THE DAY (90 Days and Below):</label>
+                    <!-- 2. Sales Objectives -->
+                    <h5 class="mt-4">2. Sales Objectives for the Day</h5>
+                    <div id="sales-objectives-container">
+                        <% plan.salesObjectives.forEach((obj, index) => { %>
+                        <div class="input-group mb-2">
+                             <input type="text" name="salesObjectives[<%= index %>][objective]" class="form-control" placeholder="Objective description" value="<%= obj.objective %>">
+                             <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>
+                        </div>
+                        <% }) %>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addCurrentCollectionRow()">+ Add Target</button>
-                    <hr class="my-4">
-                    
-                    <div id="overdue-collections-container" class="mb-4">
-                        <label class="form-label fw-bold">4.) TARGET COLLECTIONS FOR OVERDUE ACCOUNTS:</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addSalesObjective()">+ Add Objective</button>
+
+                    <!-- 3. Target Collections (Current) -->
+                    <h5 class="mt-4">3. Target Collections for the Day (90 Days and Below)</h5>
+                    <div id="current-collections-container">
+                        <% plan.targetCollections.current.forEach((col, index) => { %>
+                        <div class="input-group mb-2">
+                            <input type="text" name="targetCollections[current][<%= index %>][client]" class="form-control" placeholder="Client Name" value="<%= col.client %>">
+                            <span class="input-group-text">₱</span>
+                            <input type="number" name="targetCollections[current][<%= index %>][amount]" class="form-control" placeholder="Amount" value="<%= col.amount %>" step="0.01">
+                            <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>
+                        </div>
+                        <% }) %>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addOverdueCollectionRow()">+ Add Overdue Target</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCurrentCollection()">+ Add Target</button>
+
+                    <!-- 4. Target Collections (Overdue) -->
+                    <h5 class="mt-4">4. Target Collections for Overdue Accounts</h5>
+                    <div id="overdue-collections-container">
+                         <% plan.targetCollections.overdue.forEach((col, index) => { %>
+                         <div class="card bg-light p-3 mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6>Overdue Target <%= index + 1 %></h6>
+                                <button class="btn btn-sm btn-danger" type="button" onclick="this.closest('.card').remove()">Remove</button>
+                            </div>
+                            <input type="text" name="targetCollections[overdue][<%= index %>][client]" class="form-control mb-2" placeholder="Client Name" value="<%= col.client %>">
+                            <input type="text" name="targetCollections[overdue][<%= index %>][siDrNumber]" class="form-control mb-2" placeholder="SI / DR Number" value="<%= col.siDrNumber %>">
+                            <input type="date" name="targetCollections[overdue][<%= index %>][date]" class="form-control mb-2" value="<%= col.date ? new Date(col.date).toISOString().split('T')[0] : '' %>">
+                            <input type="number" name="targetCollections[overdue][<%= index %>][amount]" class="form-control" placeholder="Amount" value="<%= col.amount %>" step="0.01">
+                         </div>
+                         <% }) %>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOverdueCollection()">+ Add Overdue Target</button>
                 </div>
 
                 <div class="card-footer text-end">
-                    <a href="/dashboard" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Submit Plan</button>
+                    <a href="/planning/my-plans" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-success">Submit Plan</button>
                 </div>
             </div>
         </form>
     </main>
 
     <script>
-        let placeIndex = 0;
-        function addPlaceRow() {
-            const container = document.getElementById('places-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'input-group mb-2';
-            newRow.innerHTML = `<span class="input-group-text">${placeIndex + 1}.</span><input type="text" name="placesToVisit[]" class="form-control" placeholder="Place Name">`;
-            container.appendChild(newRow);
-            placeIndex++;
-        }
-
-        let objectiveIndex = 0;
-        function addObjectiveRow() {
-            const container = document.getElementById('sales-objectives-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'input-group mb-2';
-            newRow.innerHTML = `<span class="input-group-text">-</span><input type="text" name="salesObjectives[]" class="form-control" placeholder="Objective description">`;
-            container.appendChild(newRow);
-            objectiveIndex++;
-        }
-
-        let currentCollectionIndex = 0;
-        function addCurrentCollectionRow() {
-            const container = document.getElementById('current-collections-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'input-group mb-2';
-            newRow.innerHTML = `<span class="input-group-text">${currentCollectionIndex + 1}.</span><input type="text" name="targetCollections[current][${currentCollectionIndex}][client]" class="form-control" placeholder="Client Name">`;
-            container.appendChild(newRow);
-            currentCollectionIndex++;
-        }
-        
-        let overdueCollectionIndex = 0;
-        function addOverdueCollectionRow() {
-            const container = document.getElementById('overdue-collections-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'card bg-light p-3 mb-2';
-            newRow.innerHTML = `
-                <h6>Overdue Target ${overdueCollectionIndex + 1}</h6>
-                <input type="text" name="targetCollections[overdue][${overdueCollectionIndex}][client]" class="form-control mb-2" placeholder="Client Name">
-                <input type="text" name="targetCollections[overdue][${overdueCollectionIndex}][si_dr]" class="form-control mb-2" placeholder="SI / DR Number">
-                <input type="date" name="targetCollections[overdue][${overdueCollectionIndex}][date]" class="form-control mb-2">
-                <input type="number" name="targetCollections[overdue][${overdueCollectionIndex}][amount]" class="form-control" placeholder="Amount" min="0" step="0.01">
+        function addItineraryItem() {
+            const container = document.getElementById('itinerary-container');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <span class="input-group-text">${index + 1}.</span>
+                <input type="text" name="itinerary[]" class="form-control" placeholder="Place Name">
+                <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>
             `;
-            container.appendChild(newRow);
-            overdueCollectionIndex++;
+            container.appendChild(div);
         }
 
-        addPlaceRow();
-        addObjectiveRow();
-        addCurrentCollectionRow();
-        addOverdueCollectionRow();
+        function addSalesObjective() {
+            const container = document.getElementById('sales-objectives-container');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" name="salesObjectives[${index}][objective]" class="form-control" placeholder="Objective description">
+                <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function addCurrentCollection() {
+            const container = document.getElementById('current-collections-container');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" name="targetCollections[current][${index}][client]" class="form-control" placeholder="Client Name">
+                <span class="input-group-text">₱</span>
+                <input type="number" name="targetCollections[current][${index}][amount]" class="form-control" placeholder="Amount" step="0.01">
+                <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function addOverdueCollection() {
+            const container = document.getElementById('overdue-collections-container');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'card bg-light p-3 mb-2';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6>Overdue Target ${index + 1}</h6>
+                    <button class="btn btn-sm btn-danger" type="button" onclick="this.closest('.card').remove()">Remove</button>
+                </div>
+                <input type="text" name="targetCollections[overdue][${index}][client]" class="form-control mb-2" placeholder="Client Name">
+                <input type="text" name="targetCollections[overdue][${index}][siDrNumber]" class="form-control mb-2" placeholder="SI / DR Number">
+                <input type="date" name="targetCollections[overdue][${index}][date]" class="form-control mb-2">
+                <input type="number" name="targetCollections[overdue][${index}][amount]" class="form-control" placeholder="Amount" step="0.01">
+            `;
+            container.appendChild(div);
+        }
     </script>
 </body>
 </html>
