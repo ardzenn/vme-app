@@ -1,16 +1,12 @@
-// in models/Product.js
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
 
-const productSchema = new Schema({
-    name: { type: String, required: true, trim: true },
+const productSchema = new mongoose.Schema({
+    name: { type: String, required: true },
     description: { type: String, required: true },
-    category: { 
-        type: String, 
-        enum: ['Service Products', 'Exclusive Meds', 'Other'], 
-        required: true 
-    },
-    imageUrl: { type: String, required: true } // Path to the uploaded product image
+    category: { type: String, required: true },
+    price: { type: Number, required: true, default: 0 },
+    unit: { type: String, default: 'pcs' },
+    imageUrl: { type: String, required: true }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.models.Product || mongoose.model('Product', productSchema);

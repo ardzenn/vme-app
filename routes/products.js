@@ -17,7 +17,7 @@ router.post('/add',
     productController.addProduct
 );
 
-// POST route to delete a product
+// ** DELETE ROUTE PATH CORRECTED **
 router.post('/delete/:id', 
     ensureAuthenticated, 
     ensureAdmin, 

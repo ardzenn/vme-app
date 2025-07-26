@@ -2,18 +2,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const orderDetailModalEl = document.getElementById('orderDetailModal');
     if (!orderDetailModalEl) return;
 
-    // Initialize modal and socket.io connection
-    const orderDetailModal = new bootstrap.Modal(orderDetailModalEl);
     const socket = io();
     let currentOrderId = null;
-    let attachedFile = null;
+    const orderDetailModal = new bootstrap.Modal(orderDetailModalEl);
 
-    // --- Function to fetch order data and show the modal ---
     async function viewOrder(orderId) {
         try {
-            //  /api/orders route
+            const mainContentContainer = document.getElementById('main_content_container');
+            if (mainContentContainer) mainContentContainer.innerHTML = '<div class="text-center p-5"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            
             const response = await fetch(`/api/orders/${orderId}`);
             if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
+            
             const data = await response.json();
             orderDetailModalEl.dataset.orderData = JSON.stringify(data);
             orderDetailModal.show();
@@ -23,10 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Function to add a new chat message to the UI ---
     function appendMessage(msg, currentUserId) {
         const chatBox = document.getElementById('modal_chatMessages');
-        if (!chatBox || !msg.user) return;
+        if (!chatBox || !msg.sender) return;
 
         let attachmentHTML = '';
         if (msg.attachment) {
@@ -38,11 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const isSent = msg.user._id === currentUserId;
+        const isSent = msg.sender._id === currentUserId;
         const messageClass = isSent ? 'chat-message-sent' : 'chat-message-received';
-        const profilePic = msg.user.profilePicture || '/images/default-profile.png';
+        const profilePic = msg.sender.profilePicture || '/images/default-profile.png';
         const timestamp = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const userName = msg.user.firstName || 'User';
+        const userName = msg.sender.firstName || 'User';
 
         const messageHTML = `
             <div class="chat-message ${messageClass}">
@@ -58,115 +57,159 @@ document.addEventListener('DOMContentLoaded', () => {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // --- Main logic that runs when the modal is opened ---
     orderDetailModalEl.addEventListener('shown.bs.modal', function (event) {
         const data = JSON.parse(event.currentTarget.dataset.orderData || '{}');
         if (!data.order) return;
 
-        const { order, messages, currentUser } = data;
+        const { order, currentUser } = data;
+        const messages = order.messages || [];
         currentOrderId = order._id;
 
-        // Get all the elements from the modal
+        const mainContentContainer = document.getElementById('main_content_container');
+        const modalFooter = document.getElementById('modal_footer');
+        
+        document.getElementById('modal_customerName_header').innerText = `Order for ${order.customerName}`;
+        
+        let productsTableRows = '';
+        (order.products || []).forEach(p => {
+            productsTableRows += `<tr><td>${p.product || 'N/A'}</td><td>${p.quantity || 0}</td><td>${p.unit || 'N/A'}</td><td>₱${(p.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td><td>₱${(p.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td></tr>`;
+        });
+
+        let editFormHTML = '';
+         if (currentUser.role === 'Accounting' || currentUser.role === 'Admin') {
+            editFormHTML = `
+                <div class="card mt-3"><div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="card-title mb-0">Update Order Status</h6>
+                        <button type="button" id="toggle-edit-btn" class="btn btn-outline-secondary btn-sm">Edit</button>
+                    </div>
+                    <fieldset id="order-edit-fieldset" disabled>
+                        <div class="mb-3"><label class="form-label">Sales Invoice Number</label><input type="text" name="salesInvoice" class="form-control" value="${order.salesInvoice || ''}"></div>
+                        <div class="mb-3"><label class="form-label">Order Status</label><select name="status" class="form-select"><option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option><option value="Awaiting Approval" ${order.status === 'Awaiting Approval' ? 'selected' : ''}>Awaiting Approval</option><option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option><option value="Order Shipped" ${order.status === 'Order Shipped' ? 'selected' : ''}>Order Shipped</option><option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option><option value="Rejected" ${order.status === 'Rejected' ? 'selected' : ''}>Rejected</option><option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option></select></div>
+                        <div class="mb-3"><label class="form-label">Payment Status</label><select name="paymentStatus" class="form-select"><option value="Unpaid" ${order.paymentStatus === 'Unpaid' ? 'selected' : ''}>Unpaid</option><option value="Paid" ${order.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option></select></div>
+                    </fieldset>
+                </div></div>
+            `;
+         }
+
+        mainContentContainer.innerHTML = `
+            <div class="row align-items-start">
+                <div class="col-lg-7">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card"><div class="card-body">
+                                <h6 class="card-title mb-3">Customer & Order Info</h6>
+                                <p class="mb-1"><strong>Sales Rep:</strong> ${order.user ? order.user.firstName + ' ' + order.user.lastName : 'N/A'}</p>
+                                <p class="mb-1"><strong>Customer:</strong> ${order.customerName || 'N/A'}</p>
+                                <p class="mb-1"><strong>Hospital/Clinic:</strong> ${order.hospital || 'N/A'}</p>
+                                <p class="mb-1"><strong>Area:</strong> ${order.area || 'N/A'}</p>
+                                <p class="mb-1"><strong>Contact:</strong> ${order.contactNumber || 'N/A'}</p>
+                                <p class="mb-1"><strong>Email:</strong> ${order.email || 'N/A'}</p>
+                            </div></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card"><div class="card-body">
+                                <h6 class="card-title mb-3">Invoice Details</h6>
+                                <p class="mb-1"><strong>Reference #:</strong> ${order.reference}</p>
+                                <p class="mb-1"><strong>Invoice Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
+                                <p class="mb-1"><strong>Sales Invoice #:</strong> ${order.salesInvoice || 'N/A'}</p>
+                            </div></div>
+                        </div>
+                    </div>
+                    <div class="card mt-3"><div class="card-body">
+                        <h6 class="card-title mb-3">Ordered Products</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead class="table-light"><tr><th>Product</th><th>Qty</th><th>Unit</th><th>Price</th><th>Total</th></tr></thead>
+                                <tbody>${productsTableRows}</tbody>
+                                <tfoot><tr><th colspan="4" class="text-end">Subtotal:</th><th class="text-nowrap">₱${(order.subtotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</th></tr></tfoot>
+                            </table>
+                        </div>
+                    </div></div>
+                    <div class="card mt-3"><div class="card-body">
+                        <h6 class="card-title">Attachments</h6>
+                        <div id="attachment_section_content"></div>
+                    </div></div>
+                    ${order.note ? `<div class="card mt-3"><div class="card-body"><h6 class="card-title">Notes:</h6><p class="mb-0">${order.note}</p></div></div>` : ''}
+                    <div id="order_edit_form_container">${editFormHTML}</div>
+                </div>
+
+                <div class="col-lg-5 mt-4 mt-lg-0">
+                    <div class="chat-container">
+                        <h5 class="mb-3">Communication</h5>
+                        <div id="modal_chatMessages" class="chat-messages"></div>
+                        <div class="chat-input-area mt-auto">
+                            <div id="chat_attachment_preview" class="mb-2" style="display: none; align-items-center; gap: 10px;"></div>
+                            <div class="d-flex">
+                                <input type="file" id="chat_file_input" style="display: none;" name="attachment">
+                                <button id="chat_attach_btn" class="btn btn-light border" type="button" title="Attach file">📎</button>
+                                <input type="text" id="modal_messageText" class="form-control" placeholder="Type a comment...">
+                                <button id="modal_sendMessageBtn" class="btn btn-primary" type="button">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const attachmentSectionContent = document.getElementById('attachment_section_content');
+        if (order.attachment) {
+            attachmentSectionContent.innerHTML = `<a href="${order.attachment}" target="_blank"><img src="${order.attachment}" class="img-fluid rounded border" style="max-height: 200px;" alt="Attachment Preview"></a>`;
+        } else {
+            attachmentSectionContent.innerHTML = `<p class="text-muted">No attachment provided.</p>`;
+        }
+
+        modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
         const orderUpdateForm = document.getElementById('orderUpdateForm');
-        const invoiceContainer = document.getElementById('invoice_details_container');
-        const editFormContainer = document.getElementById('order_edit_form_container');
-        const modalFooter = document.querySelector('#orderDetailModal .modal-footer');
-        const attachmentSection = document.getElementById('attachment_section');
+        if (document.getElementById('toggle-edit-btn')) {
+            const editBtn = document.getElementById('toggle-edit-btn');
+            const fieldset = document.getElementById('order-edit-fieldset');
+            orderUpdateForm.action = `/orders/${order._id}/update`;
+            editBtn.addEventListener('click', () => {
+                if (fieldset.disabled) {
+                    fieldset.disabled = false;
+                    editBtn.textContent = 'Cancel';
+                    editBtn.classList.replace('btn-outline-secondary', 'btn-outline-danger');
+                    modalFooter.innerHTML = '<button type="button" class="btn btn-primary" form="orderUpdateForm" type="submit">Save Changes</button>';
+                } else {
+                    fieldset.disabled = true;
+                    editBtn.textContent = 'Edit';
+                    editBtn.classList.replace('btn-outline-danger', 'btn-outline-secondary');
+                    modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
+                }
+            });
+        }
+        
         const chatBox = document.getElementById('modal_chatMessages');
-        const chatSearchInput = document.getElementById('chat_search_input');
         const messageInput = document.getElementById('modal_messageText');
         const sendMessageBtn = document.getElementById('modal_sendMessageBtn');
         const attachBtn = document.getElementById('chat_attach_btn');
         const fileInput = document.getElementById('chat_file_input');
         const attachmentPreview = document.getElementById('chat_attachment_preview');
-
-        document.getElementById('modal_customerName_header').innerText = `Order Details for: ${order.customerName}`;
-
-        // 1. ALWAYS render the read-only details for ALL users
-        let productsTableRows = '';
-        (order.products || []).forEach(p => {
-            productsTableRows += `<tr><td>${p.product || 'N/A'}</td><td>${p.quantity || 0}</td><td>₱${(p.price || 0).toFixed(2)}</td><td>₱${(p.total || 0).toFixed(2)}</td></tr>`;
-        });
-        invoiceContainer.innerHTML = `
-            <h5 class="mb-3">Order Summary</h5>
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Sales Rep:</strong> ${order.user ? order.user.firstName + ' ' + order.user.lastName : 'N/A'}</p>
-                    <p><strong>Customer:</strong> ${order.customerName || 'N/A'}</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p><strong>Reference #:</strong> ${order.reference}</p>
-                    <p><strong>Invoice Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
-                </div>
-            </div>
-            <div class="table-responsive mt-3">
-                <table class="table table-sm">
-                    <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-                    <tbody>${productsTableRows}</tbody>
-                    <tfoot><tr><th colspan="3" class="text-end">Subtotal:</th><th class="text-nowrap">₱${(order.subtotal || 0).toFixed(2)}</th></tr></tfoot>
-                </table>
-            </div>
-        `;
-
-        // 2. ONLY for Accounting/Admin, add the editable form
-        editFormContainer.innerHTML = ''; // Clear previous form
-        if (currentUser.role === 'Accounting' || currentUser.role === 'Admin') {
-            orderUpdateForm.action = `/orders/${order._id}/update`;
-            editFormContainer.innerHTML = `
-                <h5 class="mb-3">Update Order Details</h5>
-                <div class="mb-3"><label class="form-label">Sales Invoice Number</label><input type="text" name="salesInvoice" class="form-control" value="${order.salesInvoice || ''}"></div>
-                <div class="mb-3"><label class="form-label">Order Status</label><select name="status" class="form-select"><option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option><option value="Awaiting Approval" ${order.status === 'Awaiting Approval' ? 'selected' : ''}>Awaiting Approval</option><option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option><option value="Order Shipped" ${order.status === 'Order Shipped' ? 'selected' : ''}>Order Shipped</option><option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option><option value="Rejected" ${order.status === 'Rejected' ? 'selected' : ''}>Rejected</option><option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option></select></div>
-                <div class="mb-3"><label class="form-label">Payment Status</label><select name="paymentStatus" class="form-select"><option value="Unpaid" ${order.paymentStatus === 'Unpaid' ? 'selected' : ''}>Unpaid</option><option value="Paid" ${order.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option></select></div>
-                <hr>
-            `;
-            modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="submit" form="orderUpdateForm" class="btn btn-primary">Save Changes</button>';
-        } else {
-            modalFooter.innerHTML = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
-        }
-
-        // 3. Handle attachments and chat for ALL users
-        if (order.attachment) {
-            attachmentSection.innerHTML = `<a href="${order.attachment}" target="_blank"><img src="${order.attachment}" class="img-fluid rounded" style="max-height: 150px;" alt="Attachment Preview"></a>`;
-        } else {
-            attachmentSection.innerHTML = `<p class="text-muted">No attachment found.</p>`;
-        }
         
         chatBox.innerHTML = '';
         messages.forEach(msg => appendMessage(msg, currentUser._id));
         socket.emit('joinOrderRoom', order._id);
-
-        chatSearchInput.value = '';
-        chatSearchInput.onkeyup = () => {
-            const searchTerm = chatSearchInput.value.toLowerCase();
-            const allMessages = chatBox.querySelectorAll('.chat-message');
-            allMessages.forEach(msgEl => {
-                const msgText = msgEl.textContent.toLowerCase();
-                msgEl.style.display = msgText.includes(searchTerm) ? 'flex' : 'none';
-            });
-        };
         
         const handleSendMessage = async () => {
-            let attachmentUrl = null;
-            if (attachedFile) {
-                const formData = new FormData();
-                formData.append('commentAttachment', attachedFile);
-                try {
-                    const response = await fetch(`/transactions/${currentOrderId}/comment/attach`, { method: 'POST', body: formData });
-                    const result = await response.json();
-                    if (result.success) {
-                        attachmentUrl = result.url;
-                    } else { throw new Error('File upload failed'); }
-                } catch (error) {
-                    alert('Could not upload the file.');
-                    return;
-                }
-            }
             const text = messageInput.value.trim();
-            if (text || attachmentUrl) {
-                socket.emit('sendOrderMessage', { orderId: currentOrderId, userId: currentUser._id, text, attachmentUrl });
+            const file = fileInput.files[0];
+            if (!text && !file) return;
+
+            const formData = new FormData();
+            formData.append('text', text);
+            if (file) formData.append('attachment', file);
+
+            try {
+                const response = await fetch(`/orders/${currentOrderId}/messages`, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.message || 'Server error');
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                alert('Could not send message.');
+            } finally {
                 messageInput.value = '';
-                attachedFile = null;
-                fileInput.value = '';
+                fileInput.value = null;
                 attachmentPreview.style.display = 'none';
                 attachmentPreview.innerHTML = '';
             }
@@ -175,46 +218,63 @@ document.addEventListener('DOMContentLoaded', () => {
         sendMessageBtn.onclick = handleSendMessage;
         messageInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } };
         attachBtn.onclick = () => fileInput.click();
-        
         fileInput.onchange = () => {
             if (fileInput.files.length > 0) {
-                attachedFile = fileInput.files[0];
-                if (attachedFile.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => { attachmentPreview.innerHTML = `<span><img src="${e.target.result}" style="width: 30px; height: 30px; object-fit: cover; margin-right: 5px;"> ${attachedFile.name}</span> <button type="button" class="btn-close btn-sm"></button>`; };
-                    reader.readAsDataURL(attachedFile);
-                } else {
-                    attachmentPreview.innerHTML = `<span>📄 ${attachedFile.name}</span> <button type="button" class="btn-close btn-sm"></button>`;
-                }
+                const file = fileInput.files[0];
+                attachmentPreview.innerHTML = `<span>📎 ${file.name}</span> <button type="button" class="btn-close btn-sm"></button>`;
                 attachmentPreview.style.display = 'flex';
             }
         };
-
         attachmentPreview.onclick = (e) => {
             if (e.target.classList.contains('btn-close')) {
-                attachedFile = null;
-                fileInput.value = '';
+                fileInput.value = null;
                 attachmentPreview.style.display = 'none';
             }
         };
     });
 
-  
-    // This part listens for clicks on ANY "View" button on the page and calls the viewOrder function.
     document.body.addEventListener('click', (event) => {
         const viewButton = event.target.closest('.view-order-btn');
         if (viewButton) {
             const orderId = viewButton.dataset.orderId;
-            if (orderId) {
-                viewOrder(orderId);
-            }
+            if (orderId) viewOrder(orderId);
         }
     });
  
-    // Listen for new messages from the server
     socket.on('newOrderMessage', (msg) => {
         if (msg.order === currentOrderId) {
             appendMessage(msg, document.body.dataset.userId);
+        }
+    });
+
+    socket.on('newDailyPlan', (plan) => {
+        const tableBody = document.querySelector('#dailyPlanTable tbody');
+        if (tableBody) {
+            const newRow = document.createElement('tr');
+            newRow.className = 'is-new';
+            newRow.dataset.planId = plan._id;
+            newRow.innerHTML = `
+                <td>${plan.user.firstName} ${plan.user.lastName}</td>
+                <td>${new Date(plan.planDate).toLocaleDateString()}</td>
+                <td>${plan.firstClientCall || ''}</td>
+                <td><a href="/planning/view/daily/${plan._id}" class="btn btn-sm btn-primary view-details-link">View Details</a></td>
+            `;
+            tableBody.prepend(newRow);
+        }
+    });
+
+    document.body.addEventListener('click', async (event) => {
+        const link = event.target.closest('.view-details-link');
+        const row = link ? link.closest('tr') : null;
+        if (row && row.classList.contains('is-new')) {
+            const planId = row.dataset.planId;
+            if (!planId) return;
+            try {
+                await fetch(`/planning/view/daily/${planId}/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                row.classList.remove('is-new');
+            } catch (error) {
+                console.error('Failed to mark plan as read:', error);
+            }
         }
     });
 });

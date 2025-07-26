@@ -7,6 +7,7 @@ const Transaction = require('../models/Transaction');
 const DailyPlan = require('../models/DailyPlan');
 const WeeklyItinerary = require('../models/WeeklyItinerary');
 const DailyReport = require('../models/DailyReport');
+const Product = require('../models/Product');
 
 // --- Main Dashboard Redirector ---
 exports.getDashboard = (req, res) => {
@@ -31,7 +32,6 @@ exports.getMSRDashboard = async (req, res) => {
             ]).then(result => result[0] ? result[0].total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')
         };
         
-        // FIX: This now fetches dailyPlans and weeklyItineraries alongside the other data.
         const [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries] = await Promise.all([
             CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10).populate('hospital doctor'),
             Order.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10),
@@ -41,7 +41,6 @@ exports.getMSRDashboard = async (req, res) => {
             WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 }).limit(10)
         ]);
         
-        // FIX: The new data is now passed to the view, which resolves the error.
         res.render('dashboard', { user: req.user, stats, checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries });
     } catch (err) {
         console.error("Dashboard Error:", err);
@@ -103,8 +102,16 @@ exports.getProfilePage = (req, res) => {
     res.render('profile', { user: req.user });
 };
 
-exports.getBookOrderPage = (req, res) => {
-    res.render('bookorder');
+// **THIS IS THE CORRECTED FUNCTION**
+// It fetches products from the database before rendering the page.
+exports.getBookOrderPage = async (req, res) => {
+    try {
+        const products = await Product.find().sort({ name: 1 });
+        res.render('bookorder', { products });
+    } catch (err) {
+        req.flash('error_msg', 'Could not load the booking page.');
+        res.redirect('/dashboard');
+    }
 };
 
 exports.getManageEntriesPage = async (req, res) => {

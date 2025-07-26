@@ -18,8 +18,10 @@ router.post('/daily', ensureAuthenticated, planningController.submitDailyPlan);
 router.post('/weekly', ensureAuthenticated, planningController.submitWeeklyItinerary);
 router.post('/comment', ensureAuthenticated, planningController.addComment);
 
+// ADDED: New route to mark a daily plan as read.
+router.post('/view/daily/:id/read', ensureAuthenticated, planningController.markPlanAsRead);
+
 // --- EXPORT ROUTE ---
-// ADDED: New route for exporting weekly coverage data
 router.get('/coverage-report/export', ensureAuthenticated, planningController.exportWeeklyCoverageReport);
 
 module.exports = router;

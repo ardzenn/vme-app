@@ -27,44 +27,111 @@
                 <form action="/transactions/submit" method="POST" enctype="multipart/form-data" id="collection-form">
                     <input type="hidden" name="type" value="Collection">
                     <h4 class="mb-3">Collection Details</h4>
+                    
                     <div class="mb-3">
-                        <label for="collection-customer" class="form-label">Customer Name</label>
-                        <input type="text" class="form-control" id="collection-customer" name="customer" required>
+                        <label for="customer" class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="customer" name="customer" required>
                     </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dateCollected" class="form-label">Date Collected</label>
+                            <input type="date" class="form-control" id="dateCollected" name="dateCollected">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">Amount Collected (PHP)</label>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="prCr" class="form-label">PR/CR</label>
+                            <input type="text" class="form-control" id="prCr" name="prCr">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="siDr" class="form-label">SI/DR</label>
+                            <input type="text" class="form-control" id="siDr" name="siDr">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dateOfCheck" class="form-label">Date of Check</label>
+                            <input type="date" class="form-control" id="dateOfCheck" name="dateOfCheck">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="bankCheckNo" class="form-label">Bank & Check No.</label>
+                            <input type="text" class="form-control" id="bankCheckNo" name="bankCheckNo">
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
-                        <label for="collection-amount" class="form-label">Amount Collected (PHP)</label>
-                        <input type="number" step="0.01" class="form-control" id="collection-amount" name="amount" required>
+                        <label for="collection-note" class="form-label">Note</label>
+                        <textarea class="form-control" id="collection-note" name="note" rows="2"></textarea>
                     </div>
+
                     <div class="mb-3">
-                        <label for="collection-proof" class="form-label">Proof of Collection (Image)</label>
-                        <input type="file" class="form-control" id="collection-proof" name="proof" accept="image/*" required>
-                    </div>
-                    <div class="mb-4">
                         <label for="collection-remarks" class="form-label">Remarks</label>
-                        <textarea class="form-control" id="collection-remarks" name="remarks" rows="3"></textarea>
+                        <textarea class="form-control" id="collection-remarks" name="remarks" rows="2"></textarea>
                     </div>
+
+                    <div class="mb-4">
+                        <label for="collection-attachment" class="form-label">Proof of Collection (Image)</label>
+                        <input type="file" class="form-control" id="collection-attachment" name="attachment" accept="image/*">
+                    </div>
+
                     <div class="col-12"><button type="submit" class="btn btn-primary w-100 mt-3">Submit Collection</button></div>
                 </form>
 
                 <form action="/transactions/submit" method="POST" enctype="multipart/form-data" id="deposit-form" style="display: none;">
                     <input type="hidden" name="type" value="Deposit">
                     <h4 class="mb-3">Deposit Details</h4>
-                     <div class="mb-3">
-                        <label for="deposit-hospital" class="form-label">Hospital Name</label>
-                        <input type="text" class="form-control" id="deposit-hospital" name="hospital" required>
-                    </div>
+                     
                     <div class="mb-3">
-                        <label for="deposit-amount" class="form-label">Amount Deposited (PHP)</label>
-                        <input type="number" step="0.01" class="form-control" id="deposit-amount" name="amount" required>
+                        <label for="hospital" class="form-label">Hospital Name</label>
+                        <input type="text" class="form-control" id="hospital" name="hospital" required>
                     </div>
+
                     <div class="mb-3">
-                        <label for="deposit-proof" class="form-label">Deposit Slip (Image)</label>
-                        <input type="file" class="form-control" id="deposit-proof" name="proof" accept="image/*" required>
+                        <label for="details" class="form-label">Deposit Details</label>
+                        <input type="text" class="form-control" id="details" name="details">
                     </div>
-                    <div class="mb-4">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="dateDeposited" class="form-label">Date Deposited</label>
+                            <input type="date" class="form-control" id="dateDeposited" name="dateDeposited">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                             <label for="paymentMethod" class="form-label">Payment Method</label>
+                            <select class="form-select" id="paymentMethod" name="paymentMethod">
+                                <option value="Cash">Cash</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="totalAmountDeposited" class="form-label">Amount Deposited (PHP)</label>
+                        <input type="number" step="0.01" class="form-control" id="totalAmountDeposited" name="totalAmountDeposited" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="deposit-note" class="form-label">Note</label>
+                        <textarea class="form-control" id="deposit-note" name="note" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
                         <label for="deposit-remarks" class="form-label">Remarks</label>
-                        <textarea class="form-control" id="deposit-remarks" name="remarks" rows="3"></textarea>
+                        <textarea class="form-control" id="deposit-remarks" name="remarks" rows="2"></textarea>
                     </div>
+
+                    <div class="mb-4">
+                        <label for="deposit-attachment" class="form-label">Deposit Slip (Image)</label>
+                        <input type="file" class="form-control" id="deposit-attachment" name="attachment" accept="image/*">
+                    </div>
+
                     <div class="col-12"><button type="submit" class="btn btn-primary w-100 mt-3">Submit Deposit</button></div>
                 </form>
             </div>
@@ -77,7 +144,7 @@
         const depositBtn = document.getElementById('show-deposit-btn');
         const collectionForm = document.getElementById('collection-form');
         const depositForm = document.getElementById('deposit-form');
-        
+
         collectionBtn.addEventListener('click', () => {
             collectionForm.style.display = 'block';
             depositForm.style.display = 'none';

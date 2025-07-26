@@ -21,24 +21,8 @@ const initializeWebsockets = require('./websockets');
 // --- Create upload directories ---
 const fs = require('fs');
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
-const reportsDir = path.join(uploadsDir, 'reports');
-const productsDir = path.join(uploadsDir, 'products');
-const txnCommentsDir = path.join(uploadsDir, 'txn_comments');
-const ordersDir = path.join(uploadsDir, 'orders');
-const chatDir = path.join(uploadsDir, 'chat');
-const proofsDir = path.join(uploadsDir, 'proofs');
-const transactionsDir = path.join(uploadsDir, 'transactions');
-
-
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
-if (!fs.existsSync(productsDir)) fs.mkdirSync(productsDir, { recursive: true });
-if (!fs.existsSync(txnCommentsDir)) fs.mkdirSync(txnCommentsDir, { recursive: true });
-if (!fs.existsSync(ordersDir)) fs.mkdirSync(ordersDir, { recursive: true });
-if (!fs.existsSync(chatDir)) fs.mkdirSync(chatDir, { recursive: true });
-if (!fs.existsSync(proofsDir)) fs.mkdirSync(proofsDir, { recursive: true });
-if (!fs.existsSync(transactionsDir)) fs.mkdirSync(transactionsDir, { recursive: true });
-
+// ... other directory creations can remain if you need them
 
 // --- Pre-load all models to prevent schema errors ---
 require('./models/User');
@@ -69,6 +53,10 @@ async function startServer() {
         const server = http.createServer(app);
         const io = socketio(server);
         
+        // ** THIS IS THE CRITICAL CHANGE **
+        // Make the `io` instance available to all controllers via `req.app.get('io')`
+        app.set('io', io);
+
         // 2. Initialize everything else AFTER the DB is connected
         initializeWebsockets(io);
 
@@ -130,7 +118,6 @@ async function startServer() {
         app.use('/analytics', require('./routes/analytics'));
         app.use('/push', require('./routes/push'));
         app.use('/transactions', require('./routes/transactions'));
-        app.use('/planning', require('./routes/planning'));
 
         app.get('/health', (req, res) => {
             res.status(200).json({ status: 'ok', uptime: process.uptime() });

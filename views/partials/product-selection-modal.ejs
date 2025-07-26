@@ -1,0 +1,42 @@
+<div class="modal fade" id="productSelectionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select a Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <div class="btn-group" role="group">
+                             <button type="button" class="btn btn-outline-secondary modal-filter-btn active" data-filter="all">All</button>
+                             <button type="button" class="btn btn-outline-secondary modal-filter-btn" data-filter="Service Products">Service Products</button>
+                             <button type="button" class="btn btn-outline-secondary modal-filter-btn" data-filter="Exclusive Meds">Exclusive Meds</button>
+                             <button type="button" class="btn btn-outline-secondary modal-filter-btn" data-filter="Other">Other</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" id="modalProductSearch" class="form-control" placeholder="Search products...">
+                    </div>
+                </div>
+                <div class="row g-4" id="modal-product-grid">
+                    <% products.forEach(product => { %>
+                        <div class="col-lg-3 col-md-4 modal-product-item" data-category="<%= product.category %>" data-name="<%= product.name.toLowerCase() %>">
+                            <div class="card h-100 product-card-select" style="cursor: pointer;"
+                                 data-name="<%= product.name %>"
+                                 data-price="<%= product.price %>"
+                                 data-unit="<%= product.unit %>">
+                                <img src="<%= product.imageUrl %>" class="card-img-top" style="height: 150px; object-fit: cover;" alt="<%= product.name %>">
+                                <div class="card-body">
+                                    <h6 class="card-title"><%= product.name %></h6>
+                                    <p class="card-text text-muted mb-0">₱<%= product.price.toLocaleString('en-US', {minimumFractionDigits: 2}) %></p>
+                                    <small class="text-muted">Per <%= product.unit %></small>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

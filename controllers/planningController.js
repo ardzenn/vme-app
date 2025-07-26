@@ -2,7 +2,7 @@ const DailyPlan = require('../models/DailyPlan');
 const WeeklyItinerary = require('../models/WeeklyItinerary');
 const CheckIn = require('../models/CheckIn');
 const User = require('../models/User');
-const { Parser } = require('json2csv'); // ADDED: Library for CSV export
+const { Parser } = require('json2csv');
 
 // --- Weekly Itinerary Forms & Submission (No changes here) ---
 exports.getWeeklyItineraryForm = async (req, res) => {
@@ -22,7 +22,6 @@ exports.getWeeklyItineraryForm = async (req, res) => {
         res.redirect('/planning/my-plans');
     }
 };
-
 exports.getWeeklyItineraryForEdit = async (req, res) => {
     try {
         const itinerary = await WeeklyItinerary.findById(req.params.id);
@@ -37,7 +36,6 @@ exports.getWeeklyItineraryForEdit = async (req, res) => {
         res.redirect('/planning/my-plans');
     }
 };
-
 exports.submitWeeklyItinerary = async (req, res) => {
     try {
         const { weekPeriod, dailyPlans } = req.body;
@@ -93,27 +91,7 @@ exports.submitWeeklyItinerary = async (req, res) => {
     }
 };
 
-exports.getPlanDetails = async (req, res) => {
-    try {
-        const { type, id } = req.params;
-        let plan, planType = type;
-        if (type === 'daily') {
-            plan = await DailyPlan.findById(id).populate('user comments.user');
-        } else if (type === 'weekly') {
-            plan = await WeeklyItinerary.findById(id).populate('user comments.user');
-        }
-        if (!plan) {
-            req.flash('error_msg', 'Plan not found.');
-            return res.redirect(req.get('Referrer') || '/planning/my-plans');
-        }
-        res.render('planning-detail', { plan, planType });
-    } catch (err) {
-        console.error("Error getting plan details:", err);
-        req.flash('error_msg', 'Could not load plan details.');
-        res.redirect(req.get('Referrer') || '/planning/my-plans');
-    }
-};
-
+// --- Daily Plans & History ---
 exports.getMyPlans = async (req, res) => {
     try {
         const dailyPlans = await DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 });
@@ -124,7 +102,6 @@ exports.getMyPlans = async (req, res) => {
         res.redirect('/dashboard');
     }
 };
-
 exports.getDailyPlanForm = async (req, res) => {
     try {
         const planDate = new Date().toISOString().split('T')[0];
@@ -145,7 +122,6 @@ exports.getDailyPlanForm = async (req, res) => {
         res.redirect('/planning/my-plans');
     }
 };
-
 exports.getDailyPlanForEdit = async (req, res) => {
     try {
         let plan = await DailyPlan.findById(req.params.id).lean();
@@ -181,16 +157,47 @@ exports.submitDailyPlan = async (req, res) => {
                 overdue: (targetCollections && targetCollections.overdue || []).filter(c => c.client && c.client.trim() !== '')
             }
         };
-        await DailyPlan.findOneAndUpdate(
+
+        const plan = await DailyPlan.findOneAndUpdate(
             { user: req.user.id, planDate: planData.planDate },
             planData,
             { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-        );
+        ).populate('user', 'firstName lastName');
+
+        // Emit a WebSocket event to notify admins in real-time.
+        const io = req.app.get('socketio'); 
+        if (io) {
+            // this is just a test this function is not for the admin/accounting for now, we broadcast.
+            io.emit('newDailyPlan', plan);
+        }
+
         req.flash('success_msg', 'Daily plan saved successfully!');
         res.redirect('/planning/my-plans');
     } catch (err) {
+        console.error("Error submitting daily plan:", err);
         req.flash('error_msg', 'Failed to submit daily plan.');
         res.redirect('/planning/daily-plan-form');
+    }
+};
+
+exports.getPlanDetails = async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        let plan, planType = type;
+        if (type === 'daily') {
+            plan = await DailyPlan.findById(id).populate('user comments.user');
+        } else if (type === 'weekly') {
+            plan = await WeeklyItinerary.findById(id).populate('user comments.user');
+        }
+        if (!plan) {
+            req.flash('error_msg', 'Plan not found.');
+            return res.redirect(req.get('Referrer') || '/planning/my-plans');
+        }
+        res.render('planning-detail', { plan, planType });
+    } catch (err) {
+        console.error("Error getting plan details:", err);
+        req.flash('error_msg', 'Could not load plan details.');
+        res.redirect(req.get('Referrer') || '/planning/my-plans');
     }
 };
 
@@ -224,24 +231,19 @@ exports.getWeeklyCoverageReport = async (req, res) => {
         const today = new Date();
         const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1));
         const endOfWeek = new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000);
-
         const startDate = req.query.startDate ? new Date(req.query.startDate) : startOfWeek;
         const endDate = req.query.endDate ? new Date(req.query.endDate) : endOfWeek;
         const userId = req.query.userId;
-
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
-
         const filter = { createdAt: { $gte: startDate, $lte: endDate } };
         if (userId) filter.user = userId;
-
         const users = await User.find({ role: { $in: ['MSR', 'KAS'] } }).sort({ firstName: 1 });
         const checkIns = await CheckIn.find(filter)
             .populate('user', 'firstName lastName')
             .populate('hospital', 'name')
             .populate('doctor', 'name')
             .sort({ user: 1, createdAt: 1 });
-
         const coverageData = checkIns.reduce((acc, checkIn) => {
             if (!checkIn.user) return acc;
             const userId = checkIn.user._id.toString();
@@ -254,7 +256,6 @@ exports.getWeeklyCoverageReport = async (req, res) => {
             acc[userId].checkIns.push(checkIn);
             return acc;
         }, {});
-        
         res.render('weekly-coverage-report', {
             coverageData: Object.values(coverageData),
             users,
@@ -271,25 +272,20 @@ exports.getWeeklyCoverageReport = async (req, res) => {
     }
 };
 
-// NEW FUNCTION: To handle the CSV export for the weekly report.
 exports.exportWeeklyCoverageReport = async (req, res) => {
     try {
         const startDate = req.query.startDate ? new Date(req.query.startDate) : new Date(0);
         const endDate = req.query.endDate ? new Date(req.query.endDate) : new Date();
         const userId = req.query.userId;
-
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
-
         const filter = { createdAt: { $gte: startDate, $lte: endDate } };
         if (userId) filter.user = userId;
-
         const checkIns = await CheckIn.find(filter)
             .populate('user', 'firstName lastName')
             .populate('hospital', 'name')
             .populate('doctor', 'name')
             .sort({ createdAt: -1 });
-
         const fields = [
             { label: 'User', value: 'user' },
             { label: 'Date', value: 'date' },
@@ -298,7 +294,6 @@ exports.exportWeeklyCoverageReport = async (req, res) => {
             { label: 'Doctor', value: 'doctor' },
             { label: 'Activity', value: 'activity' }
         ];
-
         const data = checkIns.map(checkin => ({
             user: checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A',
             date: new Date(checkin.createdAt).toLocaleDateString(),
@@ -307,16 +302,24 @@ exports.exportWeeklyCoverageReport = async (req, res) => {
             doctor: checkin.doctor ? checkin.doctor.name : 'N/A',
             activity: checkin.activity || ''
         }));
-
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
-
         res.header('Content-Type', 'text/csv');
         res.attachment(`weekly-coverage-report-${new Date().toISOString().split('T')[0]}.csv`);
         res.send(csv);
-
     } catch (err) {
         console.error("Error exporting weekly coverage report:", err);
         res.status(500).send("Error generating report");
+    }
+};
+
+// ADDED: New function to mark a plan as read.
+exports.markPlanAsRead = async (req, res) => {
+    try {
+        const planId = req.params.id;
+        await DailyPlan.findByIdAndUpdate(planId, { isNew: false });
+        res.status(200).json({ success: true, message: 'Plan marked as read.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error.' });
     }
 };

@@ -7,36 +7,13 @@
             </div>
             <form id="orderUpdateForm" method="POST">
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-lg-7">
-                            <div id="order_edit_form_container" class="mb-4"></div>
-                            <div id="invoice_details_container"></div>
-                            <hr>
-                            <h5 class="mt-4">Attachments</h5>
-                            <div id="attachment_section"></div>
-                        </div>
-
-                        <div class="col-lg-5 border-start-lg mt-4 mt-lg-0">
-                            <div class="chat-container">
-                                <h5 class="mb-3">Communication</h5>
-                                <div class="chat-search-bar mb-3">
-                                    <input type="text" id="chat_search_input" class="form-control form-control-sm" placeholder="Search messages...">
-                                </div>
-                                <div id="modal_chatMessages" class="chat-messages">
-                                    </div>
-                                <div class="chat-input-area mt-3">
-                                    <input type="file" id="chat_file_input" style="display: none;" name="attachment">
-                                    <button id="chat_attach_btn" class="btn btn-secondary" type="button" title="Attach file">📎</button>
-                                    <input type="text" id="modal_messageText" class="form-control" placeholder="Type a message...">
-                                    <button id="modal_sendMessageBtn" class="btn btn-primary" type="button">Send</button>
-                                </div>
-                                <div id="chat_attachment_preview" class="mt-2" style="display: none; align-items: center; gap: 10px;"></div>
-                            </div>
-                        </div>
+                    <div id="main_content_container">
+                        <p class="text-center text-muted">Loading order details...</p>
                     </div>
                 </div>
                 <div class="modal-footer" id="modal_footer">
-                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </form>
         </div>
     </div>

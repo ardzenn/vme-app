@@ -3,14 +3,11 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const upload = require('../config/cloudinary');
 
-// --- Multer for CSV Upload (uses local disk, which is fine for temporary CSV files) ---
 const csvUpload = require('multer')({ dest: 'temp-csv/' });
 
-// --- Middleware Exports ---
 exports.uploadProductImage = upload.single('productImage');
 exports.uploadCsvFile = csvUpload.single('productCsv');
 
-// --- Views ---
 exports.getProductGallery = async (req, res) => {
     try {
         const products = await Product.find().sort({ category: 1, name: 1 });
@@ -31,11 +28,10 @@ exports.getManageProducts = async (req, res) => {
     }
 };
 
-// --- API Functions ---
 exports.addProduct = async (req, res) => {
     try {
-        const { name, description, category, price } = req.body;
-        const newProductData = { name, description, category, price: parseFloat(price) };
+        const { name, description, category, price, unit } = req.body;
+        const newProductData = { name, description, category, price: parseFloat(price), unit };
         if (req.file) {
             newProductData.imageUrl = req.file.path;
         }
@@ -72,21 +68,21 @@ exports.importProducts = (req, res) => {
         .on('data', (data) => results.push(data))
         .on('end', async () => {
             try {
-                // Map CSV headers to your schema fields
                 const productsToInsert = results.map(row => ({
                     name: row.Name,
                     description: row.Description,
                     category: row.Category,
-                    price: parseFloat(row.Price)
+                    price: parseFloat(row.Price),
+                    unit: row.Unit || 'pcs',
+                    imageUrl: row.ImageUrl // Assuming ImageUrl is in the CSV
                 }));
                 await Product.insertMany(productsToInsert, { ordered: false });
                 req.flash('success_msg', `${results.length} products imported successfully.`);
             } catch (err) {
-                 req.flash('error_msg', 'An error occurred during bulk import. Check CSV format.');
+                 req.flash('error_msg', 'An error occurred during bulk import. Check CSV format and required fields.');
             } finally {
                 fs.unlinkSync(req.file.path);
                 res.redirect('/products/manage');
-                
             }
         });
 };

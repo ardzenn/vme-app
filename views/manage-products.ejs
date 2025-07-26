@@ -13,7 +13,7 @@
         <header class="page-header">
             <div>
                 <h1>Manage Products</h1>
-                <p class="text-muted">Add or remove products from the gallery.</p>
+                <p class="text-muted">Add, import, or remove products from the gallery.</p>
             </div>
             <a href="/products" class="btn btn-secondary">View Gallery</a>
         </header>
@@ -22,87 +22,83 @@
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
         <div class="row g-5">
-            <div class="col-lg-5">
+             <div class="col-lg-5">
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Add New Product</h5>
-                    </div>
-                    <div class="card-body">
-                        <form action="/products/manage/add" method="POST" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Product Name</label>
-                                <input type="text" id="name" name="name" class="form-control" required>
+                    <div class="card-header"><h5 class="mb-0">Add New Product</h5></div>
+                     <div class="card-body">
+                        <form action="/products/add" method="POST" enctype="multipart/form-data">
+                            <div class="mb-3"><label for="name" class="form-label">Product Name</label><input type="text" id="name" name="name" class="form-control" required></div>
+                            <div class="mb-3"><label for="category" class="form-label">Category</label><select id="category" name="category" class="form-select" required><option value="Service Products">Service Products</option><option value="Exclusive Meds">Exclusive Meds</option><option value="Other">Other</option></select></div>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3"><label for="price" class="form-label">Price</label><div class="input-group"><span class="input-group-text">₱</span><input type="number" id="price" name="price" class="form-control" required min="0" step="0.01"></div></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3"><label for="unit" class="form-label">Unit</label><input type="text" id="unit" name="unit" class="form-control" required value="pcs" placeholder="e.g., pcs, box"></div>
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="category" class="form-label">Category</label>
-                                <select id="category" name="category" class="form-select" required>
-                                    <option value="Service Products">Service Products</option>
-                                    <option value="Exclusive Meds">Exclusive Meds</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea id="description" name="description" class="form-control" rows="4" required></textarea>
-                            </div>
+                            <div class="mb-3"><label for="description" class="form-label">Description</label><textarea id="description" name="description" class="form-control" rows="3" required></textarea></div>
                             <div class="mb-3">
                                 <label for="productImage" class="form-label">Product Image</label>
                                 <input type="file" id="productImage" name="productImage" class="form-control" required accept="image/*">
                             </div>
+                            <img id="imagePreview" src="" alt="Image Preview" class="img-fluid rounded mb-3" style="display: none; max-height: 200px;">
                             <button type="submit" class="btn btn-primary w-100">Add Product</button>
                         </form>
                     </div>
                 </div>
 
-                <div class="card">
+                 <div class="card">
                     <div class="card-header"><h5 class="mb-0">Bulk Import from CSV</h5></div>
                     <div class="card-body">
-                        <form action="/products/manage/import" method="POST" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label for="productCsv" class="form-label">Upload CSV File</label>
-                                <input type="file" id="productCsv" name="productImage" class="form-control" required accept=".csv">
-                                <div class="form-text">CSV must have columns: name, description, category, imageUrl</div>
-                            </div>
+                        <form action="/products/import" method="POST" enctype="multipart/form-data">
+                             <div class="mb-3"><label for="productCsv" class="form-label">Upload CSV File</label><input type="file" id="productCsv" name="productCsv" class="form-control" required accept=".csv"><div class="form-text">CSV must have columns: Name, Description, Category, Price, Unit</div></div>
                             <button type="submit" class="btn btn-secondary w-100">Import Products</button>
-                        </form>
+                         </form>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-7">
                 <div class="card">
-                    <div class="card-header"><h5 class="mb-0">Existing Products</h5></div>
+                     <div class="card-header"><h5 class="mb-0">Existing Products</h5></div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>Image</th>
-                                        <th>Name</th>
-                                        <th>Category</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                                 <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Unit</th><th>Category</th><th>Actions</th></tr></thead>
+                                 <tbody>
                                     <% products.forEach(product => { %>
-                                        <tr>
+                                         <tr>
                                             <td><img src="<%= product.imageUrl %>" alt="<%= product.name %>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 0.25rem;"></td>
                                             <td><%= product.name %></td>
+                                            <td>₱<%= (product.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></td>
+                                            <td><%= product.unit %></td>
                                             <td><%= product.category %></td>
-                                            <td>
-                                                <form action="/products/manage/delete/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');">
+                                             <td>
+                                                <form action="/products/delete/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');">
                                                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                                </form>
+                                                 </form>
                                             </td>
                                         </tr>
-                                    <% }) %>
+                                     <% }) %>
                                 </tbody>
                             </table>
-                        </div>
+                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+
+    <script>
+        document.getElementById('productImage').addEventListener('change', function(event) {
+            const [file] = event.target.files;
+            if (file) {
+                const preview = document.getElementById('imagePreview');
+                preview.src = URL.createObjectURL(file);
+                preview.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>

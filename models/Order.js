@@ -12,17 +12,14 @@ const orderSchema = new Schema({
     products: [{
         product: String,
         quantity: Number,
+        unit: String,
         price: Number,
         total: Number
     }],
     subtotal: { type: Number, required: true },
     reference: { type: String, unique: true },
     salesInvoice: { type: String },
-    
-    // --- NEW FIELD ---
-    // This will store the path to the uploaded image file
     attachment: { type: String }, 
-
     status: {
         type: String,
         enum: ['Pending', 'Awaiting Approval', 'Processing', 'Order Shipped', 'Delivered', 'Rejected', 'Cancelled'],

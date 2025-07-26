@@ -1,156 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - VME App</title>
     <%- include('partials/header-meta') %>
     <style>
         body { overflow: hidden; }
-        .chat-page-container { display: flex; height: calc(100vh - 70px); }
-        .conversation-list { width: 350px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; background-color: var(--white); }
-        .chat-window { flex-grow: 1; display: flex; flex-direction: column; }
+        .full-chat-container { display: flex; flex-direction: column; height: calc(100vh - 70px); background-color: var(--white); }
+        .full-chat-header { display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border-color); background-color: var(--white); }
+        .full-chat-header img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; }
+        .full-chat-header h4 { margin: 0 0 0 1rem; }
+        .full-chat-messages { flex-grow: 1; overflow-y: auto; padding: 1rem; }
+        .full-chat-input-area { padding: 1rem; border-top: 1px solid var(--border-color); background-color: #f8f9fa; }
     </style>
 </head>
-<body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
+<body data-user-id="<%= currentUser._id %>">
     <%- include('partials/navbar') %>
 
-    <div class="chat-page-container">
-        <div class="conversation-list">
-            <div class="conversation-list-header p-3 border-bottom">
-                <h4>Conversations</h4>
+    <div class="full-chat-container">
+        <div class="full-chat-header" id="full-chat-header">
+            <a href="/dashboard" class="btn btn-light me-3">&larr; Back</a>
             </div>
-            <div class="conversation-list-body" id="full-conversation-list-body" style="overflow-y: auto; flex-grow: 1;">
-                </div>
-        </div>
 
-        <div class="chat-window">
-            <div id="full-chat-window-header" class="chat-window-header p-3 border-bottom" style="display: none;">
+        <div class="full-chat-messages" id="full-chat-messages">
+            <p class="text-center text-muted mt-5">Loading chat...</p>
+        </div>
+        
+        <div id="full-typing-indicator" class="p-2 text-muted small" style="display: none; height: 30px; font-style: italic; padding-left: 1rem;"></div>
+
+        <div class="full-chat-input-area">
+            <form id="full-message-form">
+                <div class="input-group">
+                    <input type="text" id="full-message-input" class="form-control" placeholder="Type a message..." autocomplete="off" disabled>
+                    <button type="submit" class="btn btn-primary" disabled>Send</button>
                 </div>
-            <div id="full-chat-messages" class="chat-messages flex-grow-1 p-3" style="overflow-y: auto;">
-               <div class="d-flex align-items-center justify-content-center h-100 text-muted" id="full-chat-placeholder">
-                    <p>Select a conversation to start chatting.</p>
-                </div>
-            </div>
-            <div class="chat-input-area p-3 border-top bg-light">
-                <form id="full-message-form" style="display: none;">
-                    <div class="input-group">
-                        <input type="text" id="full-message-input" class="form-control" placeholder="Type a message..." autocomplete="off">
-                        <button type="submit" class="btn btn-primary">Send</button>
-                    </div>
-                </form>
-            </div>
+            </form>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // This script is very similar to chat-widget.js, but adapted for the full-page layout
-        document.addEventListener('DOMContentLoaded', () => {
-            const currentUserId = document.body.dataset.userId;
-            const currentUser = JSON.parse(document.body.dataset.currentUser || '{}');
-            if (!currentUserId) return;
-
-            const socket = io({ query: { userId: currentUserId } });
-            
-            // --- Element Definitions ---
-            const conversationListBody = document.getElementById('full-conversation-list-body');
-            const chatWindowHeader = document.getElementById('full-chat-window-header');
-            const chatMessages = document.getElementById('full-chat-messages');
-            const messageForm = document.getElementById('full-message-form');
-            const messageInput = document.getElementById('full-message-input');
-            const chatPlaceholder = document.getElementById('full-chat-placeholder');
-
-            let allConversations = [];
-            let currentConversation = null;
-
-            const appendMessage = (msg, chatBox) => { 
-               const isSent = msg.sender._id === currentUserId;
-        const msgClass = isSent ? 'chat-message-sent' : 'chat-message-received';
-        const profilePic = msg.sender.profilePicture || '/images/default-profile.png';
-        const timestamp = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const userName = msg.sender.firstName || 'User';
-        const msgHTML = `
-            <div class="chat-message ${msgClass}">
-                <img src="${profilePic}" class="chat-profile-pic">
-                <div class="chat-bubble">
-                    <div class="username">${userName}</div>
-                    <div class="chat-text">${msg.text}</div>
-                    <div class="timestamp">${timestamp}</div>
-                </div>
-            </div>`;
-        chatBox.innerHTML += msgHTML;
-        chatBox.scrollTop = chatBox.scrollHeight;};
-            
-            const openChat = async (convo) => {
-                currentConversation = convo;
-                const isGroup = convo.isGroup;
-        const displayName = isGroup ? convo.groupName : convo.participants.find(p => p._id !== currentUserId)?.firstName || 'User';
-        const displayPic = isGroup ? '/images/group-default.png' : convo.participants.find(p => p._id !== currentUserId)?.profilePicture || '/images/default-profile.png';
-
-        document.getElementById('widget-recipient-name').textContent = displayName;
-        document.getElementById('widget-recipient-pic').src = displayPic;
-        // This sets the link for the new maximize button
-        document.getElementById('maximize-chat-btn').href = `/chat?convoId=${convo._id}`;
-
-        chatWindow.classList.add('active');
-        chatMessages.innerHTML = '<p class="text-center text-muted">Loading messages...</p>';
-
-        try {
-            const response = await fetch(`/api/conversations/${convo._id}/messages`);
-            const messages = await response.json();
-            chatMessages.innerHTML = '';
-            messages.forEach(msg => appendMessage(msg, chatMessages));
-        } catch (err) {
-            chatMessages.innerHTML = '<p class="text-center text-danger">Could not load messages.</p>';
-        }
-            };
-
-            const renderConversations = (convos) => {
-                allConversations = convos;
-                conversationListBody.innerHTML = '';
-                convos.forEach(convo => {
-            const isGroup = convo.isGroup;
-            const otherUser = convo.participants.find(p => p._id !== currentUserId);
-            const displayName = isGroup ? convo.groupName : (otherUser ? `${otherUser.firstName} ${otherUser.lastName}` : 'User');
-            const displayPic = isGroup ? '/images/group-default.png' : (otherUser ? otherUser.profilePicture : '/images/default-profile.png');
-            
-                    const convoEl = document.createElement('div');
-                    convoEl.className = 'conversation';
-                    convoEl.innerHTML = `<img src="${displayPic}" alt="${displayName}"><div><strong>${displayName}</strong></div>`;
-                    convoEl.addEventListener('click', () => openChat(convo));
-                    conversationListBody.appendChild(convoEl);
-                });
-            };
-
-            const loadConversations = async () => {
-                const res = await fetch('/api/conversations');
-                const convos = await res.json();
-                renderConversations(convos);
-                
-                // This new part checks if we need to auto-open a chat from the maximize button
-                const urlParams = new URLSearchParams(window.location.search);
-                const convoIdToOpen = urlParams.get('convoId');
-                if (convoIdToOpen) {
-                    const convoToOpen = convos.find(c => c._id === convoIdToOpen);
-                    if (convoToOpen) {
-                        openChat(convoToOpen);
-                    }
-                }
-            };
-
-            // --- Form submission and socket listeners ---
-            messageForm.addEventListener('submit', (e) => { 
-               e.preventDefault();
-             const text = messageInput.value.trim();
-             if (!text || !currentConversation) return; });
-            socket.on('newMessage', (msg) => {
-                if (currentConversation && msg.conversation === currentConversation._id) {
-            appendMessage(msg, chatMessages);
-        }
-        loadConversations(); });
-
-            // Initial Load
-            loadConversations();
-        });
-    </script>
+    <script src="/js/chat.js"></script> 
 </body>
 </html>

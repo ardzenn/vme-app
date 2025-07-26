@@ -88,11 +88,11 @@ a:hover { text-decoration: underline; }
   background-color: var(--background-main);
   border-color: #D1D5DB;
 }
-.form-control {
+.form-control, .form-select {
   border-radius: 0.5rem;
   border-color: var(--border-color);
 }
-.form-control:focus {
+.form-control:focus, .form-select:focus {
   border-color: var(--primary-green);
   box-shadow: 0 0 0 0.25rem rgba(0, 137, 123, 0.25);
 }
@@ -103,11 +103,10 @@ a:hover { text-decoration: underline; }
   border: 1px solid var(--border-color); 
   border-radius: 0.75rem; 
   box-shadow: var(--shadow-sm); 
-  height: 100%;
 }
 .card-header { 
   padding: 1rem 1.5rem; 
-  background-color: var(--surface-card); 
+  background-color: #F9FAFB; 
   border-bottom: 1px solid var(--border-color); 
 }
 .stat-card .stat-title { font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); }
@@ -117,209 +116,121 @@ a:hover { text-decoration: underline; }
 
 /* 6. TABS */
 .nav-tabs { border-bottom: 1px solid var(--border-color); }
-.nav-tabs .nav-link { color: var(--text-secondary); }
-.nav-tabs .nav-link.active, .nav-tabs .nav-link:hover { color: var(--primary-green); border-bottom-color: var(--primary-green); }
+.nav-tabs .nav-link { color: var(--text-secondary); font-weight: 600; }
+.nav-tabs .nav-link.active, .nav-tabs .nav-link:hover { color: var(--primary-green); border-color: #dee2e6 #dee2e6 var(--primary-green); }
 
-/* 7. MAP FIX */
-#map {
-    height: 600px;
-    width: 100%;
-    border-radius: 0.5rem;
-}
-
-/* --- 8. VME CHAT WIDGET (Cleaned, Themed, and Final) --- */
-.chat-widget-toggler{position:fixed;bottom:20px;right:20px;width:60px;height:60px;border-radius:50%;background-color:var(--primary-green);color:var(--text-on-primary);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;box-shadow:var(--shadow-md);z-index:1050;transition:all .3s ease}
-.chat-widget-toggler:hover{background-color: var(--primary-green-dark);}
-.chat-widget-container{position:fixed;bottom:90px;right:20px;width:370px;height:500px;background-color:var(--surface-card);border:1px solid var(--border-color);border-radius:.75rem;box-shadow:var(--shadow-md);z-index:1049;display:flex;flex-direction:column;transform:translateY(20px) scale(.95);opacity:0;visibility:hidden;transition:all .3s ease;resize:both;overflow:hidden;min-width:370px;min-height:500px;max-width:80vw;max-height:80vh}
-.chat-widget-container.open{transform:translateY(0) scale(1);opacity:1;visibility:visible}
-
-.conversation-list { width: 100%; display: flex; flex-direction: column; height: 100%; }
-.tab-content { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; }
-.tab-pane { flex-grow: 1; display: none; flex-direction: column; }
-.tab-pane.fade.show.active { display: flex; }
-.conversation-list-body{overflow-y:auto;flex-grow:1; min-height: 0;}
-
-.conversation{display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;cursor:pointer;border-bottom:1px solid var(--border-color)}
-.conversation:hover{background-color:var(--background-main)}
-.conversation img{width:45px;height:45px;border-radius:50%;object-fit:cover}
-
-.chat-window{display:none; flex-direction: column; height: 100%;}
-.chat-window.active{display:flex;position:absolute;top:0;left:0;width:100%;height:100%;background-color:white}
-
-.chat-messages{flex-grow:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1rem; min-height: 0;}
-.chat-message{display:flex;gap:10px;max-width:80%}
-.chat-profile-pic{width:32px;height:32px;border-radius:50%;object-fit:cover;align-self:flex-end}
-.chat-bubble{padding:.6rem 1rem;border-radius:1.25rem;line-height:1.4}
-.chat-message-received .chat-bubble{background-color:var(--background-main);border-top-left-radius:.25rem}
-.chat-message-sent{align-self:flex-end;flex-direction:row-reverse}
-.chat-message-sent .chat-bubble{background-color:var(--primary-green);color:var(--white)}
-
-/* --- 9. ORDER DETAIL MODAL RESPONSIVENESS & SCROLL FIX --- */
-#orderDetailModal .modal-dialog {
-    max-width: 90vw; 
-    width: 800px; 
-}
-
-#orderDetailModal .modal-content {
-    max-height: 80vh; 
-    overflow-y: auto; 
-}
-
-#orderDetailModal .modal-body {
+/* --- 7. VME CHAT WIDGET (Themed and Corrected) --- */
+.chat-widget-toggler {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background-color: var(--primary-green);
+    color: white;
+    border-radius: 50%;
     display: flex;
-    flex-direction: row;
-    gap: 1rem;
-    overflow-y: auto; 
-    padding: 1rem;
-    max-height: calc(80vh - 120px); 
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    z-index: 999;
+    transition: transform 0.2s ease;
+}
+.chat-widget-toggler:hover { transform: scale(1.1); }
+.chat-widget-toggler.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-#orderDetailModal .order-info {
-    flex: 1;
-    overflow-y: auto; 
-    padding-right: 1rem;
-    max-height: 100%;
-}
-
-#orderDetailModal .chat-container {
-    flex: 1;
+.chat-widget-container {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 370px;
+    height: 500px;
+    background-color: var(--surface-card);
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.25);
     display: flex;
     flex-direction: column;
-    border-left: 1px solid var(--border-color);
-    padding-left: 1rem;
-    height: 100%;
-    min-height: 300px;
-    max-height: 100%; 
+    overflow: hidden;
+    transform: scale(0.8);
+    opacity: 0;
+    visibility: hidden;
+    transform-origin: bottom right;
+    transition: all 0.2s ease-out;
+    z-index: 1000;
+}
+.chat-widget-container.open { transform: scale(1); opacity: 1; visibility: visible; }
+.widget-view { width: 100%; height: 100%; display: none; flex-direction: column; }
+#widget-list-view { display: flex; }
+#widget-chat-view.active, #widget-list-view.active { display: flex; }
+#widget-chat-view { position: absolute; top: 0; left: 100%; transition: left 0.3s ease-in-out; }
+#widget-chat-view.active { left: 0; }
+.widget-header { display: flex; align-items: center; padding: 10px 15px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+.widget-header h4 { margin: 0; font-size: 20px; font-weight: bold; flex-grow: 1; }
+.widget-header .btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; padding: 0; }
+.widget-list-body { flex-grow: 1; overflow-y: auto; }
+.conversation-item { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; transition: background-color 0.2s ease; position: relative; }
+.conversation-item:hover { background-color: var(--background-main); }
+.conversation-item img { width: 50px; height: 50px; border-radius: 50%; margin-right: 12px; object-fit: cover; }
+.conversation-item strong { font-weight: 600; }
+.conversation-item p { margin: 0; font-size: 0.9em; color: var(--text-secondary); }
+.conversation-item .hide-convo-btn { background: #e4e6eb; border: none; border-radius: 50%; width: 24px; height: 24px; line-height: 24px; padding: 0; text-align: center; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; font-weight: bold; color: var(--text-secondary); }
+.conversation-item:hover .hide-convo-btn { opacity: 1; }
+.conversation-item .text-truncate { margin-right: 25px; }
+
+.chat-messages { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+.chat-message { display: flex; align-items: flex-end; max-width: 85%; }
+.chat-profile-pic { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; }
+.chat-bubble { padding: 8px 12px; border-radius: 18px; font-size: 0.95em; position: relative; }
+.chat-bubble .username { font-size: 0.8em; font-weight: bold; color: #666; margin-bottom: 2px; display: block; }
+.chat-bubble .timestamp { font-size: 0.7em; color: #999; text-align: right; margin-top: 4px; display: none; }
+.chat-bubble:hover .timestamp { display: block; }
+.chat-message.received { align-self: flex-start; }
+.chat-message.received .chat-bubble { background-color: #E4E6EB; color: #050505; }
+.chat-message.sent { align-self: flex-end; }
+.chat-message.sent .chat-bubble { background-color: var(--primary-green); color: white; }
+.chat-message.sent .chat-bubble .timestamp { color: #f0f0f0; }
+
+
+/* --- 8. ORDER DETAIL MODAL LAYOUT FIX --- */
+/* This section fixes the stretching, cramping, and footer issues */
+.modal-body .chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%; 
+    min-height: 550px; /* Give a consistent minimum height */
+    background-color: #F9FAFB;
+    border-radius: 0.75rem;
+    padding: 1rem;
 }
 
 #modal_chatMessages {
     flex-grow: 1;
     overflow-y: auto;
-    min-height: 0;
-    padding: 1rem;
-    max-height: 300px;
-
-#orderDetailModal .chat-messages {
-    flex-grow: 1;
-    overflow-y: auto;
-    min-height: 0;
-    padding: 1rem;
-    max-height: 300px; 
 }
 
-#orderDetailModal .product-list {
-    max-height: 200px;
-    overflow-y: auto; 
+.modal-footer {
+    padding: 0.75rem;
+    display: flex;
+    justify-content: flex-end;
 }
 
-/* Responsive stacking for smaller screens */
-@media (max-width: 768px) {
-    #orderDetailModal .modal-body {
-        flex-direction: column;
-        overflow-y: auto; /* Maintain scrolling */
-    }
-    #orderDetailModal .chat-container {
-        border-left: none;
-        border-top: 1px solid var(--border-color);
-        padding-left: 0;
-        padding-top: 1rem;
-        margin-top: 1rem;
-        max-height: 400px; /* Adjust for mobile */
-    }
-    #modal_chatMessages, #orderDetailModal .chat-messages {
-        max-height: 250px; /* Adjust for mobile */
-    }
-    #orderDetailModal .modal-dialog {
-        width: 95vw;
-    }
-    #orderDetailModal .modal-content {
-        max-height: 90vh; /* Adjust for mobile */
-    }
-}
-
-/* Stacks columns on medium screens and below */
+/* On medium screens and below, add a top border to the chat column */
 @media (max-width: 991.98px) {
-    #orderDetailModal .border-start-lg {
+    .modal-body .border-start-lg {
         border-left: none !important;
         border-top: 1px solid var(--border-color);
-        margin-top: 1rem;
-        padding-top: 2rem;
     }
 }
-}
-/* --- 10. COLLECTION DETAILS CHAT SCROLL --- */
-.card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Chat container styles */
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1; 
-  overflow: hidden; 
-  max-height: 400px; 
-}
-
-/* Chat messages area - make it scrollable */
-#chat-messages.chat-messages.flex-grow-1 {
-  flex-grow: 1; 
-  overflow-y: auto;
-  min-height: 0; 
-  padding: 1rem; 
-  background-color: var(--background-main); 
-  border: 1px solid var(--border-color); 
-  border-radius: 0.5rem; 
-}
-
-/* Chat input area - keep it at the bottom */
-.chat-input-area {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem; 
-  margin-top: 1rem; 
-  flex-shrink: 0; 
-}
-
-/* Input and button styles  */
-#chat-message-text {
-  flex-grow: 1; 
-}
-
-#chat-attach-btn,
-#send-message-btn {
-  flex-shrink: 0; 
-}
-
-/* Attachment preview */
-#chat-attachment-preview {
-  margin-top: 0.5rem;
-  max-height: 100px; /* Limit preview height */
-  overflow: hidden; /* Hide overflow */
-  flex-shrink: 0;
-}
-
-/* Scrollbar styling  */
-#chat-messages::-webkit-scrollbar {
-  width: 8px;
-}
-#chat-messages::-webkit-scrollbar-track {
-  background: var(--background-main);
-}
-#chat-messages::-webkit-scrollbar-thumb {
-  background: var(--text-secondary);
-  border-radius: 4px;
-}
-
-#chat-messages::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-green);
-}
 
 
-/* Auth Pages */
-
+/* --- 9. AUTHENTICATION PAGES --- */
 .login-page {
     display: flex;
     min-height: 100vh;
@@ -331,7 +242,7 @@ a:hover { text-decoration: underline; }
 .login-wrapper {
     display: flex;
     width: 100%;
-    max-width: 1000px; /* Increased max-width */
+    max-width: 1000px;
     margin: 1.5rem;
     box-shadow: var(--shadow-md);
     border-radius: 1rem;
@@ -344,93 +255,29 @@ a:hover { text-decoration: underline; }
 }
 .login-image-container {
     flex: 1;
-    display: none; /* Hidden on small screens, shown on large */
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 1.5rem;
     padding: 2rem;
-    background-color: #F9FAFB; /* Slightly different background for contrast */
+    background-color: #F9FAFB;
 }
-.login-logo-img {
-    max-width: 80%;
-    height: auto;
-    opacity: 0;
-    animation: fadeInUp 0.8s ease-out forwards;
-}
-.login-brand-title {
-    font-size: 1.5rem;
-    color: var(--text-primary);
-    text-align: center;
-    opacity: 0;
-    animation: fadeInUp 0.8s ease-out 0.2s forwards;
-}
+.login-logo-img { max-width: 80%; height: auto; }
+.login-brand-title { font-size: 1.5rem; color: var(--text-primary); text-align: center; }
 
-
-
-/* Make the image panel visible on large screens */
 @media (min-width: 992px) {
-    .login-image-container {
-        display: flex;
-    }
+    .login-image-container { display: flex; }
 }
 
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Book Order */ 
-
+/* --- 10. BOOK ORDER PAGE --- */
 .book-order-form-container {
     max-width: 800px;
     margin: 2rem auto;
-}
-.product-entry {
-    display: grid;
-    grid-template-columns: 1fr 100px 120px 120px 40px;
-    gap: 1rem;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color);
-}
-.product-entry:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-.product-entry .form-label {
-    margin-bottom: 0.25rem;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-}
-#add-product-btn {
-    width: 100%;
-    padding: 0.75rem;
-    font-weight: 600;
-    margin-top: 1rem;
-    margin-bottom: 2rem;
-    border-style: dashed;
 }
 .subtotal-display {
     text-align: right;
     font-size: 1.25rem;
     font-weight: 700;
     margin-top: 1.5rem;
-}
-@media (max-width: 767.98px) {
-    .product-entry {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-    }
-    .product-entry .form-label {
-        margin-top: 0.5rem;
-    }
 }

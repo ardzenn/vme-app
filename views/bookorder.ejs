@@ -3,6 +3,12 @@
 <head>
     <title>Book New Order - VME App</title>
     <%- include('partials/header-meta') %>
+    <style>
+        #product-cart-table th, #product-cart-table td { vertical-align: middle; text-align: center; }
+        #product-cart-table td:first-child { text-align: left; }
+        .product-card-select { cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .product-card-select:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    </style>
 </head>
 <body>
     <%- include('partials/navbar') %>
@@ -12,7 +18,7 @@
             <div>
                 <h1>Book a New Order</h1>
                 <p>Fill in the details below to create a new sales order.</p>
-            </div>
+             </div>
         </header>
 
         <% if (locals.error_msg && error_msg.length > 0) { %>
@@ -25,106 +31,224 @@
                     
                     <h5 class="mb-3">Customer Details</h5>
                     <div class="row g-3">
-                        <div class="col-md-6 mb-3">
-                            <label for="customerName" class="form-label">Customer Name</label>
-                            <input type="text" class="form-control" id="customerName" name="customerName" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="hospital" class="form-label">Hospital/Clinic</label>
-                            <input type="text" class="form-control" id="hospital" name="hospital">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="email" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="email" name="email">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="contactNumber" class="form-label">Contact Number</label>
-                            <input type="tel" class="form-control" id="contactNumber" name="contactNumber">
-                        </div>
-                         <div class="col-md-12 mb-3">
-                            <label for="area" class="form-label">Area</label>
-                            <input type="text" class="form-control" id="area" name="area">
-                        </div>
+                        <div class="col-md-6 mb-3"><label for="customerName" class="form-label">Customer Name</label><input type="text" class="form-control" id="customerName" name="customerName" required></div>
+                        <div class="col-md-6 mb-3"><label for="hospital" class="form-label">Hospital/Clinic</label><input type="text" class="form-control" id="hospital" name="hospital"></div>
+                        <div class="col-md-6 mb-3"><label for="email" class="form-label">Email Address</label><input type="email" class="form-control" id="email" name="email"></div>
+                        <div class="col-md-6 mb-3"><label for="contactNumber" class="form-label">Contact Number</label><input type="tel" class="form-control" id="contactNumber" name="contactNumber"></div>
+                        <div class="col-md-12 mb-3"><label for="area" class="form-label">Area</label><input type="text" class="form-control" id="area" name="area"></div>
                     </div>
 
                     <hr class="my-4">
 
-                    <h5 class="mb-3">Products</h5>
-                    <div id="products-container">
-                        <!-- Product rows will be added here by JavaScript -->
+                    <h5 class="mb-3">Add Product to Cart</h5>
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                             <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label">Product</label>
+                                    <div class="input-group">
+                                        <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#productSelectionModal" title="Select from Gallery">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                        <input type="text" class="form-control" id="product-entry-name" placeholder="Select or type product name...">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Unit</label>
+                                    <input type="text" class="form-control" id="product-entry-unit" placeholder="e.g., pcs">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" id="product-entry-quantity" value="1" min="1">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Price</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₱</span>
+                                        <input type="number" class="form-control" id="product-entry-price" step="0.01" min="0">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="button" id="add-to-cart-btn" class="btn btn-success w-100">Add to Cart</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button type="button" id="add-product-btn" class="btn btn-outline-secondary">+ Add Another Product</button>
 
-                    <div class="subtotal-display">
+                    <h5 class="mb-3">Order Cart</h5>
+                    <div class="table-responsive">
+                        <table class="table" id="product-cart-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-start" style="width: 40%;">Product</th>
+                                    <th>Quantity</th>
+                                    <th>Unit</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-body"></tbody>
+                        </table>
+                    </div>
+
+                     <div class="subtotal-display">
                         Subtotal: <span id="subtotal-display">₱0.00</span>
+                        <input type="hidden" name="subtotal" id="subtotal-input" value="0">
                     </div>
 
                     <hr class="my-4">
                     
-                    <div class="mb-3">
-                        <label for="note" class="form-label">Notes</label>
-                        <textarea class="form-control" id="note" name="note" rows="3"></textarea>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="attachment" class="form-label">Attach Image (e.g., Purchase Order)</label>
-                        <input type="file" class="form-control" id="attachment" name="attachment" accept="image/*">
-                    </div>
-
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="/dashboard" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">Submit Order</button>
-                    </div>
-                </form>
+                    <div class="mb-3"><label for="note" class="form-label">Notes</label><textarea class="form-control" id="note" name="note" rows="3"></textarea></div>
+                    <div class="mb-4"><label for="attachment" class="form-label">Attach Image (e.g., Purchase Order)</label><input type="file" class="form-control" id="attachment" name="attachment" accept="image/*"></div>
+                    <div class="d-flex justify-content-end gap-2"><a href="/dashboard" class="btn btn-secondary">Cancel</a><button type="submit" class="btn btn-primary">Submit Order</button></div>
+                 </form>
             </div>
         </div>
     </main>
+    
+    <%- include('partials/product-selection-modal.ejs', { products: products }) %>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const productsContainer = document.getElementById('products-container');
-            const addProductBtn = document.getElementById('add-product-btn');
+            // --- Element Mapping ---
+            const productNameInput = document.getElementById('product-entry-name');
+            const productQuantityInput = document.getElementById('product-entry-quantity');
+            const productUnitInput = document.getElementById('product-entry-unit');
+            const productPriceInput = document.getElementById('product-entry-price');
+            const addToCartBtn = document.getElementById('add-to-cart-btn');
+            const cartBody = document.getElementById('cart-body');
             const subtotalDisplay = document.getElementById('subtotal-display');
             const subtotalInput = document.getElementById('subtotal-input');
-            let productIndex = 0;
 
-            function addProductRow() {
-                const productRow = document.createElement('div');
-                productRow.classList.add('row', 'g-3', 'align-items-center', 'mb-2', 'product-row');
-                productRow.innerHTML = `
-                    <div class="col-md-5"><input type="text" name="products[${productIndex}][product]" class="form-control" placeholder="Product Name" required></div>
-                    <div class="col-md-2"><input type="number" name="products[${productIndex}][quantity]" class="form-control quantity" placeholder="Qty" value="1" min="1" required></div>
-                    <div class="col-md-2"><input type="number" name="products[${productIndex}][price]" class="form-control price" placeholder="Price" step="0.01" min="0" required></div>
-                    <div class="col-md-2"><span class="total-display fw-bold">₱0.00</span><input type="hidden" name="products[${productIndex}][total]" class="total-input"></div>
-                    <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm remove-product-btn">X</button></div>
-                `;
-                productsContainer.appendChild(productRow);
-                productIndex++;
-            }
+            // Modal elements
+            const productSelectionModal = new bootstrap.Modal(document.getElementById('productSelectionModal'));
+            const modalProductGrid = document.getElementById('modal-product-grid');
+            const modalSearchInput = document.getElementById('modalProductSearch');
+            const modalFilterBtns = document.querySelectorAll('.modal-filter-btn');
+            const modalProductItems = document.querySelectorAll('.modal-product-item');
+            
+            let cartIndex = 0;
+            let activeModalFilter = 'all';
 
-            function updateTotals() {
-                let currentSubtotal = 0;
-                document.querySelectorAll('.product-row').forEach(row => {
-                    const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
-                    const price = parseFloat(row.querySelector('.price').value) || 0;
-                    const total = quantity * price;
-                    row.querySelector('.total-display').innerText = `₱${total.toFixed(2)}`;
-                    row.querySelector('.total-input').value = total.toFixed(2);
-                    currentSubtotal += total;
+            // --- MODAL FUNCTIONALITY (FIXED) ---
+            function applyModalFilters() {
+                const searchTerm = modalSearchInput.value.toLowerCase();
+                modalProductItems.forEach(item => {
+                    const categoryMatch = activeModalFilter === 'all' || item.dataset.category === activeModalFilter;
+                    const nameMatch = item.dataset.name.includes(searchTerm);
+                    item.style.display = categoryMatch && nameMatch ? '' : 'none';
                 });
-                subtotalDisplay.innerText = `₱${currentSubtotal.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}`;
-                subtotalInput.value = currentSubtotal.toFixed(2);
             }
 
-            addProductBtn.addEventListener('click', addProductRow);
-            productsContainer.addEventListener('input', updateTotals);
-            productsContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('remove-product-btn')) {
-                    e.target.closest('.product-row').remove();
-                    updateTotals();
+            modalSearchInput.addEventListener('input', applyModalFilters);
+
+            modalFilterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modalFilterBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    activeModalFilter = btn.dataset.filter;
+                    applyModalFilters();
+                });
+            });
+
+            modalProductGrid.addEventListener('click', (e) => {
+                const card = e.target.closest('.product-card-select');
+                if (card) {
+                    productNameInput.value = card.dataset.name;
+                    productPriceInput.value = parseFloat(card.dataset.price).toFixed(2);
+                    productUnitInput.value = card.dataset.unit;
+                    
+                    productPriceInput.readOnly = true;
+                    productUnitInput.readOnly = true;
+                    
+                    productSelectionModal.hide();
                 }
             });
-            addProductRow();
+
+            // --- CART FUNCTIONALITY ---
+            productNameInput.addEventListener('input', () => {
+                if (!Array.from(modalProductItems).some(item => item.querySelector('.product-card-select').dataset.name === productNameInput.value)) {
+                    productPriceInput.readOnly = false;
+                    productUnitInput.readOnly = false;
+                }
+            });
+
+            addToCartBtn.addEventListener('click', () => {
+                const name = productNameInput.value.trim();
+                const quantity = parseInt(productQuantityInput.value) || 1;
+                const unit = productUnitInput.value.trim() || 'pcs';
+                const price = parseFloat(productPriceInput.value) || 0;
+                
+                if (!name || quantity <= 0 || price < 0) {
+                    alert('Please enter valid product details.');
+                    return;
+                }
+
+                const total = quantity * price;
+
+                const row = document.createElement('tr');
+                row.classList.add('cart-row');
+                row.innerHTML = `
+                    <td class="text-start">
+                        ${name}
+                        <input type="hidden" name="products[${cartIndex}][product]" value="${name}">
+                    </td>
+                    <td><input type="number" class="form-control form-control-sm cart-quantity" name="products[${cartIndex}][quantity]" value="${quantity}" min="1"></td>
+                    <td><input type="text" class="form-control form-control-sm" name="products[${cartIndex}][unit]" value="${unit}" ${productUnitInput.readOnly ? 'readonly' : ''}></td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">₱</span>
+                            <input type="number" class="form-control cart-price" name="products[${cartIndex}][price]" value="${price.toFixed(2)}" step="0.01" min="0" ${productPriceInput.readOnly ? 'readonly' : ''}>
+                        </div>
+                    </td>
+                    <td class="cart-total fw-bold">₱${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    <td><button type="button" class="btn btn-danger btn-sm remove-cart-item-btn">✖</button></td>
+                `;
+                cartBody.appendChild(row);
+                cartIndex++;
+
+                productNameInput.value = '';
+                productQuantityInput.value = '1';
+                productUnitInput.value = '';
+                productPriceInput.value = '';
+                productPriceInput.readOnly = false;
+                productUnitInput.readOnly = false;
+                
+                updateCartTotals();
+            });
+            
+            cartBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-cart-item-btn')) {
+                    e.target.closest('tr').remove();
+                    updateCartTotals();
+                }
+            });
+
+            cartBody.addEventListener('input', (e) => {
+                const row = e.target.closest('tr');
+                if (row) {
+                    const quantity = parseFloat(row.querySelector('.cart-quantity').value) || 0;
+                    const price = parseFloat(row.querySelector('.cart-price').value) || 0;
+                    const total = quantity * price;
+                    row.querySelector('.cart-total').textContent = `₱${total.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                    updateCartTotals();
+                }
+            });
+
+            function updateCartTotals() {
+                let subtotal = 0;
+                document.querySelectorAll('.cart-row').forEach(row => {
+                    const quantity = parseFloat(row.querySelector('.cart-quantity').value) || 0;
+                    const price = parseFloat(row.querySelector('.cart-price').value) || 0;
+                    subtotal += quantity * price;
+                });
+                subtotalDisplay.textContent = `₱${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                subtotalInput.value = subtotal.toFixed(2);
+            }
         });
     </script>
 </body>

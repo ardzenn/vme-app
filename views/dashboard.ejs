@@ -14,15 +14,15 @@
                 <p style="margin: 0;">Welcome back, <%= currentUser.firstName %>!</p>
             </div>
             <div class="header-actions">
-                <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
-                <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Manage My Entries</a>
+                <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Client Masterlist</a>
                 <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
                 <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>
-                <a href="/report" class="btn btn-success dashboard-header-btn">Daily Report Form</a>
-                <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
                 <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
                     Check-in
                 </button>
+                <a href="/report" class="btn btn-success dashboard-header-btn">End of Day Report</a>
+                <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
+                <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
             </div>
         </header>
 
@@ -32,7 +32,7 @@
         <div class="row g-4 mb-4">
             <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Check-ins Today</div><div class="stat-value"><%= stats.checkinsToday %></div></div></div>
             <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Pending Orders</div><div class="stat-value"><%= stats.pendingOrders %></div></div></div>
-            <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Sales</div><div class="stat-value"><%= stats.totalSales %></div></div></div>
+            <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Sales</div><div class="stat-value">₱<%= stats.totalSales %></div></div></div>
         </div>
 
         <ul class="nav nav-tabs mb-3" id="dashboardTab" role="tablist">
@@ -42,7 +42,6 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="checkins-tab" data-bs-toggle="tab" data-bs-target="#checkins-panel" type="button" role="tab">My Check-in History</button>
             </li>
-            <!-- ADDED: New tabs for plans -->
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="daily-plans-tab" data-bs-toggle="tab" data-bs-target="#daily-plans-panel" type="button" role="tab">My Daily Plans</button>
             </li>
@@ -56,28 +55,28 @@
                 <div class="card card-tab">
                     <div class="card-body">
                         <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search your sales orders...">
-                        <div class="table-responsive">
+                         <div class="table-responsive">
                             <table class="table table-hover" id="orderTable">
                                 <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
-                                <tbody>
+                                 <tbody>
                                     <% if(orders.length > 0) { %>
                                         <% orders.forEach(order => { %>
-                                            <tr data-search="<%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
+                                             <tr data-search="<%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %> <%= (order.status || '').toLowerCase() %>">
                                                 <td><%= order.reference || 'N/A' %></td>
                                                 <td><%= order.customerName || 'N/A' %></td>
                                                 <td><span class="badge bg-primary"><%= order.status || 'N/A' %></span></td>
                                                 <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
                                                 <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View</button></td>
-                                            </tr>
+                                             </tr>
                                         <% }) %>
                                     <% } else { %>
                                         <tr><td colspan="5" class="text-center p-4">No sales orders found.</td></tr>
                                     <% } %>
-                                </tbody>
+                                 </tbody>
                             </table>
                         </div>
                     </div>
-                </div>
+                 </div>
             </div>      
                         
             <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
@@ -86,7 +85,7 @@
                         <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search your check-ins...">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle" id="checkinTable">
-                                <thead>
+                                 <thead>
                                     <tr>
                                         <th>Hospital</th>
                                         <th>Doctor</th>
@@ -94,43 +93,42 @@
                                         <th>Proof</th>
                                         <th>Signature</th>
                                         <th>Date</th>
-                                    </tr>
+                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <% if(checkins.length > 0) { %>
+                                     <% if(checkins.length > 0) { %>
                                         <% checkins.forEach(checkin => { %>
-                                            <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
+                                             <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
                                                 <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
                                                 <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
                                                 <td><%= checkin.activity || 'N/A' %></td>
-                                                <td>
+                                                 <td>
                                                     <% if (checkin.proof) { %>
                                                         <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
                                                     <% } else { %><span class="text-muted">No Proof</span><% } %>
-                                                </td>
+                                                 </td>
                                                 <td>
-                                                    <% if (checkin.signature) { %>
+                                                     <% if (checkin.signature) { %>
                                                         <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
                                                     <% } else { %><span class="text-muted">No Signature</span><% } %>
-                                                </td>
+                                                 </td>
                                                 <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
-                                            </tr>
+                                             </tr>
                                         <% }) %>
                                     <% } else { %>
-                                        <tr><td colspan="6" class="text-center p-4">No check-in history found.</td></tr>
+                                         <tr><td colspan="6" class="text-center p-4">No check-in history found.</td></tr>
                                     <% } %>
-                                </tbody>
+                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
+             </div>
 
-            <!-- ADDED: New panel for daily plans -->
             <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
                 <div class="card card-tab">
                     <div class="card-body">
-                        <div class="table-responsive">
+                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
@@ -138,10 +136,10 @@
                                         <th>First Client Call</th>
                                         <th>Areas</th>
                                         <th>Actions</th>
-                                    </tr>
+                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <% if(dailyPlans && dailyPlans.length > 0) { %>
+                                     <% if(dailyPlans && dailyPlans.length > 0) { %>
                                         <% dailyPlans.forEach(plan => { %>
                                             <tr>
                                                 <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
@@ -151,51 +149,50 @@
                                                     <a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-outline-primary">View</a>
                                                     <a href="/planning/daily-plan-form/<%= plan._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
                                                 </td>
-                                            </tr>
+                                             </tr>
                                         <% }) %>
                                     <% } else { %>
-                                        <tr><td colspan="4" class="text-center p-4">No daily plans found.</td></tr>
+                                         <tr><td colspan="4" class="text-center p-4">No daily plans found.</td></tr>
                                     <% } %>
-                                </tbody>
+                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
+             </div>
             
-            <!-- ADDED: New panel for weekly itineraries -->
             <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
                 <div class="card card-tab">
                     <div class="card-body">
-                        <div class="table-responsive">
+                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
-                                    <tr>
+                                     <tr>
                                         <th>Week Period</th>
                                         <th>Total Sales Target</th>
                                         <th>Total Collection Target</th>
                                         <th>Actions</th>
-                                    </tr>
+                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <% if(weeklyItineraries && weeklyItineraries.length > 0) { %>
+                                     <% if(weeklyItineraries && weeklyItineraries.length > 0) { %>
                                         <% weeklyItineraries.forEach(itinerary => { %>
-                                            <tr>
+                                             <tr>
                                                 <td><%= itinerary.weekPeriod || new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
                                                 <td>₱<%= (itinerary.totalTargetSales || 0).toLocaleString() %></td>
-                                                <td>₱<%= (itinerary.totalTargetCollections || 0).toLocaleString() %></td>
+                                                 <td>₱<%= (itinerary.totalTargetCollections || 0).toLocaleString() %></td>
                                                 <td>
-                                                    <a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                     <a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-outline-primary">View</a>
                                                     <a href="/planning/weekly-itinerary-form/<%= itinerary._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                                </td>
+                                                 </td>
                                             </tr>
-                                        <% }) %>
+                                         <% }) %>
                                     <% } else { %>
                                         <tr><td colspan="4" class="text-center p-4">No weekly itineraries found.</td></tr>
-                                    <% } %>
+                                     <% } %>
                                 </tbody>
                             </table>
-                        </div>
+                         </div>
                     </div>
                 </div>
             </div>
@@ -225,26 +222,26 @@
             const addTableFilter = (inputId, tableId) => {
                 const searchInput = document.getElementById(inputId);
                 if (searchInput) {
-                    searchInput.addEventListener('input', (e) => {
+                     searchInput.addEventListener('input', (e) => {
                         const searchTerm = e.target.value.toLowerCase();
                         document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
                             row.style.display = (row.dataset.search || '').includes(searchTerm) ? '' : 'none';
-                        });
+                         });
                     });
                 }
             };
             addTableFilter('orderSearch', 'orderTable');
             addTableFilter('checkinSearch', 'checkinTable');
 
-            if ('serviceWorker' in navigator) {
+             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('/sw.js')
                         .then(registration => console.log('Service Worker registered.'))
-                        .catch(error => console.log('Service Worker registration failed:', error));
+                         .catch(error => console.log('Service Worker registration failed:', error));
                 });
             }
         });
-    </script>
+ </script>
     <%- include('partials/chat-widget.ejs') %>
     <script src="/js/chat-widget.js"></script>
 </body>
