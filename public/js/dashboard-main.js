@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h5 class="mb-3">Communication</h5>
                         <div id="modal_chatMessages" class="chat-messages"></div>
                         <div class="chat-input-area mt-auto">
-                            <div id="chat_attachment_preview" class="mb-2" style="display: none; align-items-center; gap: 10px;"></div>
+                            <div id="chat_attachment_preview" class="mb-2" style="display: none; align-items: center; gap: 10px;"></div>
                             <div class="d-flex">
                                 <input type="file" id="chat_file_input" style="display: none;" name="attachment">
                                 <button id="chat_attach_btn" class="btn btn-light border" type="button" title="Attach file">📎</button>

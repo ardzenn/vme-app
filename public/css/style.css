@@ -4,27 +4,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Color Palette from New Logo */
   --primary-green: #00897B; 
   --primary-green-dark: #00695C;
   --accent-gold: #FFCA28;   
-  
-  /* UI Colors */
   --background-main: #F4F5F7; 
   --surface-card: #FFFFFF;    
   --border-color: #E5E7EB;     
-  
-  /* Text Colors */
   --text-primary: #1F2937;    
   --text-secondary: #6B7280;   
   --text-on-primary: #FFFFFF;  
-
-  /* System Colors */
   --system-success: #16A34A;
   --system-warning: #F59E0B;
   --system-danger: #DC2626;
-
-  /* Font & Spacing */
   --font-main: 'Inter', sans-serif;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -43,75 +34,27 @@ a { color: var(--primary-green); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* 3. LAYOUT & NAVIGATION */
-.navbar {
-  background-color: var(--surface-card);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
-}
+.navbar { background-color: var(--surface-card); border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
 .navbar-brand span { font-weight: 700; color: var(--text-primary); }
-
-.page-header { 
-  display: flex; 
-  flex-wrap: wrap; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 2rem; 
-  padding: 2rem 0; 
-  gap: 1rem; 
-}
+.page-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 2rem 0; gap: 1rem; }
 .page-header h1 { font-size: 1.875rem; }
 .page-header p { margin: 0; color: var(--text-secondary); }
 
 /* 4. BUTTONS & FORMS */
-.btn {
-  font-weight: 600;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease-in-out;
-  padding: 0.6rem 1.25rem;
-  border: 1px solid transparent;
-}
-.btn-primary { 
-  background-color: var(--primary-green); 
-  border-color: var(--primary-green);
-  color: var(--text-on-primary);
-}
-.btn-primary:hover { 
-  background-color: var(--primary-green-dark);
-  border-color: var(--primary-green-dark);
-}
-.btn-secondary {
-  background-color: var(--surface-card);
-  border-color: var(--border-color);
-  color: var(--text-primary);
-}
-.btn-secondary:hover {
-  background-color: var(--background-main);
-  border-color: #D1D5DB;
-}
-.form-control, .form-select {
-  border-radius: 0.5rem;
-  border-color: var(--border-color);
-}
-.form-control:focus, .form-select:focus {
-  border-color: var(--primary-green);
-  box-shadow: 0 0 0 0.25rem rgba(0, 137, 123, 0.25);
-}
+.btn { font-weight: 600; border-radius: 0.5rem; transition: all 0.2s ease-in-out; padding: 0.6rem 1.25rem; border: 1px solid transparent; }
+.btn-primary { background-color: var(--primary-green); border-color: var(--primary-green); color: var(--text-on-primary); }
+.btn-primary:hover { background-color: var(--primary-green-dark); border-color: var(--primary-green-dark); }
+.btn-secondary { background-color: var(--surface-card); border-color: var(--border-color); color: var(--text-primary); }
+.btn-secondary:hover { background-color: var(--background-main); border-color: #D1D5DB; }
+.form-control, .form-select { border-radius: 0.5rem; border-color: var(--border-color); }
+.form-control:focus, .form-select:focus { border-color: var(--primary-green); box-shadow: 0 0 0 0.25rem rgba(0, 137, 123, 0.25); }
 
 /* 5. CARDS & TABLES */
-.card { 
-  background-color: var(--surface-card); 
-  border: 1px solid var(--border-color); 
-  border-radius: 0.75rem; 
-  box-shadow: var(--shadow-sm); 
-}
-.card-header { 
-  padding: 1rem 1.5rem; 
-  background-color: #F9FAFB; 
-  border-bottom: 1px solid var(--border-color); 
-}
+.card { background-color: var(--surface-card); border: 1px solid var(--border-color); border-radius: 0.75rem; box-shadow: var(--shadow-sm); }
+.card-header { padding: 1rem 1.5rem; background-color: #F9FAFB; border-bottom: 1px solid var(--border-color); }
+.stat-card .card-body { text-align: center; }
 .stat-card .stat-title { font-size: 0.875rem; font-weight: 500; color: var(--text-secondary); }
 .stat-card .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); }
-
 .table th { color: var(--text-secondary); }
 
 /* 6. TABS */
@@ -119,165 +62,76 @@ a:hover { text-decoration: underline; }
 .nav-tabs .nav-link { color: var(--text-secondary); font-weight: 600; }
 .nav-tabs .nav-link.active, .nav-tabs .nav-link:hover { color: var(--primary-green); border-color: #dee2e6 #dee2e6 var(--primary-green); }
 
-/* --- 7. VME CHAT WIDGET (Themed and Corrected) --- */
-.chat-widget-toggler {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
-    background-color: var(--primary-green);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: var(--shadow-md);
-    z-index: 999;
-    transition: transform 0.2s ease;
-}
+/* --- 7. VME CHAT WIDGET --- */
+.chat-widget-toggler { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background-color: var(--primary-green); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-md); z-index: 999; transition: transform 0.2s ease; }
 .chat-widget-toggler:hover { transform: scale(1.1); }
-.chat-widget-toggler.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
-}
-
-.chat-widget-container {
-    position: fixed;
-    bottom: 90px;
-    right: 20px;
-    width: 370px;
-    height: 500px;
-    background-color: var(--surface-card);
-    border-radius: 10px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.25);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transform: scale(0.8);
-    opacity: 0;
-    visibility: hidden;
-    transform-origin: bottom right;
-    transition: all 0.2s ease-out;
-    z-index: 1000;
-}
+.chat-widget-container { position: fixed; bottom: 90px; right: 20px; width: 370px; height: 500px; background-color: var(--surface-card); border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.25); display: flex; flex-direction: column; overflow: hidden; transform: scale(0.8); opacity: 0; visibility: hidden; transform-origin: bottom right; transition: all 0.2s ease-out; z-index: 1000; }
 .chat-widget-container.open { transform: scale(1); opacity: 1; visibility: visible; }
 .widget-view { width: 100%; height: 100%; display: none; flex-direction: column; }
 #widget-list-view { display: flex; }
 #widget-chat-view.active, #widget-list-view.active { display: flex; }
-#widget-chat-view { position: absolute; top: 0; left: 100%; transition: left 0.3s ease-in-out; }
+#widget-chat-view { position: absolute; top: 0; left: 100%; transition: left 0.3s ease-in-out; background-color: var(--surface-card); }
 #widget-chat-view.active { left: 0; }
 .widget-header { display: flex; align-items: center; padding: 10px 15px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
-.widget-header h4 { margin: 0; font-size: 20px; font-weight: bold; flex-grow: 1; }
-.widget-header .btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; padding: 0; }
-.widget-list-body { flex-grow: 1; overflow-y: auto; }
-.conversation-item { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; transition: background-color 0.2s ease; position: relative; }
-.conversation-item:hover { background-color: var(--background-main); }
-.conversation-item img { width: 50px; height: 50px; border-radius: 50%; margin-right: 12px; object-fit: cover; }
-.conversation-item strong { font-weight: 600; }
-.conversation-item p { margin: 0; font-size: 0.9em; color: var(--text-secondary); }
-.conversation-item .hide-convo-btn { background: #e4e6eb; border: none; border-radius: 50%; width: 24px; height: 24px; line-height: 24px; padding: 0; text-align: center; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity 0.2s; font-weight: bold; color: var(--text-secondary); }
-.conversation-item:hover .hide-convo-btn { opacity: 1; }
-.conversation-item .text-truncate { margin-right: 25px; }
-
 .chat-messages { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
 .chat-message { display: flex; align-items: flex-end; max-width: 85%; }
-.chat-profile-pic { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; }
-.chat-bubble { padding: 8px 12px; border-radius: 18px; font-size: 0.95em; position: relative; }
-.chat-bubble .username { font-size: 0.8em; font-weight: bold; color: #666; margin-bottom: 2px; display: block; }
-.chat-bubble .timestamp { font-size: 0.7em; color: #999; text-align: right; margin-top: 4px; display: none; }
-.chat-bubble:hover .timestamp { display: block; }
-.chat-message.received { align-self: flex-start; }
-.chat-message.received .chat-bubble { background-color: #E4E6EB; color: #050505; }
 .chat-message.sent { align-self: flex-end; }
 .chat-message.sent .chat-bubble { background-color: var(--primary-green); color: white; }
-.chat-message.sent .chat-bubble .timestamp { color: #f0f0f0; }
 
-
-/* --- 8. ORDER DETAIL MODAL LAYOUT FIX --- */
-/* This section fixes the stretching, cramping, and footer issues */
-.modal-body .chat-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%; 
-    min-height: 550px; /* Give a consistent minimum height */
-    background-color: #F9FAFB;
-    border-radius: 0.75rem;
-    padding: 1rem;
+/* --- 8. ORDER DETAIL MODAL STYLES --- */
+/* This section is now simplified to only style the contents, not the modal frame */
+.chat-attachment-img {
+    max-width: 150px;
+    border-radius: 8px;
+    margin-top: 5px;
 }
-
-#modal_chatMessages {
-    flex-grow: 1;
-    overflow-y: auto;
+.chat-attachment-file {
+    display: block;
+    padding: 8px 12px;
+    background-color: #f1f1f1;
+    border-radius: 8px;
+    margin-top: 5px;
+    text-decoration: none;
 }
 
-.modal-footer {
-    padding: 0.75rem;
-    display: flex;
-    justify-content: flex-end;
-}
+/* --- 9 & 10. OTHER PAGES --- */
+.login-page { display: flex; min-height: 100vh; align-items: center; justify-content: center; background-color: var(--background-main); padding: 1rem; }
+.book-order-form-container { max-width: 800px; margin: 2rem auto; }
+.subtotal-display { text-align: right; font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; }
 
-/* On medium screens and below, add a top border to the chat column */
-@media (max-width: 991.98px) {
-    .modal-body .border-start-lg {
-        border-left: none !important;
-        border-top: 1px solid var(--border-color);
-    }
+/* --- 11. CUSTOM SCROLLBAR STYLING --- */
+/* This targets all major scrollable areas for a consistent look */
+body::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar, 
+#modal_chatMessages::-webkit-scrollbar, 
+.widget-list-body::-webkit-scrollbar, 
+.chat-messages::-webkit-scrollbar, 
+.card-body[style*="overflow-y: auto"]::-webkit-scrollbar {
+    width: 8px;
 }
-
-
-/* --- 9. AUTHENTICATION PAGES --- */
-.login-page {
-    display: flex;
-    min-height: 100vh;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--background-main);
-    padding: 1rem;
+body::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+#modal_chatMessages::-webkit-scrollbar-track,
+.widget-list-body::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track,
+.card-body[style*="overflow-y: auto"]::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
 }
-.login-wrapper {
-    display: flex;
-    width: 100%;
-    max-width: 1000px;
-    margin: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border-radius: 1rem;
-    overflow: hidden;
-    background-color: var(--surface-card);
+body::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+#modal_chatMessages::-webkit-scrollbar-thumb,
+.widget-list-body::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb,
+.card-body[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+    background: #a0a0a0;
+    border-radius: 10px;
 }
-.login-form-container {
-    flex: 1;
-    padding: 2.5rem 3rem;
-}
-.login-image-container {
-    flex: 1;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
-    padding: 2rem;
-    background-color: #F9FAFB;
-}
-.login-logo-img { max-width: 80%; height: auto; }
-.login-brand-title { font-size: 1.5rem; color: var(--text-primary); text-align: center; }
-
-@media (min-width: 992px) {
-    .login-image-container { display: flex; }
-}
-
-/* --- 10. BOOK ORDER PAGE --- */
-.book-order-form-container {
-    max-width: 800px;
-    margin: 2rem auto;
-}
-.subtotal-display {
-    text-align: right;
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-top: 1.5rem;
+body::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+#modal_chatMessages::-webkit-scrollbar-thumb:hover,
+.widget-list-body::-webkit-scrollbar-thumb:hover,
+.chat-messages::-webkit-scrollbar-thumb:hover,
+.card-body[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+    background: #888;
 }
