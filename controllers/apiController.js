@@ -34,8 +34,9 @@ exports.addHospital = async (req, res) => {
         const { name } = req.body;
         const hospital = new Hospital({ name, createdBy: req.user.id });
         await hospital.save();
-        // Always return JSON for the script to handle
-        res.json({ success: true, message: 'Hospital added successfully!' });
+
+        // ** FIX: Return the new hospital object in the JSON response **
+        res.json({ success: true, message: 'Hospital added successfully!', hospital: hospital });
     } catch (error) {
         res.status(400).json({ success: false, message: 'A hospital with this name may already exist in your list.' });
     }
@@ -46,8 +47,9 @@ exports.addDoctor = async (req, res) => {
         const { name, hospitalId } = req.body;
         const doctor = new Doctor({ name, hospital: hospitalId, createdBy: req.user.id });
         await doctor.save();
-        // Always return JSON for the script to handle
-        res.json({ success: true, message: 'Doctor added successfully!' });
+
+        // ** FIX: Return the new doctor object in the JSON response **
+        res.json({ success: true, message: 'Doctor added successfully!', doctor: doctor });
     } catch (error) {
         res.status(400).json({ success: false, message: 'This doctor may already exist for the selected hospital.' });
     }
