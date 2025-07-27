@@ -14,7 +14,7 @@
     </style>
 </head>
 <body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
-
+    <%- include('partials/splash-screen.ejs') %>
     <%- include('partials/navbar') %>
 
     <main class="container-fluid" style="padding: 0 2rem;">
@@ -187,7 +187,7 @@
                 <div class="card card-tab"><div class="card-body">
                     <input type="text" id="userSearch" class="form-control mb-3" placeholder="Search users...">
                     <div class="table-responsive"><table class="table table-hover align-middle" id="userTable">
-                        <thead><tr><th>Name</th><th>Role</th><th>Assign Role</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Role</th><th>Actions</th></tr></thead>
                         <tbody>
                              <% users.forEach(user => { %>
                                 <tr data-search="<%= (user.firstName || '').toLowerCase() %> <%= (user.lastName || '').toLowerCase() %> <%= (user.username || '').toLowerCase() %>">
@@ -198,9 +198,9 @@
                                          </div>
                                     </td>
                                      <td>
-                                        <span class="role-display"><%= user.role %></span>
-                                        <div class="role-edit-container">
-                                            <form action="/users/update-role/<%= user._id %>" method="POST" class="d-flex role-edit-form" style="display: none;" onsubmit="return confirm('Are you sure you want to change the role for <%= user.firstName %> <%= user.lastName %>?');">
+                                        <div class="role-container">
+                                            <span class="role-display"><span class="badge bg-secondary"><%= user.role %></span></span>
+                                            <form action="/users/update-role/<%= user._id %>" method="POST" class="d-flex align-items-center role-edit-form" style="display: none;" onsubmit="return confirm('Are you sure you want to change the role for <%= user.firstName %> <%= user.lastName %>?');">
                                                 <select name="role" class="form-select form-select-sm me-2">
                                                     <option value="Pending" <%= user.role === 'Pending' ? 'selected' : '' %>>Pending</option>
                                                     <option value="MSR" <%= user.role === 'MSR' ? 'selected' : '' %>>MSR</option>
@@ -209,7 +209,7 @@
                                                     <option value="Admin" <%= user.role === 'Admin' ? 'selected' : '' %>>Admin</option>
                                                 </select>
                                                 <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                                <button type="button" class="btn btn-sm btn-secondary ms-1 cancel-role-edit">Cancel</button>
+                                                <button type="button" class="btn btn-sm btn-light ms-1 cancel-role-edit">Cancel</button>
                                             </form>
                                         </div>
                                     </td>
@@ -358,5 +358,6 @@
     <%- include('partials/chat-widget.ejs') %>
     <script src="/js/chat-widget.js"></script>
     <script src="/js/notifications.js"></script>
+    <script src="/js/app-init.js"></script>
 </body>
 </html>

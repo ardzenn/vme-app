@@ -6,7 +6,7 @@
 </head>
 <body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
     <%- include('partials/navbar') %>
-
+    <%- include('partials/splash-screen.ejs') %>
     <main class="container-fluid" style="padding: 0 2rem;">
         <header class="page-header">
             <div>
@@ -17,12 +17,12 @@
                 <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Client Masterlist</a>
                 <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
                 <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>
-                <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
+                 <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
                     Check-in
                 </button>
                 <a href="/report" class="btn btn-success dashboard-header-btn">End of Day Report</a>
                 <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
-                <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
+                 <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
             </div>
         </header>
 
@@ -55,7 +55,7 @@
                 <div class="card card-tab">
                     <div class="card-body">
                         <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search your sales orders...">
-                         <div class="table-responsive">
+                          <div class="table-responsive">
                             <table class="table table-hover" id="orderTable">
                                 <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
                                  <tbody>
@@ -90,12 +90,12 @@
                                         <th>Hospital</th>
                                         <th>Doctor</th>
                                         <th>Activity</th>
-                                        <th>Proof</th>
+                                         <th>Proof</th>
                                         <th>Signature</th>
                                         <th>Date</th>
                                      </tr>
                                 </thead>
-                                <tbody>
+                                 <tbody>
                                      <% if(checkins.length > 0) { %>
                                         <% checkins.forEach(checkin => { %>
                                              <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
@@ -129,15 +129,15 @@
                 <div class="card card-tab">
                     <div class="card-body">
                          <div class="table-responsive">
-                            <table class="table table-hover">
+                             <table class="table table-hover">
                                 <thead>
                                     <tr>
                                         <th>Plan Date</th>
                                         <th>First Client Call</th>
-                                        <th>Areas</th>
+                                         <th>Areas</th>
                                         <th>Actions</th>
                                      </tr>
-                                </thead>
+                                 </thead>
                                 <tbody>
                                      <% if(dailyPlans && dailyPlans.length > 0) { %>
                                         <% dailyPlans.forEach(plan => { %>
@@ -146,7 +146,7 @@
                                                 <td><%= plan.firstClientCall %></td>
                                                 <td><%= plan.areasToVisit %></td>
                                                 <td>
-                                                    <a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                     <a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-outline-primary">View</a>
                                                     <a href="/planning/daily-plan-form/<%= plan._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
                                                 </td>
                                              </tr>
@@ -155,7 +155,7 @@
                                          <tr><td colspan="4" class="text-center p-4">No daily plans found.</td></tr>
                                     <% } %>
                                  </tbody>
-                            </table>
+                             </table>
                         </div>
                     </div>
                 </div>
@@ -165,15 +165,15 @@
                 <div class="card card-tab">
                     <div class="card-body">
                          <div class="table-responsive">
-                            <table class="table table-hover">
+                             <table class="table table-hover">
                                 <thead>
                                      <tr>
                                         <th>Week Period</th>
                                         <th>Total Sales Target</th>
-                                        <th>Total Collection Target</th>
+                                         <th>Total Collection Target</th>
                                         <th>Actions</th>
                                      </tr>
-                                </thead>
+                                 </thead>
                                 <tbody>
                                      <% if(weeklyItineraries && weeklyItineraries.length > 0) { %>
                                         <% weeklyItineraries.forEach(itinerary => { %>
@@ -196,7 +196,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </main>
 
@@ -208,13 +207,22 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/dashboard-main.js"></script>
     <script src="/js/push-client.js"></script>
+    <%- include('partials/chat-widget.ejs') %>
+    <script src="/js/chat-widget.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/app-init.js"></script>
+    
+    <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
+        <script src="/js/location-tracker.js"></script>
+    <% } %>
+
     <script>
         const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
         const modalZoomImage = document.getElementById('modalZoomImage');
         function showImageInModal(src) {
             if (modalZoomImage) {
                 modalZoomImage.src = src;
-                imageZoomModal.show();
+                imageZoom_c0c8c2.pngimageZoomModal.show();
             }
         }
         
@@ -222,7 +230,7 @@
             const addTableFilter = (inputId, tableId) => {
                 const searchInput = document.getElementById(inputId);
                 if (searchInput) {
-                     searchInput.addEventListener('input', (e) => {
+                      searchInput.addEventListener('input', (e) => {
                         const searchTerm = e.target.value.toLowerCase();
                         document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
                             row.style.display = (row.dataset.search || '').includes(searchTerm) ? '' : 'none';
@@ -233,16 +241,14 @@
             addTableFilter('orderSearch', 'orderTable');
             addTableFilter('checkinSearch', 'checkinTable');
 
-             if ('serviceWorker' in navigator) {
+              if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('/sw.js')
                         .then(registration => console.log('Service Worker registered.'))
-                         .catch(error => console.log('Service Worker registration failed:', error));
+                        .catch(error => console.log('Service Worker registration failed:', error));
                 });
             }
         });
- </script>
-    <%- include('partials/chat-widget.ejs') %>
-    <script src="/js/chat-widget.js"></script>
+    </script>
 </body>
 </html>

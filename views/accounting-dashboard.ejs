@@ -5,7 +5,8 @@
     <%- include('partials/header-meta') %>
 </head>
 <body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
-
+    <%- include('partials/splash-screen.ejs') %>
+    
     <%- include('partials/navbar') %>
 
     <main class="container-fluid" style="padding: 0 2rem;">
@@ -187,5 +188,7 @@
     </script>
        <%- include('partials/chat-widget.ejs') %>
     <script src="/js/chat-widget.js"></script>
+    <script src="/js/app-init.js"></script>
+
 </body>
 </html>
