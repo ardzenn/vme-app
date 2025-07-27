@@ -161,17 +161,52 @@ a:hover { text-decoration: underline; }
 .chat-message.sent .chat-bubble { background-color: var(--primary-green); color: white; }
 .chat-message.sent .chat-bubble .timestamp { color: #f0f0f0; }
 
-/* --- 8. ORDER DETAIL MODAL LAYOUT --- */
+/* --- 8. ORDER DETAIL MODAL STYLES --- */
 .chat-attachment-img { max-width: 150px; border-radius: 8px; margin-top: 5px; }
 .chat-attachment-file { display: block; padding: 8px 12px; background-color: #f1f1f1; border-radius: 8px; margin-top: 5px; text-decoration: none; }
 
-/* --- 9. AUTHENTICATION & OTHER PAGES --- */
-.login-page { display: flex; min-height: 100vh; align-items: center; justify-content: center; background-color: var(--background-main); padding: 1rem; }
+/* --- 9. AUTHENTICATION PAGES --- */
+.login-page {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--background-main);
+    padding: 1rem;
+}
+.login-wrapper {
+    display: flex;
+    width: 100%;
+    max-width: 1000px;
+    margin: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border-radius: 1rem;
+    overflow: hidden;
+    background-color: var(--surface-card);
+}
+.login-form-container {
+    flex: 1;
+    padding: 2.5rem 3rem;
+}
+.login-image-container {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background-color: #F9FAFB;
+}
+.login-logo-img { max-width: 80%; height: auto; }
+.login-brand-title { font-size: 1.5rem; color: var(--text-primary); text-align: center; }
+@media (min-width: 992px) {
+    .login-image-container { display: flex; }
+}
+
+/* --- 10. BOOK ORDER PAGE --- */
 .book-order-form-container { max-width: 800px; margin: 2rem auto; }
 .subtotal-display { text-align: right; font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; }
-
-/* --- 10. CLEANUP & UTILITIES --- */
-.is-new td { font-weight: bold !important; }
 
 /* --- 11. CUSTOM SCROLLBAR STYLING --- */
 body::-webkit-scrollbar,
