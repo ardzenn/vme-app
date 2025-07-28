@@ -1,18 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const passport = require('passport');
 const authController = require('../controllers/authController');
 
-// --- GET Routes (to display pages) ---
+// --- Page Rendering Routes ---
 router.get('/login', authController.getLoginPage);
 router.get('/signup', authController.getSignupPage);
+router.get('/logout', authController.logoutUser);
 router.get('/forgot-password', authController.getForgotPasswordPage);
 router.get('/reset-password/:token', authController.getResetPasswordPage);
-router.get('/logout', authController.postLogout); // Logout can be a GET request for simplicity
 
-// --- POST Routes (to handle form submissions) ---
-router.post('/login', authController.postLogin);
-router.post('/signup', authController.postSignup);
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/reset-password/:token', authController.resetPassword);
+// --- Form Submission Routes ---
+router.post('/login',
+    passport.authenticate('local', {
+        failureRedirect: '/login',
+        failureFlash: true
+    }),
+    authController.handleLogin
+);
+router.post('/signup', authController.registerUser);
+router.post('/forgot-password', authController.postForgotPassword);
+router.post('/reset-password/:token', authController.postResetPassword);
 
 module.exports = router;

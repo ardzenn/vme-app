@@ -8,8 +8,26 @@ const DailyPlan = require('../models/DailyPlan');
 const WeeklyItinerary = require('../models/WeeklyItinerary');
 const DailyReport = require('../models/DailyReport');
 const Product = require('../models/Product');
+const moment = require('moment-timezone');
 
-// --- Main Dashboard Redirector ---
+const formatDates = (items) => {
+    if (!items || items.length === 0) return [];
+    return items.map(item => {
+        const newItem = item.toObject();
+        if (newItem.createdAt) {
+            newItem.createdAtFormatted = moment(item.createdAt).tz('Asia/Manila').format('M/D/YYYY, h:mm:ss A');
+            newItem.dateOnlyFormatted = moment(item.createdAt).tz('Asia/Manila').format('M/D/YYYY');
+        }
+        if (newItem.planDate) {
+            newItem.planDateFormatted = moment(item.planDate).tz('Asia/Manila').format('M/D/YYYY');
+        }
+        if (newItem.weekStartDate) {
+            newItem.weekStartDateFormatted = moment(item.weekStartDate).tz('Asia/Manila').format('M/D/YYYY');
+        }
+        return newItem;
+    });
+};
+
 exports.getDashboard = (req, res) => {
     if (req.user.role === 'Admin') {
         return res.redirect('/admin-dashboard');
@@ -20,7 +38,6 @@ exports.getDashboard = (req, res) => {
     }
 };
 
-// --- Specific Dashboard Renders ---
 exports.getMSRDashboard = async (req, res) => {
     try {
         const stats = {
@@ -32,8 +49,7 @@ exports.getMSRDashboard = async (req, res) => {
             ]).then(result => result[0] ? result[0].total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')
         };
         
-        // Queries are now filtered to the specific user's own created clients
-        const [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries] = await Promise.all([
+        let [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries] = await Promise.all([
             CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10).populate('hospital doctor'),
             Order.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10),
             Hospital.find({ createdBy: req.user.id }),
@@ -41,8 +57,18 @@ exports.getMSRDashboard = async (req, res) => {
             DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 }).limit(10),
             WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 }).limit(10)
         ]);
-        
-        res.render('dashboard', { user: req.user, stats, checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries });
+
+        res.render('dashboard', { 
+            user: req.user, 
+            stats, 
+            checkins: formatDates(checkins), 
+            orders: formatDates(orders), 
+            allHospitals, 
+            allDoctors, 
+            dailyPlans: formatDates(dailyPlans), 
+            weeklyItineraries: formatDates(weeklyItineraries),
+            currentUser: req.user
+        });
     } catch (err) {
         console.error("Dashboard Error:", err);
         req.flash('error_msg', 'Could not load dashboard.');
@@ -57,7 +83,7 @@ exports.getAdminDashboard = async (req, res) => {
             pendingUsers: await User.countDocuments({ role: 'Pending' }),
             checkInsToday: await CheckIn.countDocuments({ createdAt: { $gte: new Date().setHours(0, 0, 0, 0) } }),
         };
-        const [users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
+        let [users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
             User.find(),
             Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
             Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
@@ -66,7 +92,18 @@ exports.getAdminDashboard = async (req, res) => {
             WeeklyItinerary.find().populate('user', 'firstName lastName').sort({ weekStartDate: -1 }),
             DailyReport.find().populate('user', 'firstName lastName').sort({ reportDate: -1 })
         ]);
-        res.render('admin-dashboard', { stats, users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports, currentUser: req.user });
+
+        res.render('admin-dashboard', { 
+            stats, 
+            users, 
+            orders: formatDates(orders), 
+            transactions: formatDates(transactions), 
+            checkins: formatDates(checkins), 
+            dailyPlans: formatDates(dailyPlans), 
+            weeklyItineraries: formatDates(weeklyItineraries), 
+            dailyReports, 
+            currentUser: req.user 
+        });
     } catch (err) {
         console.error("Admin Dashboard Error:", err);
         req.flash('error_msg', 'Could not load admin dashboard.');
@@ -81,7 +118,7 @@ exports.getAccountingDashboard = async (req, res) => {
             pendingUsers: await User.countDocuments({ role: 'Pending' }),
             checkInsToday: await CheckIn.countDocuments({ createdAt: { $gte: new Date().setHours(0, 0, 0, 0) } }),
         };
-        const [users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
+        let [users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
             User.find(),
             Order.find().populate('user').sort({ createdAt: -1 }),
             Transaction.find().populate('user').sort({ createdAt: -1 }),
@@ -90,7 +127,18 @@ exports.getAccountingDashboard = async (req, res) => {
             WeeklyItinerary.find().populate('user').sort({ weekStartDate: -1 }),
             DailyReport.find().populate('user').sort({ reportDate: -1 })
         ]);
-        res.render('accounting-dashboard', { stats, users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports, currentUser: req.user });
+        
+        res.render('accounting-dashboard', { 
+            stats, 
+            users, 
+            orders: formatDates(orders), 
+            transactions: formatDates(transactions), 
+            checkins: formatDates(checkins), 
+            dailyPlans: formatDates(dailyPlans), 
+            weeklyItineraries: formatDates(weeklyItineraries), 
+            dailyReports, 
+            currentUser: req.user 
+        });
     } catch (err) {
         console.error("Accounting Dashboard Error:", err);
         req.flash('error_msg', 'Could not load accounting dashboard.');

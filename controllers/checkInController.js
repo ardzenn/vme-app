@@ -10,22 +10,29 @@ exports.createCheckIn = async (req, res) => {
     try {
         const { hospitalName, doctorName, activity, notes, lat, lng, proof_base64, signature } = req.body;
 
+        if (!lat || !lng || isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {
+            req.flash('error_msg', 'Geolocation is required to submit a check-in. Please ensure you allow location access.');
+            return res.redirect('/dashboard');
+        }
+
         if (!hospitalName || !doctorName || !activity) {
             req.flash('error_msg', 'Hospital, Doctor, and Activity are all required fields.');
             return res.redirect('/dashboard');
         }
 
-        let hospital = await Hospital.findOne({ name: hospitalName.trim() });
-        if (!hospital) {
-            hospital = new Hospital({ name: hospitalName.trim(), createdBy: req.user.id });
-            await hospital.save();
-        }
+        // Find or create hospital for the current user
+        let hospital = await Hospital.findOneAndUpdate(
+            { name: hospitalName.trim(), createdBy: req.user.id },
+            { $setOnInsert: { name: hospitalName.trim(), createdBy: req.user.id } },
+            { upsert: true, new: true }
+        );
 
-        let doctor = await Doctor.findOne({ name: doctorName.trim(), hospital: hospital.id });
-        if (!doctor) {
-            doctor = new Doctor({ name: doctorName.trim(), hospital: hospital.id, createdBy: req.user.id });
-            await doctor.save();
-        }
+        // Find or create doctor for that hospital
+        let doctor = await Doctor.findOneAndUpdate(
+            { name: doctorName.trim(), hospital: hospital._id, createdBy: req.user.id },
+            { $setOnInsert: { name: doctorName.trim(), hospital: hospital._id, createdBy: req.user.id } },
+            { upsert: true, new: true }
+        );
 
         const newCheckInData = {
             user: req.user.id,
@@ -33,16 +40,16 @@ exports.createCheckIn = async (req, res) => {
             doctor: doctor.id,
             activity,
             notes,
+            location: {
+                lat: parseFloat(lat),
+                lng: parseFloat(lng)
+            },
         };
-
-        // --- NEW MAP IMAGE URL GENERATION ---
-        if (lat && lng) {
+        
+        const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+        if (mapboxToken && lat && lng) {
             const latitude = parseFloat(lat);
             const longitude = parseFloat(lng);
-            newCheckInData.location = { lat: latitude, lng: longitude };
-
-            const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
-            // This creates a URL for a 600x300 image, centered on the user, with a marker
             newCheckInData.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${longitude},${latitude})/${longitude},${latitude},15,0/600x300?access_token=${mapboxToken}`;
         }
         
@@ -50,7 +57,7 @@ exports.createCheckIn = async (req, res) => {
             newCheckInData.proof = req.file.path;
         } else if (proof_base64) {
             const uploadedImage = await cloudinary.uploader.upload(proof_base64, {
-                folder: 'vme-app-uploads',
+                folder: 'vme-app-uploads/proofs',
                 resource_type: 'image'
             });
             newCheckInData.proof = uploadedImage.secure_url;
@@ -58,7 +65,7 @@ exports.createCheckIn = async (req, res) => {
 
         if (signature) {
             const uploadedSignature = await cloudinary.uploader.upload(signature, {
-                folder: 'vme-app-uploads',
+                folder: 'vme-app-uploads/signatures',
                 resource_type: 'image'
             });
             newCheckInData.signature = uploadedSignature.secure_url;

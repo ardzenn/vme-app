@@ -31,4 +31,12 @@ const userSchema = new Schema({
 // This plugin adds all the necessary fields and methods for authentication
 userSchema.plugin(passportLocalMongoose, { usernameField: 'username' });
 
+userSchema.methods.toJSON = function() {
+  const userObject = this.toObject();
+  delete userObject.hash;       // passport-local-mongoose uses 'hash' and 'salt'
+  delete userObject.salt;
+  delete userObject.password;   // Also remove 'password' if it exists
+  return userObject;
+}
+
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);

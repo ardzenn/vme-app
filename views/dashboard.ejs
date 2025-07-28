@@ -17,12 +17,12 @@
                 <a href="/manage-entries" class="btn btn-secondary dashboard-header-btn">Client Masterlist</a>
                 <a href="/products" class="btn btn-dark dashboard-header-btn">Product Gallery</a>
                 <a href="/planning/my-plans" class="btn btn-info text-white dashboard-header-btn">Itinerary</a>
-                 <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
+                <button type="button" class="btn btn-primary dashboard-header-btn" data-bs-toggle="modal" data-bs-target="#checkinModal">
                     Check-in
                 </button>
                 <a href="/report" class="btn btn-success dashboard-header-btn">End of Day Report</a>
                 <a href="/bookorder" class="btn btn-primary dashboard-header-btn">Book New Order</a>
-                 <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
+                <a href="/transactions/my-submissions" class="btn btn-secondary dashboard-header-btn">Collections</a>
             </div>
         </header>
 
@@ -55,7 +55,7 @@
                 <div class="card card-tab">
                     <div class="card-body">
                         <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search your sales orders...">
-                          <div class="table-responsive">
+                         <div class="table-responsive">
                             <table class="table table-hover" id="orderTable">
                                 <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
                                  <tbody>
@@ -65,7 +65,7 @@
                                                 <td><%= order.reference || 'N/A' %></td>
                                                 <td><%= order.customerName || 'N/A' %></td>
                                                 <td><span class="badge bg-primary"><%= order.status || 'N/A' %></span></td>
-                                                <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
+                                                <td><%= order.dateOnlyFormatted %></td>
                                                 <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View</button></td>
                                              </tr>
                                         <% }) %>
@@ -112,7 +112,7 @@
                                                         <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
                                                     <% } else { %><span class="text-muted">No Signature</span><% } %>
                                                  </td>
-                                                <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+                                                <td><%= checkin.createdAtFormatted %></td>
                                              </tr>
                                         <% }) %>
                                     <% } else { %>
@@ -142,7 +142,7 @@
                                      <% if(dailyPlans && dailyPlans.length > 0) { %>
                                         <% dailyPlans.forEach(plan => { %>
                                             <tr>
-                                                <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
+                                                <td><%= plan.planDateFormatted %></td>
                                                 <td><%= plan.firstClientCall %></td>
                                                 <td><%= plan.areasToVisit %></td>
                                                 <td>
@@ -178,7 +178,7 @@
                                      <% if(weeklyItineraries && weeklyItineraries.length > 0) { %>
                                         <% weeklyItineraries.forEach(itinerary => { %>
                                              <tr>
-                                                <td><%= itinerary.weekPeriod || new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
+                                                <td><%= itinerary.weekPeriod || itinerary.weekStartDateFormatted %></td>
                                                 <td>₱<%= (itinerary.totalTargetSales || 0).toLocaleString() %></td>
                                                  <td>₱<%= (itinerary.totalTargetCollections || 0).toLocaleString() %></td>
                                                 <td>
@@ -222,7 +222,7 @@
         function showImageInModal(src) {
             if (modalZoomImage) {
                 modalZoomImage.src = src;
-                imageZoom_c0c8c2.pngimageZoomModal.show();
+                imageZoomModal.show();
             }
         }
         
@@ -245,7 +245,7 @@
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('/sw.js')
                         .then(registration => console.log('Service Worker registered.'))
-                        .catch(error => console.log('Service Worker registration failed:', error));
+                         .catch(error => console.log('Service Worker registration failed:', error));
                 });
             }
         });

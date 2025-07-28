@@ -4,7 +4,7 @@
     <title>Admin Dashboard - VME App</title>
     <%- include('partials/header-meta') %>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-     xintegrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ=="
+     integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" 
      crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
@@ -37,7 +37,7 @@
         <div class="row mb-4">
             <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Total Users</h5><p class="card-text fs-2 fw-bold"><%= stats.totalUsers %></p></div></div></div>
              <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Pending Approvals</h5><p class="card-text fs-2 fw-bold"><%= stats.pendingUsers %></p></div></div></div>
-            <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Check-ins (Today)</h5><p class="card-text fs-2 fw-bold" id="online-users-count">0</p></div></div></div>
+            <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Check-ins (Today)</h5><p class="card-text fs-2 fw-bold"><%= stats.checkInsToday %></p></div></div></div>
             <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Online Now</h5><p class="card-text fs-2 fw-bold" id="online-users-count">0</p></div></div></div>
         </div>
 
@@ -64,13 +64,13 @@
                                     <td><%= order.reference %></td>
                                     <td><%= order.customerName %></td>
                                     <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View</button></td>
-                                </tr>
+                                 </tr>
                             <% }) %>
                         </tbody>
                     </table></div>
                 </div></div>
             </div>
-             <div class="tab-pane fade" id="transactions-panel" role="tabpanel">
+            <div class="tab-pane fade" id="transactions-panel" role="tabpanel">
                  <div class="card card-tab"><div class="card-body">
                     <input type="text" id="txnSearch" class="form-control mb-3" placeholder="Search transactions...">
                     <div class="table-responsive"><table class="table table-hover" id="txnTable">
@@ -103,24 +103,13 @@
                         <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search check-ins...">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle" id="checkinTable">
-                                <thead>
-                                    <tr>
-                                        <th>Submitted By</th>
-                                        <th>Hospital</th>
-                                        <th>Doctor</th>
-                                        <th>Location</th>
-                                        <th>Activity</th>
-                                        <th>Proof</th>
-                                        <th>Signature</th>
-                                        <th>Date</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th>Submitted By</th><th>Hospital</th><th>Doctor</th><th>Location</th><th>Activity</th><th>Proof</th><th>Signature</th><th>Date</th></tr></thead>
                                 <tbody>
                                     <% if(checkins.length > 0) { %>
                                         <% checkins.forEach(checkin => { %>
-                                             <% if (checkin.user) { %>
-                                                <tr data-search="<%= (checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : '').toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
-                                                    <td><%= checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A' %></td>
+                                            <% if (checkin.user) { %>
+                                                <tr data-search="<%= `${checkin.user.firstName} ${checkin.user.lastName}`.toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
+                                                    <td><%= `${checkin.user.firstName} ${checkin.user.lastName}` %></td>
                                                     <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
                                                     <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
                                                     <td>
@@ -141,7 +130,7 @@
                                                             <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
                                                         <% } else { %><span class="text-muted">No Signature</span><% } %>
                                                     </td>
-                                                    <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+                                                    <td><%= checkin.createdAtFormatted %></td>
                                                 </tr>
                                             <% } else { %>
                                                 <tr class="table-warning">
@@ -152,19 +141,19 @@
                                                     <td><%= checkin.activity || 'N/A' %></td>
                                                     <td><span class="text-muted">No Proof</span></td>
                                                     <td><span class="text-muted">No Signature</span></td>
-                                                    <td><%= new Date(checkin.createdAt).toLocaleString() %></td>
+                                                    <td><%= checkin.createdAtFormatted %></td>
                                                 </tr>
                                             <% } %>
                                         <% }) %>
                                     <% } else { %>
-                                        <tr><td colspan="8" class="text-center p-4">No check-in history found.</td></tr>
+                                         <tr><td colspan="8" class="text-center p-4">No check-in history found.</td></tr>
                                     <% } %>
-                                </tbody>
+                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
+             </div>
             <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
                 <div class="card card-tab"><div class="card-body">
                     <input type="text" id="dailyPlanSearch" class="form-control mb-3" placeholder="Search daily plans...">
@@ -175,14 +164,14 @@
                                 <% if (plan.user) { %>
                                     <tr class="<%= plan.isNew ? 'is-new' : '' %>" data-plan-id="<%= plan._id %>">
                                         <td><%= plan.user.firstName %> <%= plan.user.lastName %></td>
-                                        <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
+                                        <td><%= plan.planDateFormatted %></td>
                                         <td><%= plan.firstClientCall %></td>
                                         <td><a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-primary view-details-link">View Details</a></td>
                                     </tr>
                                 <% } else { %>
                                     <tr class="table-warning">
                                         <td>[User Deleted]</td>
-                                        <td><%= new Date(plan.planDate).toLocaleDateString() %></td>
+                                        <td><%= plan.planDateFormatted %></td>
                                         <td><%= plan.firstClientCall %></td>
                                         <td><span class="text-muted">N/A</span></td>
                                     </tr>
@@ -191,24 +180,24 @@
                         </tbody>
                     </table></div>
                 </div></div>
-            </div>
+             </div>
             <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
                 <div class="card card-tab"><div class="card-body">
                     <input type="text" id="weeklyItinerarySearch" class="form-control mb-3" placeholder="Search weekly itineraries...">
                     <div class="table-responsive"><table class="table table-hover" id="weeklyItineraryTable">
-                        <thead><tr><th>Submitted By</th><th>Week Start Date</th><th>Actions</th></tr></thead>
+                         <thead><tr><th>Submitted By</th><th>Week Start Date</th><th>Actions</th></tr></thead>
                         <tbody>
                             <% weeklyItineraries.forEach(itinerary => { %>
                                 <% if (itinerary.user) { %>
                                     <tr data-search="<%= (itinerary.user.firstName || '').toLowerCase() %> <%= (itinerary.user.lastName || '').toLowerCase() %>">
                                         <td><%= itinerary.user.firstName %> <%= itinerary.user.lastName %></td>
-                                        <td><%= new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
+                                        <td><%= itinerary.weekStartDateFormatted %></td>
                                         <td><a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details</a></td>
                                     </tr>
                                 <% } else { %>
                                     <tr class="table-warning">
                                         <td>[User Deleted]</td>
-                                        <td><%= new Date(itinerary.weekStartDate).toLocaleDateString() %></td>
+                                        <td><%= itinerary.weekStartDateFormatted %></td>
                                         <td><span class="text-muted">N/A</span></td>
                                     </tr>
                                 <% } %>
@@ -232,7 +221,7 @@
                                 <tr data-search="<%= (user.firstName || '').toLowerCase() %> <%= (user.lastName || '').toLowerCase() %> <%= (user.username || '').toLowerCase() %>">
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <img src="<%= user.profilePicture %>" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
+                                             <img src="<%= user.profilePicture %>" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
                                             <div><strong><%= user.firstName %> <%= user.lastName %></strong><div class="text-muted small"><%= user.username %></div></div>
                                          </div>
                                     </td>
@@ -254,14 +243,14 @@
                                     </td>
                                     <td>
                                         <button type="button" class="btn btn-sm btn-outline-secondary edit-role-btn">Edit Role</button>
-                                        <% if (currentUser.id !== user.id) { %>
+                                         <% if (currentUser.id !== user.id) { %>
                                             <form action="/users/delete/<%= user._id %>" method="POST" class="d-inline-block ms-1" onsubmit="return confirm('Are you sure you want to permanently delete this user? This action cannot be undone.');">
-                                                <button type="submit" class="btn btn-sm btn-danger">Delete User</button>
+                                                 <button type="submit" class="btn btn-sm btn-danger">Delete User</button>
                                             </form>
-                                        <% } %>
+                                         <% } %>
                                     </td>
                                 </tr>
-                            <% }) %>
+                             <% }) %>
                         </tbody>
                     </table></div>
                 </div></div>
@@ -306,7 +295,7 @@
             setupSearch('checkinSearch', 'checkinTable');
             setupSearch('dailyPlanSearch', 'dailyPlanTable');
             setupSearch('weeklyItinerarySearch', 'weeklyItineraryTable');
-
+            
             const socket = io();
             const onlineUsersCountEl = document.getElementById('online-users-count');
             const userMarkers = {};
@@ -319,10 +308,10 @@
                         map = L.map('map').setView([12.8797, 121.7740], 6);
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                     }
-                    setTimeout(() => map.invalidateSize(), 10);
+                    setTimeout(() => map.invalidateSize(), 10); 
                 });
             }
-
+            
             socket.on('updateUserList', (onlineUsers) => {
                 if(onlineUsersCountEl) onlineUsersCountEl.textContent = onlineUsers.length;
                 if (!map) return;

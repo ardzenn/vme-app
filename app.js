@@ -1,5 +1,3 @@
-// in app.js
-
 // Load environment variables from .env file
 require('dotenv').config();
 
@@ -22,7 +20,6 @@ const initializeWebsockets = require('./websockets');
 const fs = require('fs');
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-// ... other directory creations can remain if you need them
 
 // --- Pre-load all models to prevent schema errors ---
 require('./models/User');
@@ -44,7 +41,6 @@ const User = require('./models/User');
 // --- MAIN ASYNC STARTUP FUNCTION ---
 async function startServer() {
     try {
-        // 1. Await the database connection FIRST
         await dbConnect();
         console.log("✅ Database connected successfully.");
 
@@ -53,11 +49,7 @@ async function startServer() {
         const server = http.createServer(app);
         const io = socketio(server);
         
-        // ** THIS IS THE CRITICAL CHANGE **
-        // Make the `io` instance available to all controllers via `req.app.get('io')`
         app.set('io', io);
-
-        // 2. Initialize everything else AFTER the DB is connected
         initializeWebsockets(io);
 
         // --- MIDDLEWARE ---
@@ -120,12 +112,10 @@ async function startServer() {
         app.use('/transactions', require('./routes/transactions'));
         app.use('/notifications', require('./routes/notifications'));
 
-
         app.get('/health', (req, res) => {
             res.status(200).json({ status: 'ok', uptime: process.uptime() });
         });
 
-        // 3. Start the server LAST
         const PORT = process.env.PORT || 3000;
         server.listen(PORT, () => {
             console.log(`🚀 Server is running on http://localhost:${PORT}`);
@@ -137,5 +127,4 @@ async function startServer() {
     }
 }
 
-// --- Run the server ---
 startServer();
