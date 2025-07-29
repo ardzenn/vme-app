@@ -22,10 +22,10 @@
             <div>
                 <h1 style="font-size: 1.875rem;">Admin Dashboard</h1>
                 <p style="margin: 0;">System overview and management.</p>
-            </div>
+             </div>
               <div class="d-flex align-items-center gap-2">
-                <a href="/report/check-ins" class="btn btn-success">Daily Check-in Report</a>
-                <a href="/planning/coverage-report" class="btn btn-info">Weekly Check In Report</a>
+                <a href="/report/check-ins" class="btn btn-success">Check-in Report</a>
+                <a href="/planning/coverage-report" class="btn btn-info">Weekly Coverage Report</a>
                 <a href="/analytics" class="btn btn-warning">View Analytics</a>
                 <a href="/products" class="btn btn-dark">View Product Gallery</a>
               </div>
@@ -47,6 +47,7 @@
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel">Check-in History</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Itinerary</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-reports-panel">Daily Coverage Report</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#map-panel">Live Map</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#users-panel">User Management</button></li>
         </ul>
@@ -64,7 +65,7 @@
                                     <td><%= order.reference %></td>
                                     <td><%= order.customerName %></td>
                                     <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View</button></td>
-                                 </tr>
+                                </tr>
                             <% }) %>
                         </tbody>
                     </table></div>
@@ -150,19 +151,19 @@
                                     <% } %>
                                  </tbody>
                             </table>
-                        </div>
+                         </div>
                     </div>
                 </div>
              </div>
             <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
                 <div class="card card-tab"><div class="card-body">
-                    <input type="text" id="dailyPlanSearch" class="form-control mb-3" placeholder="Search daily plans...">
+                     <input type="text" id="dailyPlanSearch" class="form-control mb-3" placeholder="Search daily plans...">
                     <div class="table-responsive"><table class="table table-hover" id="dailyPlanTable">
                         <thead><tr><th>Submitted By</th><th>Plan Date</th><th>First Client Call</th><th>Actions</th></tr></thead>
                         <tbody>
-                            <% dailyPlans.forEach(plan => { %>
+                             <% dailyPlans.forEach(plan => { %>
                                 <% if (plan.user) { %>
-                                    <tr class="<%= plan.isNew ? 'is-new' : '' %>" data-plan-id="<%= plan._id %>">
+                                    <tr class="<%= plan.isNew ? 'is-new' : '' %>" data-plan-id="<%= plan._id %>" data-search="<%= `${plan.user.firstName} ${plan.user.lastName}`.toLowerCase() %> <%= plan.planDateFormatted %>">
                                         <td><%= plan.user.firstName %> <%= plan.user.lastName %></td>
                                         <td><%= plan.planDateFormatted %></td>
                                         <td><%= plan.firstClientCall %></td>
@@ -184,10 +185,10 @@
             <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
                 <div class="card card-tab"><div class="card-body">
                     <input type="text" id="weeklyItinerarySearch" class="form-control mb-3" placeholder="Search weekly itineraries...">
-                    <div class="table-responsive"><table class="table table-hover" id="weeklyItineraryTable">
+                     <div class="table-responsive"><table class="table table-hover" id="weeklyItineraryTable">
                          <thead><tr><th>Submitted By</th><th>Week Start Date</th><th>Actions</th></tr></thead>
                         <tbody>
-                            <% weeklyItineraries.forEach(itinerary => { %>
+                             <% weeklyItineraries.forEach(itinerary => { %>
                                 <% if (itinerary.user) { %>
                                     <tr data-search="<%= (itinerary.user.firstName || '').toLowerCase() %> <%= (itinerary.user.lastName || '').toLowerCase() %>">
                                         <td><%= itinerary.user.firstName %> <%= itinerary.user.lastName %></td>
@@ -203,26 +204,65 @@
                                 <% } %>
                             <% }) %>
                         </tbody>
-                    </table></div>
+                     </table></div>
                 </div></div>
             </div>
+            
+            <div class="tab-pane fade" id="daily-reports-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <input type="text" id="dailyReportSearch" class="form-control mb-3" placeholder="Search reports by user, client, or date...">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="dailyReportTable">
+                                <thead>
+                                    <tr>
+                                        <th>Submitted By</th>
+                                        <th>Report Date</th>
+                                        <th>Last Client Visited</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if(dailyReports.length > 0) { %>
+                                        <% dailyReports.forEach(report => { %>
+                                            <% if (report.user) { %>
+                                                <tr data-search="<%= `${report.user.firstName} ${report.user.lastName}`.toLowerCase() %> <%= new Date(report.reportDate).toLocaleDateString().toLowerCase() %> <%= (report.lastClientVisited || '').toLowerCase() %>">
+                                                    <td><%= report.user.firstName %> <%= report.user.lastName %></td>
+                                                    <td><%= new Date(report.reportDate).toLocaleDateString() %></td>
+                                                    <td><%= report.lastClientVisited || 'N/A' %></td>
+                                                    <td><a href="/report/<%= report._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                                </tr>
+                                            <% } %>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="4" class="text-center p-5">No reports have been submitted yet.</td>
+                                        </tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="tab-pane fade" id="map-panel" role="tabpanel">
                  <div class="card card-tab"><div class="card-body">
-                    <div id="map" style="height: 60vh; width: 100%;"></div>
+                     <div id="map" style="height: 60vh; width: 100%;"></div>
                 </div></div>
             </div>
             <div class="tab-pane fade" id="users-panel" role="tabpanel">
                 <div class="card card-tab"><div class="card-body">
                     <input type="text" id="userSearch" class="form-control mb-3" placeholder="Search users...">
-                    <div class="table-responsive"><table class="table table-hover align-middle" id="userTable">
+                     <div class="table-responsive"><table class="table table-hover align-middle" id="userTable">
                         <thead><tr><th>Name</th><th>Role</th><th>Actions</th></tr></thead>
                         <tbody>
                              <% users.forEach(user => { %>
                                 <tr data-search="<%= (user.firstName || '').toLowerCase() %> <%= (user.lastName || '').toLowerCase() %> <%= (user.username || '').toLowerCase() %>">
                                     <td>
-                                        <div class="d-flex align-items-center">
+                                         <div class="d-flex align-items-center">
                                              <img src="<%= user.profilePicture %>" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
-                                            <div><strong><%= user.firstName %> <%= user.lastName %></strong><div class="text-muted small"><%= user.username %></div></div>
+                                             <div><strong><%= user.firstName %> <%= user.lastName %></strong><div class="text-muted small"><%= user.username %></div></div>
                                          </div>
                                     </td>
                                      <td>
@@ -241,16 +281,16 @@
                                             </form>
                                         </div>
                                     </td>
-                                    <td>
+                                     <td>
                                         <button type="button" class="btn btn-sm btn-outline-secondary edit-role-btn">Edit Role</button>
-                                         <% if (currentUser.id !== user.id) { %>
+                                        <% if (currentUser.id !== user.id) { %>
                                             <form action="/users/delete/<%= user._id %>" method="POST" class="d-inline-block ms-1" onsubmit="return confirm('Are you sure you want to permanently delete this user? This action cannot be undone.');">
-                                                 <button type="submit" class="btn btn-sm btn-danger">Delete User</button>
+                                                <button type="submit" class="btn btn-sm btn-danger">Delete User</button>
                                             </form>
-                                         <% } %>
+                                        <% } %>
                                     </td>
                                 </tr>
-                             <% }) %>
+                            <% }) %>
                         </tbody>
                     </table></div>
                 </div></div>
@@ -295,6 +335,8 @@
             setupSearch('checkinSearch', 'checkinTable');
             setupSearch('dailyPlanSearch', 'dailyPlanTable');
             setupSearch('weeklyItinerarySearch', 'weeklyItineraryTable');
+            // ADDED: Setup search for the new reports table
+            setupSearch('dailyReportSearch', 'dailyReportTable');
             
             const socket = io();
             const onlineUsersCountEl = document.getElementById('online-users-count');

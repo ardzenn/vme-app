@@ -42,22 +42,41 @@
                     <% } %>
                 </ul>
                 <hr>
+                
+                <h5>Call Summary:</h5>
+                <div class="d-flex flex-wrap gap-3 mb-3">
+                    <span class="badge rounded-pill bg-info">Hospitals: <%= report.callSummary.hospitals || 0 %></span>
+                    <span class="badge rounded-pill bg-info">MDs: <%= report.callSummary.mds || 0 %></span>
+                    <span class="badge rounded-pill bg-info">Pharmacists: <%= report.callSummary.pharmacists || 0 %></span>
+                    <span class="badge rounded-pill bg-info">Accounting Staff: <%= report.callSummary.accountingStaff || 0 %></span>
+                </div>
+                <hr>
 
                 <h5>Accomplishments & Feedback:</h5>
                 <p style="white-space: pre-wrap;"><%= report.accomplishments %></p>
                 <hr>
 
+                <% if (report.mtdNotes) { %>
+                    <h5>Month-to-Date Notes:</h5>
+                    <p style="white-space: pre-wrap;"><%= report.mtdNotes %></p>
+                    <hr>
+                <% } %>
+
                 <div class="row">
                     <div class="col-md-6">
                         <h5>Sales for the Day:</h5>
-                        <ul class="list-group">
-                            <% report.dailySales.forEach(sale => { %>
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <%= sale.client %>
-                                    <span class="badge bg-primary rounded-pill">₱<%= (sale.amount || 0).toLocaleString() %></span>
-                                </li>
-                            <% }) %>
-                        </ul>
+                        <% if(report.dailySales && report.dailySales.length > 0) { %>
+                            <ul class="list-group">
+                                <% report.dailySales.forEach(sale => { %>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <%= sale.client %>
+                                        <span class="badge bg-primary rounded-pill">₱<%= (sale.amount || 0).toLocaleString() %></span>
+                                    </li>
+                                <% }) %>
+                            </ul>
+                        <% } else { %>
+                            <p class="text-muted">No sales reported for this day.</p>
+                        <% } %>
                     </div>
                     <div class="col-md-6">
                         <h5>Collections for the Day:</h5>
@@ -69,11 +88,11 @@
 
                 <h5>Expense Report:</h5>
                 <p>
-                Meal: ₱<%= (report.expenses.meal || 0).toLocaleString() %> | 
-                Transportation: ₱<%= (report.expenses.transportation || 0).toLocaleString() %> | 
-                Toll: ₱<%= (report.expenses.toll || 0).toLocaleString() %> | 
-                Parking: ₱<%= (report.expenses.parking || 0).toLocaleString() %> | 
-             Lodging: ₱<%= (report.expenses.lodging || 0).toLocaleString() %>
+                    Meal: ₱<%= (report.expenses.meal || 0).toLocaleString() %> |
+                    Transportation: ₱<%= (report.expenses.transportation || 0).toLocaleString() %> | 
+                    Toll: ₱<%= (report.expenses.toll || 0).toLocaleString() %> |
+                    Parking: ₱<%= (report.expenses.parking || 0).toLocaleString() %> | 
+                    Lodging: ₱<%= (report.expenses.lodging || 0).toLocaleString() %>
                 </p>
                 <hr>
 
