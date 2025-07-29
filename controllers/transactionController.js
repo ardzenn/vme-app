@@ -1,6 +1,6 @@
 const Transaction = require('../models/Transaction');
 const upload = require('../config/cloudinary');
-const { createNotificationsForGroup, getFinanceAndAdminIds } = require('../services/notificationService');
+const { createNotificationsForGroup, createNotification, getFinanceAndAdminIds } = require('../services/notificationService');
 
 // --- Middleware ---
 exports.uploadAttachment = upload.single('attachment');
@@ -45,7 +45,7 @@ exports.getMySubmissionsPage = async (req, res) => {
     }
 };
 
-// --- API ---
+// --- API & Actions ---
 exports.submitTransaction = async (req, res) => {
     try {
         const { type } = req.body;
@@ -72,11 +72,10 @@ exports.submitTransaction = async (req, res) => {
         const newTransaction = new Transaction(newTransactionData);
         await newTransaction.save();
         
-        // --- Create Notifications ---
         const io = req.app.get('io');
         const financeUsers = await getFinanceAndAdminIds();
         const notificationText = `${req.user.firstName} ${req.user.lastName} submitted a new ${type}.`;
-        const notificationLink = `/transactions/${newTransaction._id}`;
+        const notificationLink = `/admin-dashboard#transactions-panel`;
         await createNotificationsForGroup(io, financeUsers, notificationText, notificationLink);
 
         req.flash('success_msg', `${type} submitted successfully!`);
@@ -91,5 +90,41 @@ exports.submitTransaction = async (req, res) => {
             req.flash('error_msg', 'An internal server error occurred. Failed to submit the transaction.');
         }
         res.redirect('/transactions');
+    }
+};
+
+// ADDED: New function to handle adding comments to a transaction
+exports.addComment = async (req, res) => {
+    try {
+        const { text } = req.body;
+        const transactionId = req.params.id;
+
+        const newComment = {
+            user: req.user.id,
+            text: text,
+            createdAt: new Date()
+        };
+
+        const transaction = await Transaction.findByIdAndUpdate(
+            transactionId,
+            { $push: { comments: newComment } },
+            { new: true }
+        );
+
+        // Notify the original submitter of the transaction, if it wasn't them who commented
+        if (transaction.user.toString() !== req.user.id.toString()) {
+            const io = req.app.get('io');
+            const notificationText = `${req.user.firstName} commented on your ${transaction.type} submission.`;
+            const notificationLink = `/transactions/${transaction._id}`;
+            await createNotification(io, transaction.user, notificationText, notificationLink);
+        }
+
+        req.flash('success_msg', 'Comment added successfully.');
+        res.redirect(`/transactions/${transactionId}`);
+
+    } catch (err) {
+        console.error("Add comment error:", err);
+        req.flash('error_msg', 'Failed to add your comment.');
+        res.redirect(`/transactions/${req.params.id}`);
     }
 };

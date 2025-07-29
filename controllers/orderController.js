@@ -40,11 +40,10 @@ exports.bookOrder = async (req, res) => {
         const newOrder = new Order(newOrderData);
         await newOrder.save();
         
-        // --- Create Notifications ---
         const io = req.app.get('io');
         const financeUsers = await getFinanceAndAdminIds();
         const notificationText = `${req.user.firstName} ${req.user.lastName} booked a new sales order (#${reference}).`;
-        const notificationLink = `/admin-dashboard`; // Or a future specific order link
+        const notificationLink = `/admin-dashboard#orders-panel`;
         await createNotificationsForGroup(io, financeUsers, notificationText, notificationLink);
 
         req.flash('success_msg', `Order #${reference} has been successfully booked!`);
@@ -62,11 +61,11 @@ exports.updateOrder = async (req, res) => {
         const { salesInvoice, status, paymentStatus } = req.body;
         const order = await Order.findByIdAndUpdate(req.params.id, { salesInvoice, status, paymentStatus });
 
-        // Notify the original user that their order was updated
         if (order && order.user.toString() !== req.user.id.toString()) {
             const io = req.app.get('io');
             const notificationText = `Your order #${order.reference} status was updated to "${status}".`;
-            await createNotification(io, order.user, notificationText, `/dashboard`);
+            const notificationLink = `/dashboard#orders-panel`; // Link to user's own dashboard
+            await createNotification(io, order.user, notificationText, notificationLink);
         }
 
         req.flash('success_msg', 'Order updated successfully!');
@@ -114,12 +113,14 @@ exports.addMessageToOrder = async (req, res) => {
         const io = req.app.get('io');
         io.to(`order_${orderId}`).emit('newOrderMessage', populatedMessage);
         
-        // --- Create Notification for other participants ---
-        const recipientIds = order.participants.filter(pId => pId.toString() !== req.user.id.toString());
-        const notificationText = `${req.user.firstName} commented on order #${order.reference}.`;
-        const notificationLink = `/admin-dashboard`; // Link should ideally open the order modal
-        await createNotificationsForGroup(io, recipientIds, notificationText, notificationLink);
-
+        // This assumes orders have participants; if not, you'd notify the order owner.
+        // For now, notifying the user who placed the order if the commenter is someone else.
+        if (order.user.toString() !== req.user.id.toString()) {
+            const notificationText = `${req.user.firstName} commented on order #${order.reference}.`;
+            const notificationLink = `/admin-dashboard#orders-panel`;
+            await createNotification(io, order.user, notificationText, notificationLink);
+        }
+        
         res.json({ success: true, message: populatedMessage });
     } catch (err) {
         console.error("Add message error:", err);

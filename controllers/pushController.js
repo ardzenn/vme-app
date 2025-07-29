@@ -3,7 +3,7 @@ const webpush = require('web-push');
 const User = require('../models/User');
 
 webpush.setVapidDetails(
-  'mailto:your-email@example.com', // Replace with your email
+  `mailto:${process.env.ADMIN_EMAIL || 'your-email@example.com'}`,
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );
@@ -19,16 +19,36 @@ exports.subscribe = async (req, res) => {
     }
 };
 
+// NEW: A flexible function to send a push notification to a single user
+exports.sendPushNotification = async (userId, payload) => {
+    try {
+        const user = await User.findById(userId);
+        if (user && user.pushSubscription) {
+            webpush.sendNotification(user.pushSubscription, JSON.stringify(payload))
+                .catch(err => {
+                    // If a subscription is expired or invalid (410/404), remove it from the database.
+                    if (err.statusCode === 410 || err.statusCode === 404) {
+                        console.log(`Subscription for user ${userId} has expired. Removing.`);
+                        User.findByIdAndUpdate(userId, { $unset: { pushSubscription: "" } }).exec();
+                    } else {
+                        console.error(`Error sending push notification to user ${userId}:`, err.message);
+                    }
+                });
+        }
+    } catch (err) {
+        console.error('Could not send push notification:', err);
+    }
+};
+
+// This function now uses the new, more flexible function
 exports.sendNotificationToAdmins = async (payload) => {
     try {
-        const admins = await User.find({ role: { $in: ['Admin', 'Accounting'] } });
+        const admins = await User.find({ role: { $in: ['Admin', 'Accounting', 'IT'] } });
         admins.forEach(admin => {
-            if (admin.pushSubscription) {
-                webpush.sendNotification(admin.pushSubscription, JSON.stringify(payload))
-                    .catch(err => console.error('Error sending notification:', err));
-            }
+            // Re-use our new function for each admin
+            exports.sendPushNotification(admin._id, payload);
         });
     } catch (err) {
-        console.error('Could not send notifications:', err);
+        console.error('Could not send notifications to admins:', err);
     }
 };

@@ -2,10 +2,9 @@ const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const upload = require('../config/cloudinary');
 
-// Middleware for uploading a post image to Cloudinary
-exports.uploadPostImage = upload.single('postImage');
+// MODIFIED: Renamed for clarity to handle both images and videos
+exports.uploadPostMedia = upload.single('postMedia');
 
-// Renders the main feed page with all posts
 exports.getFeedPage = async (req, res) => {
     try {
         const posts = await Post.find({})
@@ -17,7 +16,7 @@ exports.getFeedPage = async (req, res) => {
                     select: 'firstName lastName profilePicture'
                 }
             })
-            .sort({ createdAt: -1 }); // Newest posts first
+            .sort({ createdAt: -1 });
 
         res.render('feed', { posts });
     } catch (err) {
@@ -27,21 +26,27 @@ exports.getFeedPage = async (req, res) => {
     }
 };
 
-// Handles submission of a new post
+// MODIFIED: This now handles both image and video uploads
 exports.createPost = async (req, res) => {
     try {
         const { content } = req.body;
-        if (!content) {
+        if (!content || content.trim() === "") {
             req.flash('error_msg', 'Post content cannot be empty.');
             return res.redirect('/feed');
         }
 
-        const newPost = new Post({
+        const newPostData = {
             content,
             author: req.user.id,
-            imageUrl: req.file ? req.file.path : null // Save Cloudinary URL if file was uploaded
-        });
+        };
+        
+        if (req.file) {
+            newPostData.mediaUrl = req.file.path;
+            // Cloudinary's response includes resource_type ('image' or 'video')
+            newPostData.mediaType = req.file.resource_type;
+        }
 
+        const newPost = new Post(newPostData);
         await newPost.save();
         req.flash('success_msg', 'Your post has been published!');
         res.redirect('/feed');
@@ -53,24 +58,34 @@ exports.createPost = async (req, res) => {
     }
 };
 
-// Handles liking and unliking a post (for AJAX requests)
+exports.deletePost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        await Comment.deleteMany({ post: postId });
+        await Post.findByIdAndDelete(postId);
+        
+        req.flash('success_msg', 'The post has been successfully deleted.');
+        res.redirect('/feed');
+    } catch (err) {
+        console.error("Error deleting post:", err);
+        req.flash('error_msg', 'An error occurred while deleting the post.');
+        res.redirect('/feed');
+    }
+};
+
 exports.toggleLike = async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
         const userId = req.user.id;
-
         const isLiked = post.likes.includes(userId);
 
         if (isLiked) {
-            // User has already liked it, so unlike it
             await Post.updateOne({ _id: req.params.id }, { $pull: { likes: userId } });
         } else {
-            // User has not liked it, so like it
             await Post.updateOne({ _id: req.params.id }, { $addToSet: { likes: userId } });
         }
         
         const updatedPost = await Post.findById(req.params.id);
-
         res.json({
             success: true,
             likeCount: updatedPost.likes.length,
@@ -81,7 +96,6 @@ exports.toggleLike = async (req, res) => {
     }
 };
 
-// Handles adding a new comment to a post (for AJAX requests)
 exports.addComment = async (req, res) => {
     try {
         const { content } = req.body;
@@ -99,9 +113,7 @@ exports.addComment = async (req, res) => {
         await comment.save();
 
         await Post.findByIdAndUpdate(postId, { $push: { comments: comment._id } });
-        
         const populatedComment = await Comment.findById(comment._id).populate('author', 'firstName lastName profilePicture');
-
         res.status(201).json({ success: true, comment: populatedComment });
     } catch (err) {
         console.error("Error adding comment:", err);

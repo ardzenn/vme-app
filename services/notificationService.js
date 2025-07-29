@@ -1,7 +1,8 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+// Import the new push notification function
+const { sendPushNotification } = require('../controllers/pushController');
 
-// Helper function to get all Admin and IT user IDs
 async function getAdminAndITIds() {
     try {
         const users = await User.find({ role: { $in: ['Admin', 'IT'] } }).select('_id');
@@ -12,7 +13,6 @@ async function getAdminAndITIds() {
     }
 }
 
-// Helper function to get all finance-related user IDs
 async function getFinanceAndAdminIds() {
     try {
         const users = await User.find({ 
@@ -25,30 +25,39 @@ async function getFinanceAndAdminIds() {
     }
 }
 
-async function createNotification(io, recipient, text, link) {
+async function createNotification(io, recipientId, text, link) {
     try {
-        if (!recipient || !text || !link) {
+        if (!recipientId || !text || !link) {
             throw new Error('Recipient, text, and link are required.');
         }
 
+        // 1. Save the in-app notification to the database
         const notification = new Notification({
-            user: recipient,
+            user: recipientId,
             text,
             link
         });
         await notification.save();
 
-        // Emit to the user's specific room
-        io.to(recipient.toString()).emit('new_notification', notification);
+        // 2. Emit a real-time event to update the user's "bell" icon if they are online
+        io.to(recipientId.toString()).emit('new_notification', notification);
+
+        // 3. Send a push notification to the user's home screen if they are subscribed
+        const payload = {
+            title: 'VME App Notification',
+            body: text,
+            url: link
+        };
+        await sendPushNotification(recipientId, payload);
+
     } catch (error) {
         console.error('Error creating notification:', error);
     }
 }
 
-// A new function to create notifications for a group of users
 async function createNotificationsForGroup(io, userIds, text, link) {
     if (!Array.isArray(userIds)) return;
-    // Create all notifications in parallel for efficiency
+    // This will now create both an in-app and a push notification for each user in the group.
     await Promise.all(
         userIds.map(userId => createNotification(io, userId, text, link))
     );

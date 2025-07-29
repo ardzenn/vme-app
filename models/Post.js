@@ -4,7 +4,9 @@ const { Schema } = mongoose;
 const postSchema = new Schema({
     author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String, trim: true, required: true },
-    imageUrl: { type: String }, // For the optional uploaded image
+    // MODIFIED: Replaced imageUrl with a more flexible media structure
+    mediaUrl: { type: String },
+    mediaType: { type: String, enum: ['image', 'video'] },
     likes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     comments: [{ type: Schema.Types.ObjectId, ref: 'Comment' }]
 }, { timestamps: true });

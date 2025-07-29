@@ -66,7 +66,7 @@ exports.createCheckIn = async (req, res) => {
 
         const adminIds = await getAdminAndITIds();
         const notificationText = `${req.user.firstName} ${req.user.lastName} has just checked in at ${hospital.name}.`;
-        const notificationLink = `/admin-dashboard`; 
+        const notificationLink = `/admin-dashboard#checkins-panel`;
         await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
 
         res.status(201).json({

@@ -22,6 +22,9 @@ router.get('/history', ensureAuthenticated, transactionController.getTransaction
 // GET route to view a single transaction's details
 router.get('/:id', ensureAuthenticated, transactionController.getTransactionDetails);
 
+// ADDED: POST route to add a comment to a transaction
+router.post('/:id/comment', ensureAuthenticated, transactionController.addComment);
+
 // POST route for uploading comment attachments
 router.post('/:id/comment/attach', 
     ensureAuthenticated, 
