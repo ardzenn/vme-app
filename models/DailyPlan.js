@@ -36,8 +36,12 @@ const dailyPlanSchema = new Schema({
         current: [currentCollectionSchema],
         overdue: [overdueCollectionSchema]
     },
+    // --- NEW FIELDS ---
+    startingOdometer: { type: Number },
+    startingOdometerPhoto: { type: String }, // image url/path
+    startingOdometerNote: { type: String },
+    // -------------------
     comments: [commentSchema],
-    // ADDED: A flag to track if the plan has been viewed by an admin.
     isNew: { type: Boolean, default: true }
 }, { timestamps: true });
 

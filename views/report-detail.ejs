@@ -86,6 +86,34 @@
                 </div>
                 <hr>
 
+                <h5>Odometer Readings:</h5>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Starting Odometer:</strong>
+                        <span><%= typeof report.startingOdometer !== 'undefined' ? report.startingOdometer : 'N/A' %></span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Ending Odometer:</strong>
+                        <span><%= typeof report.endingOdometer !== 'undefined' ? report.endingOdometer : 'N/A' %></span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Total Km:</strong>
+                        <span><%= typeof report.totalKmReading !== 'undefined' ? report.totalKmReading : 'N/A' %></span>
+                    </div>
+                </div>
+                <% if (report.endingOdometerPhoto) { %>
+                    <div class="mb-2">
+                        <strong>Ending Odometer Photo:</strong><br>
+                        <img src="<%= report.endingOdometerPhoto %>" style="height: 120px; border-radius: 0.5rem;">
+                    </div>
+                <% } %>
+                <% if (report.endingOdometerNote) { %>
+                    <div class="mb-2">
+                        <strong>Odometer Note:</strong> <%= report.endingOdometerNote %>
+                    </div>
+                <% } %>
+                <hr>
+
                 <h5>Expense Report:</h5>
                 <p>
                     Meal: ₱<%= (report.expenses.meal || 0).toLocaleString() %> |

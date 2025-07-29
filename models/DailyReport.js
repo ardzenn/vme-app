@@ -40,9 +40,16 @@ const dailyReportSchema = new Schema({
         parking: { type: Number, default: 0 },
         lodging: { type: Number, default: 0 },
     },
-    
 
-    attachments: [{ type: String }] // Array of file paths for multiple images
+    // --- NEW FIELDS ---
+    startingOdometer: { type: Number }, // Carry over from DailyPlan for display
+    endingOdometer: { type: Number },
+    endingOdometerPhoto: { type: String },
+    endingOdometerNote: { type: String },
+    totalKmReading: { type: Number }, // Computed (ending - starting)
+    // -------------------
+
+    attachments: [{ type: String }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('DailyReport', dailyReportSchema);
