@@ -3,7 +3,6 @@ const { Schema } = mongoose;
 const passportLocalMongoose = require('passport-local-mongoose');
 
 const userSchema = new Schema({
-  // username (email) and password (hash/salt) are handled by passport-local-mongoose
   firstName: { type: String, required: true, trim: true },
   lastName: { type: String, required: true, trim: true },
   birthdate: { type: Date },
@@ -11,7 +10,8 @@ const userSchema = new Schema({
   address: { type: String, trim: true },
   role: { 
     type: String, 
-    enum: ['Pending', 'Admin', 'MSR', 'KAS', 'Accounting'], 
+    // ADDED: New roles
+    enum: ['Pending', 'Admin', 'MSR', 'KAS', 'Accounting', 'Sales Manager', 'Inventory', 'IT'], 
     default: 'Pending' 
   },
   profilePicture: { 
@@ -20,22 +20,22 @@ const userSchema = new Schema({
   },
   lastLocation: {
     type: { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], default: [0, 0] }
+    coordinates: { type: [Number], default: [0, 0] } // [lng, lat]
   },
+  lastKnownAddress: { type: String, default: 'Location not yet available' },
   lastLocationUpdate: { type: Date },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
   pushSubscription: { type: Object }
 }, { timestamps: true });
 
-// This plugin adds all the necessary fields and methods for authentication
 userSchema.plugin(passportLocalMongoose, { usernameField: 'username' });
 
 userSchema.methods.toJSON = function() {
   const userObject = this.toObject();
-  delete userObject.hash;       // passport-local-mongoose uses 'hash' and 'salt'
+  delete userObject.hash;
   delete userObject.salt;
-  delete userObject.password;   // Also remove 'password' if it exists
+  delete userObject.password;
   return userObject;
 }
 

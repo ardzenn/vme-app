@@ -3,6 +3,7 @@ const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
 const upload = require('../config/cloudinary');
 const cloudinary = require('cloudinary').v2;
+const { createNotificationsForGroup, getAdminAndITIds } = require('../services/notificationService');
 
 exports.uploadProofImage = upload.single('proof');
 
@@ -63,6 +64,11 @@ exports.createCheckIn = async (req, res) => {
         const io = req.app.get('io');
         io.emit('newCheckIn', populatedCheckIn);
 
+        const adminIds = await getAdminAndITIds();
+        const notificationText = `${req.user.firstName} ${req.user.lastName} has just checked in at ${hospital.name}.`;
+        const notificationLink = `/admin-dashboard`; 
+        await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
+
         res.status(201).json({
             success: true,
             message: 'Check-in submitted! Capturing location in the background...',
@@ -75,7 +81,6 @@ exports.createCheckIn = async (req, res) => {
     }
 };
 
-// MODIFIED: This function now emits an event after updating the location
 exports.updateLocation = async (req, res) => {
     try {
         const { lat, lng } = req.body;
@@ -100,7 +105,6 @@ exports.updateLocation = async (req, res) => {
         
         await checkIn.save();
 
-        // **ADDED: Broadcast the location update to all clients**
         const io = req.app.get('io');
         io.emit('checkInLocationUpdated', {
             checkInId: checkIn._id,
@@ -114,7 +118,6 @@ exports.updateLocation = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error while updating location.' });
     }
 };
-
 
 exports.getCheckIns = async (req, res) => {
     try {

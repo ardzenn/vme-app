@@ -1,8 +1,8 @@
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const { createNotificationsForGroup } = require('../services/notificationService');
 
-// --- Renders the main full-screen chat page ---
 exports.getChatPage = async (req, res) => {
     try {
         res.render('chat', { currentUser: req.user });
@@ -13,7 +13,34 @@ exports.getChatPage = async (req, res) => {
     }
 };
 
-// --- API Endpoints for Chat Functionality ---
+exports.createSupportChat = async (req, res) => {
+    try {
+        const requestingUser = req.user;
+        const itUsers = await User.find({ role: 'IT' }).select('_id');
+        if (itUsers.length === 0) {
+            return res.status(404).json({ success: false, message: 'No IT support staff are currently available.' });
+        }
+        const itUserIds = itUsers.map(user => user._id);
+        const participants = [requestingUser._id, ...itUserIds];
+        const newConversation = new Conversation({
+            participants,
+            isGroup: true,
+            groupName: `Support: ${requestingUser.firstName} ${requestingUser.lastName}`,
+            groupAdmin: requestingUser._id
+        });
+        await newConversation.save();
+        const populatedConvo = await Conversation.findById(newConversation._id).populate('participants', 'firstName lastName profilePicture');
+        const io = req.app.get('io');
+        itUserIds.forEach(id => {
+            io.to(id.toString()).emit('newConversation', populatedConvo);
+        });
+        res.status(201).json({ success: true, conversation: populatedConvo });
+    } catch (error) {
+        console.error("Error creating support chat:", error);
+        res.status(500).json({ success: false, message: 'Could not create support chat.' });
+    }
+};
+
 exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.find({ _id: { $ne: req.user.id } }).select('firstName lastName profilePicture');
@@ -47,15 +74,12 @@ exports.getMessagesByConversation = async (req, res) => {
     try {
         const { conversationId } = req.params;
         const conversation = await Conversation.findOne({ _id: conversationId, participants: req.user.id });
-
         if (!conversation) {
             return res.status(403).json({ message: 'Forbidden: You are not a member of this conversation.' });
         }
-
         const messages = await Message.find({ conversation: conversationId })
             .sort({ createdAt: 'asc' })
             .populate('sender', 'firstName lastName profilePicture');
-
         res.json(messages);
     } catch (err) {
         console.error("Error fetching messages:", err);
@@ -67,7 +91,7 @@ exports.addMessageToConversation = async (req, res) => {
     try {
         const { text } = req.body;
         const { conversationId } = req.params;
-        const senderId = req.user.id;
+        const sender = req.user;
 
         if (!text || text.trim() === '') {
              return res.status(400).json({ success: false, message: 'Message text cannot be empty.' });
@@ -75,7 +99,7 @@ exports.addMessageToConversation = async (req, res) => {
 
         const message = new Message({
             conversation: conversationId,
-            sender: senderId,
+            sender: sender._id,
             text: text
         });
         await message.save();
@@ -90,6 +114,12 @@ exports.addMessageToConversation = async (req, res) => {
         const io = req.app.get('io');
         io.to(conversationId).emit('newMessage', populatedMessage);
 
+        const conversation = await Conversation.findById(conversationId);
+        const recipientIds = conversation.participants.filter(pId => pId.toString() !== sender._id.toString());
+        const notificationText = `You have a new message from ${sender.firstName} in "${conversation.groupName || 'your chat'}".`;
+        const notificationLink = `/chat?convoId=${conversationId}`;
+        await createNotificationsForGroup(io, recipientIds, notificationText, notificationLink);
+
         res.status(201).json({ success: true, message: populatedMessage });
     } catch (err) {
         console.error("Add chat message error:", err);
@@ -101,26 +131,21 @@ exports.findOrCreateConversation = async (req, res) => {
     try {
         const { recipientId } = req.body;
         const senderId = req.user.id;
-
         if (!recipientId) {
             return res.status(400).json({ message: 'Recipient ID is required.'});
         }
-
         let conversation = await Conversation.findOne({
             isGroup: false,
             participants: { $all: [senderId, recipientId], $size: 2 }
         });
-
         if (!conversation) {
             conversation = new Conversation({
                 participants: [senderId, recipientId]
             });
             await conversation.save();
         }
-        
         const populatedConvo = await Conversation.findById(conversation._id)
             .populate('participants', 'firstName lastName profilePicture');
-
         res.json(populatedConvo);
     } catch (err) {
         console.error("Error finding/creating conversation:", err);
@@ -132,11 +157,9 @@ exports.createGroupConversation = async (req, res) => {
     try {
         const { groupName, participants } = req.body;
         const adminId = req.user.id;
-
         if (!groupName || !participants || participants.length === 0) {
             return res.status(400).json({ message: 'Group name and participants are required.' });
         }
-
         const allParticipants = [...new Set([adminId, ...participants])];
         let conversation = await Conversation.create({
             groupName,
@@ -144,7 +167,6 @@ exports.createGroupConversation = async (req, res) => {
             isGroup: true,
             groupAdmin: adminId,
         });
-
         conversation = await conversation.populate('participants', 'firstName lastName profilePicture');
         res.status(201).json(conversation);
     } catch (err) {

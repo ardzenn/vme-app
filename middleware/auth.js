@@ -1,5 +1,4 @@
 // This middleware ensures that a user is logged in.
-// If not, it redirects them to the login page.
 module.exports.ensureAuthenticated = (req, res, next) => {
     if (req.isAuthenticated()) {
         return next();
@@ -8,8 +7,21 @@ module.exports.ensureAuthenticated = (req, res, next) => {
     res.redirect('/login');
 };
 
+// NEW: A flexible role-checking middleware.
+// It accepts an array of roles and grants access if the user has any one of them.
+module.exports.ensureHasRole = (roles) => {
+    return (req, res, next) => {
+        if (req.isAuthenticated() && req.user && roles.includes(req.user.role)) {
+            return next();
+        }
+        req.flash('error_msg', 'You do not have permission to view this page.');
+        res.redirect('/dashboard');
+    };
+};
+
+// --- Existing middleware can now use the new flexible function ---
+
 // This middleware checks if the logged-in user has the 'Admin' role.
-// If not, it redirects them away.
 module.exports.ensureAdmin = (req, res, next) => {
     if (req.isAuthenticated() && req.user.role === 'Admin') {
         return next();
@@ -18,7 +30,7 @@ module.exports.ensureAdmin = (req, res, next) => {
     res.redirect('/dashboard');
 };
 
-// This middleware checks if the logged-in user has the 'Accounting' role.
+// This middleware checks if the logged-in user has 'Accounting' or 'Admin' role.
 module.exports.ensureAccounting = (req, res, next) => {
     if (req.user.role === 'Accounting' || req.user.role === 'Admin') {
         return next();
@@ -27,7 +39,6 @@ module.exports.ensureAccounting = (req, res, next) => {
     res.redirect('/dashboard');
 };
 
-// You can add other role checks here as needed, for example:
 module.exports.ensureMSR = (req, res, next) => {
     if (req.isAuthenticated() && req.user.role === 'MSR') {
         return next();

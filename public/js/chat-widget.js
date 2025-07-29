@@ -249,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // ** FUNCTION FULLY IMPLEMENTED **
     const showGroupInfoModal = (convo) => {
         const participantListModal = document.getElementById('group-participant-list-modal-view');
         document.getElementById('groupInfoModalTitle').textContent = convo.groupName;
@@ -268,7 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
         groupInfoModal.show();
     };
 
-    // ** FUNCTION FULLY IMPLEMENTED **
     function handleRemoveParticipant() {
         if (!currentConversation) return;
         const listContainer = document.getElementById('remove-participant-list');
@@ -292,12 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
         removeParticipantModal.show();
     }
     
-    // ** FUNCTION FULLY IMPLEMENTED **
     function handleDeleteGroup() {
         deleteGroupModal.show();
     }
     
-    // ** FUNCTION FULLY IMPLEMENTED **
     const updateOverallUnreadBadge = () => {
         const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
         if (totalUnread > 0) {
@@ -397,6 +393,36 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearch(groupSearchInput, groupListBody);
     setupSearch(userSearchInput, userListBody);
 
+    // ADDED: Logic for the "Get IT Support" button
+    const supportBtn = document.getElementById('get-it-support-btn');
+    if (supportBtn) {
+        supportBtn.addEventListener('click', async () => {
+            supportBtn.disabled = true;
+            supportBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Starting...';
+            try {
+                const response = await fetch('/api/conversations/support', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || 'Server error');
+                }
+                
+                if (!allConversations.some(c => c._id === result.conversation._id)) {
+                    allConversations.unshift(result.conversation);
+                    renderAllLists();
+                }
+
+                container.classList.add('open');
+                openChat(result.conversation);
+
+            } catch (err) {
+                alert(`Could not start support chat: ${err.message}`);
+            } finally {
+                supportBtn.disabled = false;
+                supportBtn.innerHTML = '<i class="fas fa-headset"></i> Get IT Support';
+            }
+        });
+    }
+
     socket.on('newMessage', (msg) => {
         const convoIndex = allConversations.findIndex(c => c._id === msg.conversation);
         if (convoIndex > -1) {
@@ -438,6 +464,16 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 typingIndicator.style.display = 'none';
             }
+        }
+    });
+
+    // ADDED: Listener for IT users to receive new support chats in real-time
+    socket.on('newConversation', (newConvo) => {
+        allConversations.unshift(newConvo);
+        renderAllLists();
+        if (!container.classList.contains('open')) {
+             toggler.classList.add('shake');
+             setTimeout(()=> toggler.classList.remove('shake'), 600);
         }
     });
 

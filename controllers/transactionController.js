@@ -1,5 +1,6 @@
 const Transaction = require('../models/Transaction');
 const upload = require('../config/cloudinary');
+const { createNotificationsForGroup, getFinanceAndAdminIds } = require('../services/notificationService');
 
 // --- Middleware ---
 exports.uploadAttachment = upload.single('attachment');
@@ -45,13 +46,10 @@ exports.getMySubmissionsPage = async (req, res) => {
 };
 
 // --- API ---
-
-// REWRITTEN: This function now correctly handles both 'Collection' and 'Deposit' types.
 exports.submitTransaction = async (req, res) => {
     try {
         const { type } = req.body;
 
-        // Start with the common data for both types
         let newTransactionData = {
             user: req.user.id,
             type,
@@ -60,29 +58,13 @@ exports.submitTransaction = async (req, res) => {
             attachmentUrl: req.file ? req.file.path : null
         };
 
-        // Add specific fields based on the transaction type
         if (type === 'Collection') {
             const { customer, dateCollected, prCr, siDr, dateOfCheck, bankCheckNo, amount } = req.body;
-            Object.assign(newTransactionData, {
-                customer,
-                dateCollected,
-                prCr,
-                siDr,
-                dateOfCheck,
-                bankCheckNo,
-                amount: parseFloat(amount) || 0
-            });
+            Object.assign(newTransactionData, { customer, dateCollected, prCr, siDr, dateOfCheck, bankCheckNo, amount: parseFloat(amount) || 0 });
         } else if (type === 'Deposit') {
             const { details, hospital, dateDeposited, paymentMethod, totalAmountDeposited } = req.body;
-            Object.assign(newTransactionData, {
-                details,
-                hospital,
-                dateDeposited,
-                paymentMethod,
-                totalAmountDeposited: parseFloat(totalAmountDeposited) || 0
-            });
+            Object.assign(newTransactionData, { details, hospital, dateDeposited, paymentMethod, totalAmountDeposited: parseFloat(totalAmountDeposited) || 0 });
         } else {
-            // Handle cases where the type is missing or invalid
             req.flash('error_msg', 'Invalid transaction type specified.');
             return res.redirect('/transactions');
         }
@@ -90,12 +72,18 @@ exports.submitTransaction = async (req, res) => {
         const newTransaction = new Transaction(newTransactionData);
         await newTransaction.save();
         
+        // --- Create Notifications ---
+        const io = req.app.get('io');
+        const financeUsers = await getFinanceAndAdminIds();
+        const notificationText = `${req.user.firstName} ${req.user.lastName} submitted a new ${type}.`;
+        const notificationLink = `/transactions/${newTransaction._id}`;
+        await createNotificationsForGroup(io, financeUsers, notificationText, notificationLink);
+
         req.flash('success_msg', `${type} submitted successfully!`);
         res.redirect('/transactions/my-submissions');
 
     } catch (err) {
         console.error("Transaction submission error:", err);
-        // Give a more helpful error message if it's a validation failure
         if (err.name === 'ValidationError') {
             let messages = Object.values(err.errors).map(val => val.message);
             req.flash('error_msg', `Please check your input: ${messages.join(', ')}`);

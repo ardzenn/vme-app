@@ -14,24 +14,27 @@ const formatDates = (items) => {
     if (!items || items.length === 0) return [];
     return items.map(item => {
         const newItem = item.toObject();
+        const userTimezone = 'Asia/Manila';
         if (newItem.createdAt) {
-            newItem.createdAtFormatted = moment(item.createdAt).tz('Asia/Manila').format('M/D/YYYY, h:mm:ss A');
-            newItem.dateOnlyFormatted = moment(item.createdAt).tz('Asia/Manila').format('M/D/YYYY');
+            newItem.createdAtFormatted = moment(item.createdAt).tz(userTimezone).format('M/D/YYYY, h:mm:ss A');
+            newItem.dateOnlyFormatted = moment(item.createdAt).tz(userTimezone).format('M/D/YYYY');
         }
         if (newItem.planDate) {
-            newItem.planDateFormatted = moment(item.planDate).tz('Asia/Manila').format('M/D/YYYY');
+            newItem.planDateFormatted = moment(item.planDate).tz(userTimezone).format('M/D/YYYY');
         }
         if (newItem.weekStartDate) {
-            newItem.weekStartDateFormatted = moment(item.weekStartDate).tz('Asia/Manila').format('M/D/YYYY');
+            newItem.weekStartDateFormatted = moment(item.weekStartDate).tz(userTimezone).format('M/D/YYYY');
         }
         return newItem;
     });
 };
 
+// MODIFIED: This now redirects the new roles to the correct dashboard
 exports.getDashboard = (req, res) => {
-    if (req.user.role === 'Admin') {
+    const userRole = req.user.role;
+    if (userRole === 'Admin' || userRole === 'IT') {
         return res.redirect('/admin-dashboard');
-    } else if (req.user.role === 'Accounting') {
+    } else if (['Accounting', 'Sales Manager', 'Inventory'].includes(userRole)) {
         return res.redirect('/accounting-dashboard');
     } else {
         return exports.getMSRDashboard(req, res);

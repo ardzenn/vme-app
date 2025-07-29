@@ -2,11 +2,12 @@ const DailyPlan = require('../models/DailyPlan');
 const WeeklyItinerary = require('../models/WeeklyItinerary');
 const CheckIn = require('../models/CheckIn');
 const User = require('../models/User');
-const Hospital = require('../models/Hospital'); // Added for the form
+const Hospital = require('../models/Hospital');
 const { Parser } = require('json2csv');
-const moment = require('moment-timezone'); // Added for robust date handling
+const moment = require('moment-timezone');
+const { createNotificationsForGroup, createNotification, getAdminAndITIds } = require('../services/notificationService');
 
-// --- Weekly Itinerary Forms & Submission (No changes here) ---
+// --- Weekly Itinerary Forms & Submission ---
 exports.getWeeklyItineraryForm = async (req, res) => {
     try {
         const today = new Date();
@@ -79,11 +80,19 @@ exports.submitWeeklyItinerary = async (req, res) => {
             totalTargetCollections
         };
 
-        await WeeklyItinerary.findOneAndUpdate(
+        const savedItinerary = await WeeklyItinerary.findOneAndUpdate(
             { user: req.user.id, weekStartDate: weekData.weekStartDate },
             weekData,
             { new: true, upsert: true, runValidators: true }
         );
+
+        // --- Create Notification ---
+        const io = req.app.get('io');
+        const adminIds = await getAdminAndITIds();
+        const notificationText = `${req.user.firstName} submitted a weekly itinerary for the week of ${weekStartDate.toLocaleDateString()}.`;
+        const notificationLink = `/planning/view/weekly/${savedItinerary._id}`;
+        await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
+
         req.flash('success_msg', 'Weekly itinerary saved successfully!');
         res.redirect('/planning/my-plans');
     } catch (err) {
@@ -105,10 +114,8 @@ exports.getMyPlans = async (req, res) => {
     }
 };
 
-// **MODIFIED** - This function now gets required data and handles existing plans
 exports.getDailyPlanForm = async (req, res) => {
     try {
-        // Use moment-timezone to accurately get today's date for the user
         const userTimezone = req.user.timezone || 'Asia/Manila';
         const today = moment.tz(userTimezone).startOf('day');
 
@@ -127,7 +134,7 @@ exports.getDailyPlanForm = async (req, res) => {
         res.render('daily-plan-form', {
             planDate: today.format('YYYY-MM-DD'),
             myHospitals,
-            plan: {} // Pass empty object for a new plan
+            plan: {}
         });
     } catch (err) {
         console.error("Error loading daily plan form:", err);
@@ -154,24 +161,18 @@ exports.getDailyPlanForEdit = async (req, res) => {
     }
 };
 
-// **MODIFIED** - This function now handles JSON requests from the new form
 exports.submitDailyPlan = async (req, res) => {
     try {
         const { planDate, firstClientCall, areasToVisit, hospitalsToVisit, salesObjectives, targetCollections } = req.body;
-        
         const planDateObj = moment.tz(planDate, req.user.timezone || 'Asia/Manila').startOf('day').toDate();
 
-        // Check for an existing plan again to prevent race conditions
         const existingPlan = await DailyPlan.findOne({ user: req.user.id, planDate: planDateObj });
         if (existingPlan) {
             return res.status(409).json({ success: false, message: 'A plan for this date has already been submitted.' });
         }
 
         const planData = {
-            user: req.user.id,
-            planDate: planDateObj,
-            firstClientCall,
-            areasToVisit,
+            user: req.user.id, planDate: planDateObj, firstClientCall, areasToVisit,
             hospitalsToVisit: (hospitalsToVisit || []).filter(item => item.name && item.name.trim() !== ''),
             salesObjectives: (salesObjectives || []).filter(o => o.description && o.description.trim() !== ''),
             targetCollections: (targetCollections || []).filter(c => c.clientName && c.clientName.trim() !== '')
@@ -179,18 +180,19 @@ exports.submitDailyPlan = async (req, res) => {
 
         const plan = await DailyPlan.create(planData);
         const populatedPlan = await DailyPlan.findById(plan._id).populate('user', 'firstName lastName');
-
-        // Use 'io' from app settings, not 'socketio'
         const io = req.app.get('io');
-        if (io) {
-            io.emit('newDailyPlan', populatedPlan);
-        }
+        io.emit('newDailyPlan', populatedPlan);
+
+        // --- Create Notification ---
+        const adminIds = await getAdminAndITIds();
+        const notificationText = `${req.user.firstName} submitted a daily plan for ${new Date(planDateObj).toLocaleDateString()}.`;
+        const notificationLink = `/planning/view/daily/${populatedPlan._id}`;
+        await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
 
         res.status(201).json({ success: true, message: 'Daily plan submitted successfully!' });
 
     } catch (err) {
         console.error("Error submitting daily plan:", err);
-        // Send a JSON error response
         res.status(500).json({ success: false, message: 'An error occurred while saving. Please try again.' });
     }
 };
@@ -221,7 +223,16 @@ exports.addComment = async (req, res) => {
         const { planType, planId, text } = req.body;
         const comment = { user: req.user.id, text: text };
         const Model = planType === 'daily' ? DailyPlan : WeeklyItinerary;
-        await Model.findByIdAndUpdate(planId, { $push: { comments: comment } });
+        const plan = await Model.findByIdAndUpdate(planId, { $push: { comments: comment } }, { new: true });
+
+        // --- Create Notification for the plan owner ---
+        if (plan && plan.user.toString() !== req.user.id.toString()) {
+            const io = req.app.get('io');
+            const notificationText = `${req.user.firstName} commented on your ${planType} plan.`;
+            const notificationLink = `/planning/view/${planType}/${planId}`;
+            await createNotification(io, plan.user, notificationText, notificationLink);
+        }
+
         req.flash('success_msg', 'Comment added.');
         res.redirect(`/planning/view/${planType}/${planId}`);
     } catch (err) {
@@ -302,12 +313,8 @@ exports.exportWeeklyCoverageReport = async (req, res) => {
             .populate('doctor', 'name')
             .sort({ createdAt: -1 });
         const fields = [
-            { label: 'User', value: 'user' },
-            { label: 'Date', value: 'date' },
-            { label: 'Time', value: 'time' },
-            { label: 'Hospital', value: 'hospital' },
-            { label: 'Doctor', value: 'doctor' },
-            { label: 'Activity', value: 'activity' }
+            { label: 'User', value: 'user' }, { label: 'Date', value: 'date' }, { label: 'Time', value: 'time' },
+            { label: 'Hospital', value: 'hospital' }, { label: 'Doctor', value: 'doctor' }, { label: 'Activity', value: 'activity' }
         ];
         const data = checkIns.map(checkin => ({
             user: checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A',
@@ -328,7 +335,6 @@ exports.exportWeeklyCoverageReport = async (req, res) => {
     }
 };
 
-// ADDED: New function to mark a plan as read.
 exports.markPlanAsRead = async (req, res) => {
     try {
         const planId = req.params.id;

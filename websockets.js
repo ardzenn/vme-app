@@ -1,5 +1,6 @@
 const Conversation = require('./models/Conversation');
 const User = require('./models/User');
+const axios = require('axios'); // For making API requests to Mapbox
 
 const onlineUsers = new Map();
 
@@ -9,8 +10,8 @@ function initializeWebsockets(io) {
         
         if (userId) {
             try {
-                // When a user connects, fetch their data from the database, including lastLocation
-                const user = await User.findById(userId).select('firstName lastName role lastLocation');
+                // Fetch user data, now including lastKnownAddress
+                const user = await User.findById(userId).select('firstName lastName role lastLocation lastKnownAddress');
                 if (user) {
                     onlineUsers.set(userId, {
                         socketId: socket.id,
@@ -18,7 +19,8 @@ function initializeWebsockets(io) {
                         firstName: user.firstName,
                         lastName: user.lastName,
                         role: user.role,
-                        lastLocation: user.lastLocation 
+                        lastLocation: user.lastLocation,
+                        lastKnownAddress: user.lastKnownAddress
                     });
                 }
 
@@ -28,7 +30,6 @@ function initializeWebsockets(io) {
                     convos.forEach(convo => socket.join(convo._id.toString()));
                 });
 
-                // Broadcast the updated list of all online users to everyone
                 io.emit('updateUserList', Array.from(onlineUsers.values()));
                 
             } catch (err) {
@@ -62,18 +63,44 @@ function initializeWebsockets(io) {
             socket.join(`order_${orderId}`);
         });
 
+        // MODIFIED: This now performs reverse geocoding
         socket.on('updateLocation', async (coords) => {
             if (userId && coords) {
                 try {
+                    let address = 'Address lookup failed.';
+                    const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+
+                    // Step 1: Call Mapbox API to get the address from coordinates
+                    if (mapboxToken) {
+                        try {
+                            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${mapboxToken}&types=poi,address&limit=1`;
+                            const response = await axios.get(url);
+                            if (response.data && response.data.features && response.data.features.length > 0) {
+                                address = response.data.features[0].place_name;
+                            } else {
+                                address = 'Near specified coordinates.';
+                            }
+                        } catch (apiError) {
+                            console.error("Mapbox API Error:", apiError.message);
+                            address = "Could not retrieve address."
+                        }
+                    } else {
+                        address = "Mapbox token not configured."
+                    }
+                    
+                    // Step 2: Update the user in the database with coordinates AND the new address
                     const updatedUser = await User.findByIdAndUpdate(userId, {
                         lastLocation: { type: 'Point', coordinates: [coords.lng, coords.lat] },
-                        lastLocationUpdate: Date.now()
-                    }, { new: true }).select('firstName lastName role lastLocation');
+                        lastLocationUpdate: Date.now(),
+                        lastKnownAddress: address
+                    }, { new: true }).select('firstName lastName role lastLocation lastKnownAddress lastLocationUpdate');
                     
+                    // Step 3: Broadcast the complete user object (with address) to all clients
                     if (updatedUser) {
                         const onlineUser = onlineUsers.get(userId);
                         if (onlineUser) {
                             onlineUser.lastLocation = updatedUser.lastLocation;
+                            onlineUser.lastKnownAddress = updatedUser.lastKnownAddress;
                         }
                         io.emit('locationUpdate', updatedUser);
                     }

@@ -1,12 +1,55 @@
 const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
+const User = require('../models/User');
+const Conversation = require('../models/Conversation'); // Added
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
-const User = require('../models/User');
 
 const upload = multer({ dest: 'temp-uploads/' });
 exports.uploadCsv = upload.single('clientCsv');
+
+// ADDED: New function to create a support chat
+exports.createSupportChat = async (req, res) => {
+    try {
+        const requestingUser = req.user;
+
+        // Find all users with the IT role
+        const itUsers = await User.find({ role: 'IT' }).select('_id');
+        if (itUsers.length === 0) {
+            return res.status(404).json({ success: false, message: 'No IT support staff are available.' });
+        }
+
+        const itUserIds = itUsers.map(user => user._id);
+        const participants = [requestingUser._id, ...itUserIds];
+
+        // Create a new group conversation for this support request
+        const newConversation = new Conversation({
+            participants,
+            isGroup: true,
+            groupName: `Support: ${requestingUser.firstName} ${requestingUser.lastName}`,
+            groupAdmin: requestingUser._id
+        });
+
+        await newConversation.save();
+        
+        // Populate participants' details for the frontend
+        const populatedConvo = await Conversation.findById(newConversation._id).populate('participants');
+
+        // Notify all IT users in real-time that a new support chat has been created
+        const io = req.app.get('io');
+        itUserIds.forEach(id => {
+            io.to(id.toString()).emit('newConversation', populatedConvo);
+        });
+
+        res.status(201).json({ success: true, conversation: populatedConvo });
+    } catch (error) {
+        console.error("Error creating support chat:", error);
+        res.status(500).json({ success: false, message: 'Could not create support chat.' });
+    }
+};
+
+
 
 exports.updateLocation = async (req, res) => {
     try {

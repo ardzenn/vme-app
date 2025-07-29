@@ -6,7 +6,9 @@ const productSchema = new mongoose.Schema({
     category: { type: String, required: true },
     price: { type: Number, required: true, default: 0 },
     unit: { type: String, default: 'pcs' },
-    imageUrl: { type: String, required: true }
+    imageUrl: { type: String, required: true },
+    // ADDED: New field for soft deletion/archiving
+    isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 
 module.exports = mongoose.models.Product || mongoose.model('Product', productSchema);

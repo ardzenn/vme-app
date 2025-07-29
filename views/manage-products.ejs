@@ -12,8 +12,8 @@
     <main class="container my-5">
         <header class="page-header">
             <div>
-                <h1>Manage Products</h1>
-                <p class="text-muted">Add, import, or remove products from the gallery.</p>
+                <h1>Manage Products & Inventory</h1>
+                <p class="text-muted">Add products and manage stock levels.</p>
             </div>
             <a href="/products" class="btn btn-secondary">View Gallery</a>
         </header>
@@ -22,7 +22,7 @@
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
         <div class="row g-5">
-             <div class="col-lg-5">
+            <div class="col-lg-5">
                 <div class="card mb-4">
                     <div class="card-header"><h5 class="mb-0">Add New Product</h5></div>
                      <div class="card-body">
@@ -48,11 +48,11 @@
                     </div>
                 </div>
 
-                 <div class="card">
+                <div class="card">
                     <div class="card-header"><h5 class="mb-0">Bulk Import from CSV</h5></div>
                     <div class="card-body">
                         <form action="/products/import" method="POST" enctype="multipart/form-data">
-                             <div class="mb-3"><label for="productCsv" class="form-label">Upload CSV File</label><input type="file" id="productCsv" name="productCsv" class="form-control" required accept=".csv"><div class="form-text">CSV must have columns: Name, Description, Category, Price, Unit</div></div>
+                              <div class="mb-3"><label for="productCsv" class="form-label">Upload CSV File</label><input type="file" id="productCsv" name="productCsv" class="form-control" required accept=".csv"><div class="form-text">CSV must have columns: Name, Description, Category, Price, Unit, ImageUrl</div></div>
                             <button type="submit" class="btn btn-secondary w-100">Import Products</button>
                          </form>
                     </div>
@@ -62,28 +62,30 @@
             <div class="col-lg-7">
                 <div class="card">
                      <div class="card-header"><h5 class="mb-0">Existing Products</h5></div>
-                    <div class="card-body">
+                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
-                                 <thead><tr><th>Image</th><th>Name</th><th>Price</th><th>Unit</th><th>Category</th><th>Actions</th></tr></thead>
+                                  <thead><tr><th>Image</th><th>Name</th><th>Stock on Hand</th><th>Price</th><th>Actions</th></tr></thead>
                                  <tbody>
                                     <% products.forEach(product => { %>
-                                         <tr>
+                                        <tr>
                                             <td><img src="<%= product.imageUrl %>" alt="<%= product.name %>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 0.25rem;"></td>
                                             <td><%= product.name %></td>
+                                            <td><strong><%= product.totalStock || 0 %></strong> <%= product.unit %></td>
                                             <td>₱<%= (product.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></td>
-                                            <td><%= product.unit %></td>
-                                            <td><%= product.category %></td>
-                                             <td>
-                                                <form action="/products/delete/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');">
-                                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                                 </form>
+                                            <td>
+                                                <div class="d-flex gap-2">
+                                                    <a href="/products/inventory/<%= product._id %>" class="btn btn-sm btn-primary">Manage Inventory</a>
+                                                    <form action="/products/toggle-status/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to archive this product?');" class="d-inline">
+                                                        <button type="submit" class="btn btn-sm btn-danger">Archive</button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
-                                     <% }) %>
+                                    <% }) %>
                                 </tbody>
                             </table>
-                         </div>
+                        </div>
                     </div>
                 </div>
             </div>

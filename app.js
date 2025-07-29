@@ -35,6 +35,10 @@ require('./models/DailyReport');
 require('./models/DailyPlan');
 require('./models/WeeklyItinerary');
 require('./models/Product');
+require('./models/StockItem');
+require('./models/InventoryMovement');
+require('./models/Post');
+require('./models/Comment');
 const User = require('./models/User');
 
 
@@ -111,6 +115,10 @@ async function startServer() {
         app.use('/push', require('./routes/push'));
         app.use('/transactions', require('./routes/transactions'));
         app.use('/notifications', require('./routes/notifications'));
+        app.use('/api/conversations', require('./routes/conversations'));
+        app.use('/feed', require('./routes/feed'));
+
+
 
         app.get('/health', (req, res) => {
             res.status(200).json({ status: 'ok', uptime: process.uptime() });

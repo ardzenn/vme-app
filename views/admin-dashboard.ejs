@@ -55,6 +55,7 @@
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Itinerary</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-reports-panel">Daily Reports</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#location-log-panel">Location Log</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#map-panel">Live Map</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#users-panel">User Management</button></li>
         </ul>
@@ -253,6 +254,36 @@
                 </div>
             </div>
 
+            <div class="tab-pane fade" id="location-log-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <input type="text" id="locationLogSearch" class="form-control mb-3" placeholder="Search by user or location...">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="locationLogTable">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Last Known Location</th>
+                                        <th>Last Update</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% users.forEach(user => { %>
+                                        <% if (user.role === 'MSR' || user.role === 'KAS') { %>
+                                            <tr id="location-row-<%= user._id %>" data-search="<%= `${user.firstName} ${user.lastName}`.toLowerCase() %> <%= (user.lastKnownAddress || '').toLowerCase() %>">
+                                                <td><%= user.firstName %> <%= user.lastName %></td>
+                                                <td class="location-address"><%= user.lastKnownAddress || 'N/A' %></td>
+                                                <td class="location-update-time"><%= user.lastLocationUpdate ? new Date(user.lastLocationUpdate).toLocaleString() : 'N/A' %></td>
+                                            </tr>
+                                        <% } %>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="tab-pane fade" id="map-panel" role="tabpanel">
                  <div class="card card-tab"><div class="card-body">
                      <div id="map" style="height: 60vh; width: 100%;"></div>
@@ -343,6 +374,7 @@
             setupSearch('dailyPlanSearch', 'dailyPlanTable');
             setupSearch('weeklyItinerarySearch', 'weeklyItineraryTable');
             setupSearch('dailyReportSearch', 'dailyReportTable');
+            setupSearch('locationLogSearch', 'locationLogTable'); // Added search for new log
             
             const socket = io();
             const onlineUsersCountEl = document.getElementById('online-users-count');
@@ -360,40 +392,67 @@
                 });
             }
             
-            socket.on('updateUserList', (onlineUsers) => {
-                if(onlineUsersCountEl) onlineUsersCountEl.textContent = onlineUsers.length;
-                if (!map) return;
-                const onlineUserIds = new Set(onlineUsers.map(u => u._id));
+            // MODIFIED: This now updates map markers AND the location log
+            const updateUserListAndMap = (users) => {
+                if(onlineUsersCountEl) onlineUsersCountEl.textContent = users.length;
+                
+                const onlineUserIds = new Set(users.map(u => u._id));
                 for (const userId in userMarkers) {
                     if (!onlineUserIds.has(userId)) {
                         userMarkers[userId].remove();
                         delete userMarkers[userId];
                     }
                 }
-                onlineUsers.forEach(user => {
+
+                users.forEach(user => {
                     if (user.lastLocation && user.lastLocation.coordinates.length === 2) {
                         const [lng, lat] = user.lastLocation.coordinates;
-                        if (lat !== 0 && lng !== 0) {
+                        const address = user.lastKnownAddress || 'Getting address...';
+
+                        // Update Map
+                        if (map && lat !== 0 && lng !== 0) {
+                            const popupContent = `<b>${user.firstName} ${user.lastName}</b><br>${address}`;
                             if (userMarkers[user._id]) {
-                                userMarkers[user._id].setLatLng([lat, lng]);
+                                userMarkers[user._id].setLatLng([lat, lng]).setPopupContent(popupContent);
                             } else {
-                                const marker = L.marker([lat, lng]).addTo(map).bindPopup(`<b>${user.firstName} ${user.lastName}</b><br>${user.role}`);
-                                userMarkers[user._id] = marker;
+                                userMarkers[user._id] = L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
                             }
                         }
                     }
                 });
+            };
+
+            socket.on('updateUserList', (onlineUsers) => {
+                updateUserListAndMap(onlineUsers);
             });
 
+            // MODIFIED: This now updates map marker AND the location log
             socket.on('locationUpdate', (user) => {
-                if (!map || !user.lastLocation) return;
+                if (!user) return;
+                
                 const [lng, lat] = user.lastLocation.coordinates;
-                if (lat === 0 && lng === 0) return;
-                if (userMarkers[user._id]) {
-                    userMarkers[user._id].setLatLng([lat, lng]);
-                } else {
-                    const marker = L.marker([lat, lng]).addTo(map).bindPopup(`<b>${user.firstName} ${user.lastName}</b><br>${user.role}`);
-                    userMarkers[user._id] = marker;
+                const address = user.lastKnownAddress || 'Address not available';
+                const updateTime = new Date(user.lastLocationUpdate).toLocaleString();
+
+                // Update Map
+                if (map && lat !== 0 && lng !== 0) {
+                    const popupContent = `<b>${user.firstName} ${user.lastName}</b><br>${address}`;
+                    if (userMarkers[user._id]) {
+                        userMarkers[user._id].setLatLng([lat, lng]).setPopupContent(popupContent);
+                    } else {
+                        userMarkers[user._id] = L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
+                    }
+                }
+
+                // Update Location Log Table
+                const logRow = document.getElementById(`location-row-${user._id}`);
+                if (logRow) {
+                    const addressCell = logRow.querySelector('.location-address');
+                    const timeCell = logRow.querySelector('.location-update-time');
+                    if (addressCell) addressCell.textContent = address;
+                    if (timeCell) timeCell.textContent = updateTime;
+                    logRow.classList.add('new-entry-flash');
+                    setTimeout(() => logRow.classList.remove('new-entry-flash'), 2000);
                 }
             });
 
@@ -412,7 +471,7 @@
                 }
 
                 const newRow = document.createElement('tr');
-                newRow.id = `checkin-row-${checkin._id}`; // Add ID to find the row later
+                newRow.id = `checkin-row-${checkin._id}`;
                 newRow.classList.add('new-entry-flash');
 
                 const userName = checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A';
@@ -435,12 +494,11 @@
                 tableBody.prepend(newRow);
             });
             
-            // **ADDED: Real-time listener for the location update**
             socket.on('checkInLocationUpdated', (data) => {
                 const row = document.getElementById(`checkin-row-${data.checkInId}`);
                 if (!row) return;
 
-                const locationCell = row.cells[3]; // The 4th cell is the location
+                const locationCell = row.cells[3];
                 if(locationCell) {
                     locationCell.innerHTML = `<img src="${data.mapImageUrl}" alt="Map" style="width: 150px; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('${data.mapImageUrl}')">`;
                 }

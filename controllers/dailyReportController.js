@@ -1,8 +1,9 @@
 const DailyReport = require('../models/DailyReport');
 const CheckIn = require('../models/CheckIn');
 const User = require('../models/User');
-const { Parser } = require('json2csv'); // ADDED: Library for CSV export
+const { Parser } = require('json2csv');
 const { sendNotificationToAdmins } = require('./pushController');
+const { createNotificationsForGroup, getAdminAndITIds } = require('../services/notificationService');
 const upload = require('../config/cloudinary');
 
 exports.uploadAttachments = upload.array('attachments', 10);
@@ -39,27 +40,15 @@ exports.getReportForm = async (req, res) => {
 exports.submitReport = async (req, res) => {
     try {
         const {
-            lastClientVisited,
-            accomplishments,
-            pharmacists,
-            accountingStaff,
-            sales,
-            collectionsCurrent,
-            collectionsOverdue,
-            meal,
-            transportation,
-            toll,
-            parking,
-            lodging
+            lastClientVisited, accomplishments, pharmacists, accountingStaff, sales,
+            collectionsCurrent, collectionsOverdue, meal, transportation, toll, parking, lodging
         } = req.body;
         const visitedCalls = req.body.hospitals.map((hospital, index) => ({
             hospital: hospital,
             doctor: req.body.doctors[index]
         }));
         const newReport = new DailyReport({
-            user: req.user.id,
-            lastClientVisited,
-            visitedCalls,
+            user: req.user.id, lastClientVisited, visitedCalls,
             callSummary: {
                 hospitals: [...new Set(req.body.hospitals)].length,
                 mds: req.body.doctors.length,
@@ -76,12 +65,22 @@ exports.submitReport = async (req, res) => {
             attachments: req.files ? req.files.map(file => file.path) : []
         });
         await newReport.save();
+
+        // --- Create In-App Notification ---
+        const io = req.app.get('io');
+        const adminIds = await getAdminAndITIds();
+        const notificationText = `${req.user.firstName} ${req.user.lastName} submitted their End of Day Report.`;
+        const notificationLink = `/report/${newReport._id}`;
+        await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
+
+        // --- Send Push Notification ---
         const payload = {
             title: 'New Daily Report Submitted',
             body: `A new "Last Call" report was submitted by ${req.user.firstName} ${req.user.lastName}.`,
             url: `/report/${newReport._id}`
         };
         sendNotificationToAdmins(payload);
+
         req.flash('success_msg', 'Daily report submitted successfully!');
         res.redirect('/dashboard');
     } catch (err) {
@@ -133,36 +132,25 @@ exports.getDailyCheckInReport = async (req, res) => {
     }
 };
 
-// NEW FUNCTION: To handle the CSV export for the daily check-in report.
 exports.exportDailyCheckInReport = async (req, res) => {
     try {
         const startDate = req.query.startDate ? new Date(req.query.startDate) : new Date(0);
         const endDate = req.query.endDate ? new Date(req.query.endDate) : new Date();
         const userId = req.query.userId;
-
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
-
         const filter = { createdAt: { $gte: startDate, $lte: endDate } };
         if (userId) filter.user = userId;
-
         const checkIns = await CheckIn.find(filter)
             .populate('user', 'firstName lastName')
             .populate('hospital', 'name')
             .populate('doctor', 'name')
             .sort({ createdAt: -1 });
-        
         const fields = [
-            { label: 'User', value: 'user' },
-            { label: 'Date', value: 'date' },
-            { label: 'Time', value: 'time' },
-            { label: 'Hospital', value: 'hospital' },
-            { label: 'Doctor', value: 'doctor' },
-            { label: 'Activity', value: 'activity' },
-            { label: 'Proof URL', value: 'proof' },
-            { label: 'Signature URL', value: 'signature' }
+            { label: 'User', value: 'user' }, { label: 'Date', value: 'date' }, { label: 'Time', value: 'time' },
+            { label: 'Hospital', value: 'hospital' }, { label: 'Doctor', value: 'doctor' }, { label: 'Activity', value: 'activity' },
+            { label: 'Proof URL', value: 'proof' }, { label: 'Signature URL', value: 'signature' }
         ];
-        
         const data = checkIns.map(checkin => ({
             user: checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A',
             date: new Date(checkin.createdAt).toLocaleDateString(),
@@ -173,14 +161,11 @@ exports.exportDailyCheckInReport = async (req, res) => {
             proof: checkin.proof || '',
             signature: checkin.signature || ''
         }));
-        
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(data);
-
         res.header('Content-Type', 'text/csv');
         res.attachment(`daily-check-in-report-${new Date().toISOString().split('T')[0]}.csv`);
         res.send(csv);
-
     } catch (err) {
         console.error("Error exporting daily check-in report:", err);
         res.status(500).send("Error generating report");

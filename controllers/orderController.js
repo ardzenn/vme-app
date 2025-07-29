@@ -2,7 +2,7 @@ const Order = require('../models/Order');
 const Message = require('../models/Message');
 const crypto = require('crypto');
 const upload = require('../config/cloudinary');
-const { createNotification } = require('../services/notificationService');
+const { createNotification, createNotificationsForGroup, getAdminAndITIds, getFinanceAndAdminIds } = require('../services/notificationService');
 
 exports.uploadAttachment = upload.single('attachment');
 
@@ -39,6 +39,14 @@ exports.bookOrder = async (req, res) => {
 
         const newOrder = new Order(newOrderData);
         await newOrder.save();
+        
+        // --- Create Notifications ---
+        const io = req.app.get('io');
+        const financeUsers = await getFinanceAndAdminIds();
+        const notificationText = `${req.user.firstName} ${req.user.lastName} booked a new sales order (#${reference}).`;
+        const notificationLink = `/admin-dashboard`; // Or a future specific order link
+        await createNotificationsForGroup(io, financeUsers, notificationText, notificationLink);
+
         req.flash('success_msg', `Order #${reference} has been successfully booked!`);
         res.redirect('/dashboard');
 
@@ -54,10 +62,11 @@ exports.updateOrder = async (req, res) => {
         const { salesInvoice, status, paymentStatus } = req.body;
         const order = await Order.findByIdAndUpdate(req.params.id, { salesInvoice, status, paymentStatus });
 
+        // Notify the original user that their order was updated
         if (order && order.user.toString() !== req.user.id.toString()) {
             const io = req.app.get('io');
             const notificationText = `Your order #${order.reference} status was updated to "${status}".`;
-            createNotification(io, order.user, notificationText, `/dashboard`);
+            await createNotification(io, order.user, notificationText, `/dashboard`);
         }
 
         req.flash('success_msg', 'Order updated successfully!');
@@ -98,13 +107,19 @@ exports.addMessageToOrder = async (req, res) => {
         });
         await message.save();
 
-        await Order.findByIdAndUpdate(orderId, { $push: { messages: message._id } });
+        const order = await Order.findByIdAndUpdate(orderId, { $push: { messages: message._id } });
         
         const populatedMessage = await Message.findById(message._id).populate('sender', 'firstName lastName profilePicture');
         
         const io = req.app.get('io');
         io.to(`order_${orderId}`).emit('newOrderMessage', populatedMessage);
         
+        // --- Create Notification for other participants ---
+        const recipientIds = order.participants.filter(pId => pId.toString() !== req.user.id.toString());
+        const notificationText = `${req.user.firstName} commented on order #${order.reference}.`;
+        const notificationLink = `/admin-dashboard`; // Link should ideally open the order modal
+        await createNotificationsForGroup(io, recipientIds, notificationText, notificationLink);
+
         res.json({ success: true, message: populatedMessage });
     } catch (err) {
         console.error("Add message error:", err);

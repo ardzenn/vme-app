@@ -3,33 +3,22 @@ const router = express.Router();
 const productController = require('../controllers/productController');
 const { ensureAuthenticated, ensureAdmin } = require('../middleware/auth');
 
-// GET route to display the main product gallery for all users
+// --- PRODUCT ROUTES ---
 router.get('/', ensureAuthenticated, productController.getProductGallery);
-
-// GET route for Admins to manage products
 router.get('/manage', ensureAuthenticated, ensureAdmin, productController.getManageProducts);
+router.post('/add', ensureAuthenticated, ensureAdmin, productController.uploadProductImage, productController.addProduct);
 
-// POST route to add a single new product
-router.post('/add', 
+// MODIFIED: This route now archives/restores a product instead of deleting
+router.post('/toggle-status/:id', 
     ensureAuthenticated, 
     ensureAdmin, 
-    productController.uploadProductImage, 
-    productController.addProduct
+    productController.toggleProductStatus
 );
 
-// ** DELETE ROUTE PATH CORRECTED **
-router.post('/delete/:id', 
-    ensureAuthenticated, 
-    ensureAdmin, 
-    productController.deleteProduct
-);
+router.post('/import', ensureAuthenticated, ensureAdmin, productController.uploadCsvFile, productController.importProducts);
 
-// POST route to bulk add products from a CSV file
-router.post('/import', 
-    ensureAuthenticated, 
-    ensureAdmin, 
-    productController.uploadCsvFile, 
-    productController.importProducts
-);
+// --- INVENTORY ROUTES ---
+router.get('/inventory/:id', ensureAuthenticated, ensureAdmin, productController.getInventoryDetail);
+router.post('/inventory/receive/:id', ensureAuthenticated, ensureAdmin, productController.receiveStock);
 
 module.exports = router;

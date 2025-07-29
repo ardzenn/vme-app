@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Feed - VME App</title>
+    <%- include('partials/header-meta') %>
+    <style>
+        .post-card { margin-bottom: 1.5rem; }
+        .post-author-img { width: 45px; height: 45px; object-fit: cover; }
+        .post-img { max-height: 400px; object-fit: cover; }
+        .like-btn.liked { color: var(--bs-primary); font-weight: bold; }
+        .comment { background-color: #f8f9fa; border-radius: 15px; }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    <main class="container my-5" style="max-width: 700px;">
+        <header class="page-header">
+            <h1>Company Feed</h1>
+            <p class="text-muted">See updates from everyone in the company.</p>
+        </header>
+
+        <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
+
+        <div class="card post-card">
+            <div class="card-body">
+                <form action="/feed/posts" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <textarea name="content" class="form-control" rows="3" placeholder="What's on your mind, <%= currentUser.firstName %>?"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <input type="file" name="postImage" class="form-control form-control-sm w-50" accept="image/*">
+                        <button type="submit" class="btn btn-primary">Post Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="feed-container">
+            <% posts.forEach(post => { %>
+                <div class="card post-card" id="post-<%= post._id %>">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="<%= post.author.profilePicture %>" alt="<%= post.author.firstName %>" class="rounded-circle post-author-img me-3">
+                            <div>
+                                <strong><%= post.author.firstName %> <%= post.author.lastName %></strong>
+                                <div class="text-muted small"><%= new Date(post.createdAt).toLocaleString() %></div>
+                            </div>
+                        </div>
+                        <p class="card-text" style="white-space: pre-wrap;"><%= post.content %></p>
+                    </div>
+                    <% if(post.imageUrl) { %>
+                        <img src="<%= post.imageUrl %>" class="card-img-bottom post-img" alt="Post image">
+                    <% } %>
+                    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-link text-decoration-none like-btn <%= post.likes.includes(currentUser.id) ? 'liked' : '' %>" data-post-id="<%= post._id %>">
+                                <i class="fas fa-thumbs-up"></i> Like
+                            </button>
+                        </div>
+                        <span class="like-count text-muted small"><%= post.likes.length %> Likes</span>
+                    </div>
+                    <div class="card-footer bg-light">
+                        <div class="comments-section" id="comments-<%= post._id %>">
+                            <% post.comments.forEach(comment => { %>
+                                <div class="d-flex align-items-start mb-2 comment p-2">
+                                    <img src="<%= comment.author.profilePicture %>" alt="<%= comment.author.firstName %>" class="rounded-circle me-2" width="30" height="30">
+                                    <div class="flex-grow-1">
+                                        <strong><%= comment.author.firstName %> <%= comment.author.lastName %></strong>
+                                        <p class="mb-0 small"><%= comment.content %></p>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                        <form class="comment-form mt-2">
+                            <div class="input-group">
+                                <input type="text" name="content" class="form-control" placeholder="Write a comment..." required>
+                                <button class="btn btn-secondary" type="submit" data-post-id="<%= post._id %>">Post</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener('click', async (e) => {
+                if (e.target.matches('.like-btn, .like-btn *')) {
+                    const button = e.target.closest('.like-btn');
+                    const postId = button.dataset.postId;
+                    
+                    const response = await fetch(`/feed/posts/${postId}/like`, { method: 'POST' });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        button.classList.toggle('liked', result.isLiked);
+                        const countEl = button.closest('.card-footer').querySelector('.like-count');
+                        countEl.textContent = `${result.likeCount} Likes`;
+                    }
+                }
+            });
+
+            document.body.addEventListener('submit', async (e) => {
+                if (e.target.matches('.comment-form')) {
+                    e.preventDefault();
+                    const form = e.target;
+                    const input = form.querySelector('input[name="content"]');
+                    const button = form.querySelector('button');
+                    const postId = button.dataset.postId;
+                    const content = input.value.trim();
+
+                    if (content) {
+                        const response = await fetch(`/feed/posts/${postId}/comments`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content })
+                        });
+                        const result = await response.json();
+
+                        if (result.success) {
+                            const newComment = result.comment;
+                            const commentList = document.getElementById(`comments-${postId}`);
+                            
+                            const commentEl = document.createElement('div');
+                            commentEl.className = 'd-flex align-items-start mb-2 comment p-2';
+                            commentEl.innerHTML = `
+                                <img src="${newComment.author.profilePicture}" alt="${newComment.author.firstName}" class="rounded-circle me-2" width="30" height="30">
+                                <div class="flex-grow-1">
+                                    <strong>${newComment.author.firstName} ${newComment.author.lastName}</strong>
+                                    <p class="mb-0 small">${newComment.content}</p>
+                                </div>`;
+                            commentList.appendChild(commentEl);
+                            input.value = '';
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
