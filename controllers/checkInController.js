@@ -8,26 +8,18 @@ exports.uploadProofImage = upload.single('proof');
 
 exports.createCheckIn = async (req, res) => {
     try {
-        const { hospitalName, doctorName, activity, notes, lat, lng, proof_base64, signature } = req.body;
-
-        if (!lat || !lng || isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {
-            req.flash('error_msg', 'Geolocation is required to submit a check-in. Please ensure you allow location access.');
-            return res.redirect('/dashboard');
-        }
+        const { hospitalName, doctorName, activity, notes, proof_base64, signature } = req.body;
 
         if (!hospitalName || !doctorName || !activity) {
-            req.flash('error_msg', 'Hospital, Doctor, and Activity are all required fields.');
-            return res.redirect('/dashboard');
+            return res.status(400).json({ success: false, message: 'Hospital, Doctor, and Activity are required.' });
         }
 
-        // Find or create hospital for the current user
         let hospital = await Hospital.findOneAndUpdate(
             { name: hospitalName.trim(), createdBy: req.user.id },
             { $setOnInsert: { name: hospitalName.trim(), createdBy: req.user.id } },
             { upsert: true, new: true }
         );
 
-        // Find or create doctor for that hospital
         let doctor = await Doctor.findOneAndUpdate(
             { name: doctorName.trim(), hospital: hospital._id, createdBy: req.user.id },
             { $setOnInsert: { name: doctorName.trim(), hospital: hospital._id, createdBy: req.user.id } },
@@ -40,18 +32,7 @@ exports.createCheckIn = async (req, res) => {
             doctor: doctor.id,
             activity,
             notes,
-            location: {
-                lat: parseFloat(lat),
-                lng: parseFloat(lng)
-            },
         };
-        
-        const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
-        if (mapboxToken && lat && lng) {
-            const latitude = parseFloat(lat);
-            const longitude = parseFloat(lng);
-            newCheckInData.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${longitude},${latitude})/${longitude},${latitude},15,0/600x300?access_token=${mapboxToken}`;
-        }
         
         if (req.file) {
             newCheckInData.proof = req.file.path;
@@ -74,15 +55,66 @@ exports.createCheckIn = async (req, res) => {
         const newCheckIn = new CheckIn(newCheckInData);
         await newCheckIn.save();
 
-        req.flash('success_msg', 'Check-in submitted successfully!');
-        res.redirect('/dashboard');
+        const populatedCheckIn = await CheckIn.findById(newCheckIn._id)
+            .populate('user', 'firstName lastName')
+            .populate('hospital', 'name')
+            .populate('doctor', 'name');
+            
+        const io = req.app.get('io');
+        io.emit('newCheckIn', populatedCheckIn);
+
+        res.status(201).json({
+            success: true,
+            message: 'Check-in submitted! Capturing location in the background...',
+            checkIn: newCheckIn
+        });
 
     } catch (err) {
         console.error("Check-in Error:", err);
-        req.flash('error_msg', 'Failed to submit check-in.');
-        res.redirect('/dashboard');
+        res.status(500).json({ success: false, message: 'Failed to submit check-in due to a server error.' });
     }
 };
+
+// MODIFIED: This function now emits an event after updating the location
+exports.updateLocation = async (req, res) => {
+    try {
+        const { lat, lng } = req.body;
+        const checkIn = await CheckIn.findById(req.params.id);
+
+        if (!checkIn) {
+            return res.status(404).json({ success: false, message: 'Check-in record not found.' });
+        }
+
+        if (checkIn.location && checkIn.location.coordinates && checkIn.location.coordinates[0] !== 0) {
+            return res.status(400).json({ success: false, message: 'Location is already set for this check-in.' });
+        }
+
+        checkIn.location = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        
+        const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+        if (mapboxToken && lat && lng) {
+            const latitude = parseFloat(lat);
+            const longitude = parseFloat(lng);
+            checkIn.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${longitude},${latitude})/${longitude},${latitude},15,0/600x300?access_token=${mapboxToken}`;
+        }
+        
+        await checkIn.save();
+
+        // **ADDED: Broadcast the location update to all clients**
+        const io = req.app.get('io');
+        io.emit('checkInLocationUpdated', {
+            checkInId: checkIn._id,
+            mapImageUrl: checkIn.mapImageUrl
+        });
+
+        res.status(200).json({ success: true, message: 'Location updated successfully.' });
+
+    } catch (error) {
+        console.error("Location Update Error:", error);
+        res.status(500).json({ success: false, message: 'Server error while updating location.' });
+    }
+};
+
 
 exports.getCheckIns = async (req, res) => {
     try {

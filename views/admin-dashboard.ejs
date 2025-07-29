@@ -11,6 +11,13 @@
         .is-new td {
             font-weight: bold;
         }
+        .new-entry-flash {
+            animation: flash-bg 2s ease-out;
+        }
+        @keyframes flash-bg {
+            0% { background-color: #f5c400; }
+            100% { background-color: transparent; }
+        }
     </style>
 </head>
 <body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
@@ -24,8 +31,8 @@
                 <p style="margin: 0;">System overview and management.</p>
              </div>
               <div class="d-flex align-items-center gap-2">
-                <a href="/report/check-ins" class="btn btn-success">Check-in Report</a>
-                <a href="/planning/coverage-report" class="btn btn-info">Weekly Coverage Report</a>
+                <a href="/report/check-ins" class="btn btn-success">Daily Check-in Report</a>
+                <a href="/planning/coverage-report" class="btn btn-info">Weekly Check In Report</a>
                 <a href="/analytics" class="btn btn-warning">View Analytics</a>
                 <a href="/products" class="btn btn-dark">View Product Gallery</a>
               </div>
@@ -37,7 +44,7 @@
         <div class="row mb-4">
             <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Total Users</h5><p class="card-text fs-2 fw-bold"><%= stats.totalUsers %></p></div></div></div>
              <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Pending Approvals</h5><p class="card-text fs-2 fw-bold"><%= stats.pendingUsers %></p></div></div></div>
-            <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Check-ins (Today)</h5><p class="card-text fs-2 fw-bold"><%= stats.checkInsToday %></p></div></div></div>
+            <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Check-ins (Today)</h5><p class="card-text fs-2 fw-bold" id="checkins-today-count"><%= stats.checkInsToday %></p></div></div></div>
             <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Online Now</h5><p class="card-text fs-2 fw-bold" id="online-users-count">0</p></div></div></div>
         </div>
 
@@ -47,7 +54,7 @@
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel">Check-in History</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Itinerary</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>
-            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-reports-panel">Daily Coverage Report</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-reports-panel">Daily Reports</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#map-panel">Live Map</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#users-panel">User Management</button></li>
         </ul>
@@ -109,7 +116,7 @@
                                     <% if(checkins.length > 0) { %>
                                         <% checkins.forEach(checkin => { %>
                                             <% if (checkin.user) { %>
-                                                <tr data-search="<%= `${checkin.user.firstName} ${checkin.user.lastName}`.toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
+                                                <tr id="checkin-row-<%= checkin._id %>" data-search="<%= `${checkin.user.firstName} ${checkin.user.lastName}`.toLowerCase() %> <%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
                                                     <td><%= `${checkin.user.firstName} ${checkin.user.lastName}` %></td>
                                                     <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
                                                     <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
@@ -147,7 +154,7 @@
                                             <% } %>
                                         <% }) %>
                                     <% } else { %>
-                                         <tr><td colspan="8" class="text-center p-4">No check-in history found.</td></tr>
+                                         <tr id="no-checkins-row"><td colspan="8" class="text-center p-4">No check-in history found.</td></tr>
                                     <% } %>
                                  </tbody>
                             </table>
@@ -335,7 +342,6 @@
             setupSearch('checkinSearch', 'checkinTable');
             setupSearch('dailyPlanSearch', 'dailyPlanTable');
             setupSearch('weeklyItinerarySearch', 'weeklyItineraryTable');
-            // ADDED: Setup search for the new reports table
             setupSearch('dailyReportSearch', 'dailyReportTable');
             
             const socket = io();
@@ -388,6 +394,55 @@
                 } else {
                     const marker = L.marker([lat, lng]).addTo(map).bindPopup(`<b>${user.firstName} ${user.lastName}</b><br>${user.role}`);
                     userMarkers[user._id] = marker;
+                }
+            });
+
+            socket.on('newCheckIn', (checkin) => {
+                const tableBody = document.querySelector('#checkinTable tbody');
+                if (!tableBody) return;
+
+                const checkinsTodayCountEl = document.getElementById('checkins-today-count');
+                if (checkinsTodayCountEl) {
+                    checkinsTodayCountEl.textContent = parseInt(checkinsTodayCountEl.textContent, 10) + 1;
+                }
+
+                const noCheckinsRow = document.getElementById('no-checkins-row');
+                if (noCheckinsRow) {
+                    noCheckinsRow.remove();
+                }
+
+                const newRow = document.createElement('tr');
+                newRow.id = `checkin-row-${checkin._id}`; // Add ID to find the row later
+                newRow.classList.add('new-entry-flash');
+
+                const userName = checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : 'N/A';
+                const hospitalName = checkin.hospital ? checkin.hospital.name : 'N/A';
+                const doctorName = checkin.doctor ? checkin.doctor.name : 'N/A';
+                
+                newRow.dataset.search = `${userName.toLowerCase()} ${hospitalName.toLowerCase()} ${doctorName.toLowerCase()}`;
+                
+                newRow.innerHTML = `
+                    <td>${userName}</td>
+                    <td>${hospitalName}</td>
+                    <td>${doctorName}</td>
+                    <td><span class="text-muted">No Location Yet</span></td>
+                    <td>${checkin.activity || 'N/A'}</td>
+                    <td>${checkin.proof ? `<img src="${checkin.proof}" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('${checkin.proof}')">` : '<span class="text-muted">No Proof</span>'}</td>
+                    <td>${checkin.signature ? `<img src="${checkin.signature}" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('${checkin.signature}')">` : '<span class="text-muted">No Signature</span>'}</td>
+                    <td>${new Date(checkin.createdAt).toLocaleString()}</td>
+                `;
+                
+                tableBody.prepend(newRow);
+            });
+            
+            // **ADDED: Real-time listener for the location update**
+            socket.on('checkInLocationUpdated', (data) => {
+                const row = document.getElementById(`checkin-row-${data.checkInId}`);
+                if (!row) return;
+
+                const locationCell = row.cells[3]; // The 4th cell is the location
+                if(locationCell) {
+                    locationCell.innerHTML = `<img src="${data.mapImageUrl}" alt="Map" style="width: 150px; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('${data.mapImageUrl}')">`;
                 }
             });
 
