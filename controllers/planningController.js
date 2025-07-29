@@ -2,7 +2,9 @@ const DailyPlan = require('../models/DailyPlan');
 const WeeklyItinerary = require('../models/WeeklyItinerary');
 const CheckIn = require('../models/CheckIn');
 const User = require('../models/User');
+const Hospital = require('../models/Hospital'); // Added for the form
 const { Parser } = require('json2csv');
+const moment = require('moment-timezone'); // Added for robust date handling
 
 // --- Weekly Itinerary Forms & Submission (No changes here) ---
 exports.getWeeklyItineraryForm = async (req, res) => {
@@ -102,26 +104,38 @@ exports.getMyPlans = async (req, res) => {
         res.redirect('/dashboard');
     }
 };
+
+// **MODIFIED** - This function now gets required data and handles existing plans
 exports.getDailyPlanForm = async (req, res) => {
     try {
-        const planDate = new Date().toISOString().split('T')[0];
-        let plan = await DailyPlan.findOne({ user: req.user.id, planDate: new Date(planDate) });
-        if (!plan) {
-            plan = {
-                itinerary: [''],
-                salesObjectives: [{ objective: '' }],
-                targetCollections: {
-                    current: [{ client: '', amount: '' }],
-                    overdue: [{ client: '', siDrNumber: '', date: '', amount: '' }]
-                }
-            };
+        // Use moment-timezone to accurately get today's date for the user
+        const userTimezone = req.user.timezone || 'Asia/Manila';
+        const today = moment.tz(userTimezone).startOf('day');
+
+        const existingPlan = await DailyPlan.findOne({
+            user: req.user.id,
+            planDate: today.toDate()
+        });
+
+        if (existingPlan) {
+            req.flash('error_msg', 'You have already submitted a plan for today. You can view or edit it from "My Plans".');
+            return res.redirect('/planning/my-plans');
         }
-        res.render('daily-plan-form', { planDate, plan });
+
+        const myHospitals = await Hospital.find({ createdBy: req.user.id }).sort({ name: 1 });
+
+        res.render('daily-plan-form', {
+            planDate: today.format('YYYY-MM-DD'),
+            myHospitals,
+            plan: {} // Pass empty object for a new plan
+        });
     } catch (err) {
-        req.flash('error_msg', 'Could not load daily plan form.');
+        console.error("Error loading daily plan form:", err);
+        req.flash('error_msg', 'Could not load the daily plan form.');
         res.redirect('/planning/my-plans');
     }
 };
+
 exports.getDailyPlanForEdit = async (req, res) => {
     try {
         let plan = await DailyPlan.findById(req.params.id).lean();
@@ -129,54 +143,55 @@ exports.getDailyPlanForEdit = async (req, res) => {
             req.flash('error_msg', 'Plan not found or you do not have permission to edit it.');
             return res.redirect('/planning/my-plans');
         }
-        const planDate = plan.planDate.toISOString().split('T')[0];
-        if (!plan.itinerary || plan.itinerary.length === 0) plan.itinerary = [''];
-        if (!plan.salesObjectives || plan.salesObjectives.length === 0) plan.salesObjectives = [{ objective: '' }];
-        if (!plan.targetCollections) plan.targetCollections = {};
-        if (!plan.targetCollections.current || plan.targetCollections.current.length === 0) plan.targetCollections.current = [{ client: '', amount: '' }];
-        if (!plan.targetCollections.overdue || plan.targetCollections.overdue.length === 0) plan.targetCollections.overdue = [{ client: '', siDrNumber: '', date: null, amount: '' }];
-        res.render('daily-plan-form', { planDate, plan });
+        
+        const myHospitals = await Hospital.find({ createdBy: req.user.id }).sort({ name: 1 });
+        const planDate = moment(plan.planDate).format('YYYY-MM-DD');
+
+        res.render('daily-plan-form', { planDate, plan, myHospitals });
     } catch (err) {
-        req.flash('error_msg', 'Could not load the daily plan form.');
+        req.flash('error_msg', 'Could not load the daily plan form for editing.');
         res.redirect('/planning/my-plans');
     }
 };
 
+// **MODIFIED** - This function now handles JSON requests from the new form
 exports.submitDailyPlan = async (req, res) => {
     try {
-        const { planDate, firstClientCall, areasToVisit, itinerary, salesObjectives, targetCollections } = req.body;
-        const planData = {
-            user: req.user.id,
-            planDate: new Date(planDate),
-            firstClientCall,
-            areasToVisit,
-            itinerary: (itinerary || []).filter(item => item && item.trim() !== ''),
-            salesObjectives: (salesObjectives || []).filter(o => o.objective && o.objective.trim() !== ''),
-            targetCollections: {
-                current: (targetCollections && targetCollections.current || []).filter(c => c.client && c.client.trim() !== ''),
-                overdue: (targetCollections && targetCollections.overdue || []).filter(c => c.client && c.client.trim() !== '')
-            }
-        };
+        const { planDate, firstClientCall, areasToVisit, hospitalsToVisit, salesObjectives, targetCollections } = req.body;
+        
+        const planDateObj = moment.tz(planDate, req.user.timezone || 'Asia/Manila').startOf('day').toDate();
 
-        const plan = await DailyPlan.findOneAndUpdate(
-            { user: req.user.id, planDate: planData.planDate },
-            planData,
-            { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-        ).populate('user', 'firstName lastName');
-
-        // Emit a WebSocket event to notify admins in real-time.
-        const io = req.app.get('socketio'); 
-        if (io) {
-            // this is just a test this function is not for the admin/accounting for now, we broadcast.
-            io.emit('newDailyPlan', plan);
+        // Check for an existing plan again to prevent race conditions
+        const existingPlan = await DailyPlan.findOne({ user: req.user.id, planDate: planDateObj });
+        if (existingPlan) {
+            return res.status(409).json({ success: false, message: 'A plan for this date has already been submitted.' });
         }
 
-        req.flash('success_msg', 'Daily plan saved successfully!');
-        res.redirect('/planning/my-plans');
+        const planData = {
+            user: req.user.id,
+            planDate: planDateObj,
+            firstClientCall,
+            areasToVisit,
+            hospitalsToVisit: (hospitalsToVisit || []).filter(item => item.name && item.name.trim() !== ''),
+            salesObjectives: (salesObjectives || []).filter(o => o.description && o.description.trim() !== ''),
+            targetCollections: (targetCollections || []).filter(c => c.clientName && c.clientName.trim() !== '')
+        };
+
+        const plan = await DailyPlan.create(planData);
+        const populatedPlan = await DailyPlan.findById(plan._id).populate('user', 'firstName lastName');
+
+        // Use 'io' from app settings, not 'socketio'
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('newDailyPlan', populatedPlan);
+        }
+
+        res.status(201).json({ success: true, message: 'Daily plan submitted successfully!' });
+
     } catch (err) {
         console.error("Error submitting daily plan:", err);
-        req.flash('error_msg', 'Failed to submit daily plan.');
-        res.redirect('/planning/daily-plan-form');
+        // Send a JSON error response
+        res.status(500).json({ success: false, message: 'An error occurred while saving. Please try again.' });
     }
 };
 

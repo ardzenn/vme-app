@@ -9,7 +9,7 @@
         <div class="modal-body">
           
           <div class="mb-3">
-             <label for="hospital-select" class="form-label">Hospital Name</label>
+            <label for="hospital-select" class="form-label">Hospital Name</label>
             <div id="hospital-selection-ui">
               <div class="input-group">
                 <select name="hospitalName" id="hospital-select" class="form-select" required>
@@ -19,13 +19,13 @@
                       <option value="<%= hospital.name %>" data-hospital-id="<%= hospital._id %>"><%= hospital.name %></option>
                     <% }) %>
                   <% } %>
-                 </select>
+                </select>
                 <button class="btn btn-outline-secondary" type="button" id="show-add-hospital-btn">+</button>
               </div>
             </div>
             <div id="hospital-creation-ui" style="display: none;">
               <div class="input-group">
-                 <input type="text" id="new-hospital-name-input" class="form-control" placeholder="Enter new hospital name...">
+                <input type="text" id="new-hospital-name-input" class="form-control" placeholder="Enter new hospital name...">
                 <button class="btn btn-success" type="button" id="save-new-hospital-btn">Save</button>
                 <button class="btn btn-danger" type="button" id="cancel-add-hospital-btn">X</button>
               </div>
@@ -43,11 +43,11 @@
                 </div>
             </div>
             <div id="doctor-creation-ui" style="display: none;">
-                 <div class="input-group">
+              <div class="input-group">
                     <input type="text" id="new-doctor-name-input" class="form-control" placeholder="Enter new doctor name...">
                     <button class="btn btn-success" type="button" id="save-new-doctor-btn">Save</button>
                     <button class="btn btn-danger" type="button" id="cancel-add-doctor-btn">X</button>
-                </div>
+              </div>
             </div>
           </div>
 
@@ -87,6 +87,7 @@
               <span class="visually-hidden">Loading...</span>
             </div>
             <small id="location-status" class="form-text text-muted"></small>
+            <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="getLocationBtn" style="display: none;">Allow</button>
           </div>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="submit" id="submitCheckinBtn" class="btn btn-primary" disabled>Submit Check-In</button>
@@ -99,6 +100,7 @@
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
     let allDoctors = <%- JSON.stringify(locals.allDoctors || []) %>;
     
     const checkinModalEl = document.getElementById('checkinModal');
@@ -111,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveNewHospitalBtn = document.getElementById('save-new-hospital-btn');
     const hospitalSelect = document.getElementById('hospital-select');
     const newHospitalNameInput = document.getElementById('new-hospital-name-input');
-    
     const doctorSelectUI = document.getElementById('doctor-selection-ui');
     const doctorCreateUI = document.getElementById('doctor-creation-ui');
     const showAddDoctorBtn = document.getElementById('show-add-doctor-btn');
@@ -120,12 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const doctorSelect = document.getElementById('doctor-select');
     const newDoctorNameInput = document.getElementById('new-doctor-name-input');
     const checkinForm = document.getElementById('checkinForm');
-    
     const sigCanvas = document.getElementById('signature-pad');
     const clearSigButton = document.getElementById('clear-signature');
     const sigDataInput = document.getElementById('signature-data');
     let signaturePad;
-    
     const startCameraButton = document.getElementById('start-camera-btn');
     const cameraContainer = document.getElementById('camera-container');
     const videoPreview = document.getElementById('video-preview');
@@ -135,10 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const proofBase64Input = document.getElementById('proof-base64-data');
     const proofUploadInput = document.getElementById('proof-upload');
     let stream;
-    
     const submitCheckinBtn = document.getElementById('submitCheckinBtn');
     const locationStatus = document.getElementById('location-status');
     const locationSpinner = document.getElementById('location-spinner');
+    const getLocationBtn = document.getElementById('getLocationBtn');
 
     const toggleHospitalUI = (showCreate) => {
         hospitalCreateUI.style.display = showCreate ? 'flex' : 'none';
@@ -157,11 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
     hospitalSelect.addEventListener('change', () => {
         const selectedOption = hospitalSelect.options[hospitalSelect.selectedIndex];
         const selectedHospitalId = selectedOption ? selectedOption.dataset.hospitalId : null;
-        
         doctorSelect.innerHTML = '<option value="" selected disabled>-- Select a Doctor --</option>';
         if (selectedHospitalId) {
             const doctorsInHospital = allDoctors.filter(doc => doc.hospital && doc.hospital._id === selectedHospitalId);
-            
             if (doctorsInHospital.length > 0) {
                 doctorsInHospital.forEach(doc => doctorSelect.appendChild(new Option(doc.name, doc.name)));
             } else {
@@ -219,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     const resizeCanvas = () => {
-        if (!sigCanvas.offsetParent) return; // Don't resize if modal is hidden
+        if (!sigCanvas.offsetParent) return;
         const ratio = Math.max(window.devicePixelRatio || 1, 1);
         sigCanvas.width = sigCanvas.offsetWidth * ratio;
         sigCanvas.height = sigCanvas.offsetHeight * ratio;
@@ -228,46 +225,14 @@ document.addEventListener('DOMContentLoaded', () => {
             signaturePad.clear();
         }
     };
-    
-    checkinModalEl.addEventListener('show.bs.modal', () => {
-        // Reset state on modal open
-        submitCheckinBtn.disabled = true;
-        locationStatus.textContent = 'Fetching location... Please allow permission.';
-        locationStatus.className = 'form-text text-muted';
-        locationSpinner.style.display = 'inline-block';
-
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                document.getElementById('lat').value = pos.coords.latitude;
-                document.getElementById('lng').value = pos.coords.longitude;
-                submitCheckinBtn.disabled = false;
-                locationStatus.textContent = 'Location captured successfully!';
-                locationStatus.className = 'form-text text-success';
-                locationSpinner.style.display = 'none';
-            },
-            (error) => {
-                console.error(`Geolocation error: ${error.message}`);
-                submitCheckinBtn.disabled = true;
-                locationStatus.textContent = 'Location access is required to check in.';
-                locationStatus.className = 'form-text text-danger';
-                locationSpinner.style.display = 'none';
-            },
-            { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
-        );
-    });
 
     checkinModalEl.addEventListener('shown.bs.modal', () => {
-        if (!signaturePad) {
-            signaturePad = new SignaturePad(sigCanvas);
-        } else {
-            signaturePad.clear();
-        }
+        if (!signaturePad) { signaturePad = new SignaturePad(sigCanvas); } else { signaturePad.clear(); }
         resizeCanvas();
     });
-
+    
     window.addEventListener("resize", resizeCanvas);
     clearSigButton.addEventListener('click', () => { if(signaturePad) signaturePad.clear(); });
-
     startCameraButton.addEventListener('click', async () => {
         cameraContainer.style.display = 'block';
         photoPreview.style.display = 'none';
@@ -281,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cameraContainer.style.display = 'none';
         }
     });
-    
+
     captureButton.addEventListener('click', () => {
         photoCanvas.width = videoPreview.videoWidth;
         photoCanvas.height = videoPreview.videoHeight;
@@ -292,18 +257,57 @@ document.addEventListener('DOMContentLoaded', () => {
         proofBase64Input.value = dataUrl;
         if(stream) { stream.getTracks().forEach(track => track.stop()); }
         cameraContainer.style.display = 'none';
-        proofUploadInput.value = ''; 
+        proofUploadInput.value = '';
     });
     
     checkinForm.addEventListener('submit', (event) => {
         if (signaturePad && !signaturePad.isEmpty()) {
             sigDataInput.value = signaturePad.toDataURL('image/png');
         }
-        // Add a simple confirmation alert
-        // The page will redirect after the server responds.
-        setTimeout(() => {
-            alert("Submitting your check-in...");
-        }, 100);
     });
+
+    const requestLocation = () => {
+        locationStatus.textContent = 'Fetching location... Please allow permission.';
+        locationStatus.className = 'form-text text-muted';
+        locationSpinner.style.display = 'inline-block';
+        getLocationBtn.style.display = 'none';
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                document.getElementById('lat').value = pos.coords.latitude;
+                document.getElementById('lng').value = pos.coords.longitude;
+                submitCheckinBtn.disabled = false;
+                locationStatus.textContent = 'Check in now';
+                locationStatus.className = 'form-text text-success';
+                locationSpinner.style.display = 'none';
+            },
+            (error) => {
+                console.error(`Geolocation error: ${error.message}`);
+                submitCheckinBtn.disabled = true;
+                locationStatus.textContent = `Error: ${error.message}. Please try again.`;
+                locationStatus.className = 'form-text text-danger';
+                locationSpinner.style.display = 'none';
+                getLocationBtn.style.display = 'inline-block';
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
+    checkinModalEl.addEventListener('show.bs.modal', () => {
+        submitCheckinBtn.disabled = true;
+        locationStatus.textContent = 'Click the button to get your permission.';
+        locationStatus.className = 'form-text text-muted';
+        locationSpinner.style.display = 'none';
+        getLocationBtn.style.display = 'inline-block';
+        document.getElementById('lat').value = '';
+        document.getElementById('lng').value = '';
+        checkinForm.reset();
+        if(stream) { stream.getTracks().forEach(track => track.stop()); }
+        cameraContainer.style.display = 'none';
+        photoPreview.style.display = 'none';
+        if (signaturePad) { signaturePad.clear(); }
+    });
+
+    getLocationBtn.addEventListener('click', requestLocation);
 });
 </script>
