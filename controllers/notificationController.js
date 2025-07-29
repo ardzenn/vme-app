@@ -2,11 +2,12 @@ const Notification = require('../models/Notification');
 
 exports.getNotificationsApi = async (req, res) => {
     try {
-        const notifications = await Notification.find({ user: req.user.id })
+        const notifications = await Notification.find({ recipient: req.user.id })
             .sort({ createdAt: -1 })
-            .limit(10);
+            .limit(10)
+            .populate('sender', 'firstName lastName profilePicture');
         
-        const unreadCount = await Notification.countDocuments({ user: req.user.id, read: false });
+        const unreadCount = await Notification.countDocuments({ recipient: req.user.id, isRead: false });
 
         res.json({ notifications, unreadCount });
     } catch (err) {
@@ -17,8 +18,8 @@ exports.getNotificationsApi = async (req, res) => {
 exports.markAsRead = async (req, res) => {
     try {
         await Notification.updateMany(
-            { user: req.user.id, read: false },
-            { $set: { read: true } }
+            { recipient: req.user.id, isRead: false },
+            { $set: { isRead: true } }
         );
         res.status(200).json({ success: true });
     } catch (err) {

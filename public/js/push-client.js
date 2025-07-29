@@ -5,7 +5,7 @@ async function subscribeUser() {
         let subscription = await registration.pushManager.getSubscription();
 
         if (!subscription) {
-            const VAPID_PUBLIC_KEY = BFzeMjoZpjp6pbGR3PSsJpVOrIODPzL_1nFZdPTHOqOK6gncMxWmUQQj5esQ5PBOL4JNjb8YrIFZYYd6b70_8fE; 
+            const VAPID_PUBLIC_KEY = 'BFzeMjoZpjp6pbGR3PSsJpVOrIODPzL_1nFZdPTHOqOK6gncMxWmUQQj5esQ5PBOL4JNjb8YrIFZYYd6b70_8fE'; 
             subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: VAPID_PUBLIC_KEY

@@ -1,6 +1,8 @@
 const Conversation = require('./models/Conversation');
 const User = require('./models/User');
-const axios = require('axios'); // For making API requests to Mapbox
+const Message = require('./models/Message');
+const axios = require('axios');
+const { createNotificationsForGroup } = require('./services/notificationService');
 
 const onlineUsers = new Map();
 
@@ -10,7 +12,6 @@ function initializeWebsockets(io) {
         
         if (userId) {
             try {
-                // Fetch user data, now including lastKnownAddress
                 const user = await User.findById(userId).select('firstName lastName role lastLocation lastKnownAddress');
                 if (user) {
                     onlineUsers.set(userId, {
@@ -63,14 +64,44 @@ function initializeWebsockets(io) {
             socket.join(`order_${orderId}`);
         });
 
-        // MODIFIED: This now performs reverse geocoding
+        socket.on('sendMessage', async ({ conversationId, content }) => {
+            if (!userId || !conversationId || !content) return;
+            try {
+                const conversation = await Conversation.findById(conversationId);
+                if (!conversation || !conversation.participants.includes(userId)) return;
+                const newMessage = new Message({
+                    conversation: conversationId,
+                    sender: userId,
+                    content,
+                });
+                await newMessage.save();
+                await Conversation.findByIdAndUpdate(conversationId, {
+                    lastMessage: newMessage._id,
+                    lastMessageTime: new Date(),
+                });
+                const populatedMessage = await newMessage.populate('sender', 'firstName lastName profilePicture');
+                io.to(conversationId).emit('newMessage', populatedMessage);
+                const recipients = conversation.participants.filter(p => p.toString() !== userId);
+                const senderUser = await User.findById(userId).select('firstName lastName');
+                const notifMessage = `${senderUser.firstName} ${senderUser.lastName}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`;
+                await createNotificationsForGroup(io, {
+                    recipients,
+                    sender: userId,
+                    type: 'NEW_CHAT_MESSAGE',
+                    message: notifMessage,
+                    link: `/chat/${conversationId}`
+                });
+            } catch (err) {
+                console.error('Error sending message:', err);
+            }
+        });
+
         socket.on('updateLocation', async (coords) => {
             if (userId && coords) {
                 try {
                     let address = 'Address lookup failed.';
                     const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
 
-                    // Step 1: Call Mapbox API to get the address from coordinates
                     if (mapboxToken) {
                         try {
                             const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${mapboxToken}&types=poi,address&limit=1`;
@@ -88,14 +119,12 @@ function initializeWebsockets(io) {
                         address = "Mapbox token not configured."
                     }
                     
-                    // Step 2: Update the user in the database with coordinates AND the new address
                     const updatedUser = await User.findByIdAndUpdate(userId, {
                         lastLocation: { type: 'Point', coordinates: [coords.lng, coords.lat] },
                         lastLocationUpdate: Date.now(),
                         lastKnownAddress: address
                     }, { new: true }).select('firstName lastName role lastLocation lastKnownAddress lastLocationUpdate');
                     
-                    // Step 3: Broadcast the complete user object (with address) to all clients
                     if (updatedUser) {
                         const onlineUser = onlineUsers.get(userId);
                         if (onlineUser) {
