@@ -87,7 +87,7 @@
               <span class="visually-hidden">Loading...</span>
             </div>
             <small id="location-status" class="form-text text-muted"></small>
-            <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="getLocationBtn" style="display: none;">Allow</button>
+            <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="getLocationBtn" style="display: none;">Get Location</button>
           </div>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="submit" id="submitCheckinBtn" class="btn btn-primary" disabled>Submit Check-In</button>
@@ -100,7 +100,6 @@
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
     let allDoctors = <%- JSON.stringify(locals.allDoctors || []) %>;
     
     const checkinModalEl = document.getElementById('checkinModal');
@@ -266,36 +265,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // **NEW AND IMPROVED LOCATION LOGIC**
+    const handleLocationSuccess = (pos) => {
+        document.getElementById('lat').value = pos.coords.latitude;
+        document.getElementById('lng').value = pos.coords.longitude;
+        submitCheckinBtn.disabled = false;
+        locationStatus.textContent = `you may now check in (Accuracy: ${Math.round(pos.coords.accuracy)}m).`;
+        locationStatus.className = 'form-text text-success';
+        locationSpinner.style.display = 'none';
+    };
+
+    const handleLocationError = (error, isHighAccuracy) => {
+        // If the low-accuracy attempt times out, automatically try high-accuracy.
+        if (!isHighAccuracy && error.code === 3) { // code 3 is TIMEOUT
+            locationStatus.textContent = 'Low-accuracy failed, trying GPS...';
+            navigator.geolocation.getCurrentPosition(
+                handleLocationSuccess,
+                (err) => handleLocationError(err, true), // Pass true for the second attempt
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+            return;
+        }
+
+        // Handle final errors with specific messages.
+        let message = 'An unknown error occurred.';
+        if (error.code === 1) message = 'Permission Denied: You must allow the access to check in.';
+        if (error.code === 2) message = 'Position Unavailable:';
+        if (error.code === 3) message = 'Timeout:request took too long. Check your connection.';
+        
+        console.error(`Geolocation error: ${message}`);
+        submitCheckinBtn.disabled = true;
+        locationStatus.textContent = `Error: ${message}`;
+        locationStatus.className = 'form-text text-danger';
+        locationSpinner.style.display = 'none';
+        getLocationBtn.style.display = 'inline-block';
+    };
+
     const requestLocation = () => {
-        locationStatus.textContent = 'Fetching location... Please allow permission.';
+        locationStatus.textContent = 'loading...';
         locationStatus.className = 'form-text text-muted';
         locationSpinner.style.display = 'inline-block';
         getLocationBtn.style.display = 'none';
-
+        
+        // Step 1: Try a fast, low-accuracy request first.
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                document.getElementById('lat').value = pos.coords.latitude;
-                document.getElementById('lng').value = pos.coords.longitude;
-                submitCheckinBtn.disabled = false;
-                locationStatus.textContent = 'Check in now';
-                locationStatus.className = 'form-text text-success';
-                locationSpinner.style.display = 'none';
-            },
-            (error) => {
-                console.error(`Geolocation error: ${error.message}`);
-                submitCheckinBtn.disabled = true;
-                locationStatus.textContent = `Error: ${error.message}. Please try again.`;
-                locationStatus.className = 'form-text text-danger';
-                locationSpinner.style.display = 'none';
-                getLocationBtn.style.display = 'inline-block';
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            handleLocationSuccess,
+            (err) => handleLocationError(err, false), // Pass false for the first attempt
+            { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
         );
     };
 
     checkinModalEl.addEventListener('show.bs.modal', () => {
         submitCheckinBtn.disabled = true;
-        locationStatus.textContent = 'Click the button to get your permission.';
+        locationStatus.textContent = 'Click the button to get the permission.';
         locationStatus.className = 'form-text text-muted';
         locationSpinner.style.display = 'none';
         getLocationBtn.style.display = 'inline-block';
