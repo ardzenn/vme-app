@@ -199,7 +199,8 @@
         </div>
     </main>
 
-    <%- include('partials/checkin-modal.ejs') %>
+    <%- include('partials/checkin-modal.ejs', { allHospitals: allHospitals, allDoctors: allDoctors }) %>
+    
     <%- include('partials/order-detail-modal.ejs') %>
     <%- include('partials/image-zoom-modal.ejs') %>
 

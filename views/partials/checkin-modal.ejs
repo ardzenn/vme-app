@@ -82,8 +82,11 @@
           <input type="hidden" name="lng" id="lng">
          </div>
         <div class="modal-footer">
-          <div class="me-auto">
-            <small id="location-status" class="form-text text-muted">Fetching location...</small>
+          <div class="me-auto d-flex align-items-center">
+            <div id="location-spinner" class="spinner-border spinner-border-sm me-2" role="status" style="display: none;">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <small id="location-status" class="form-text text-muted"></small>
           </div>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="submit" id="submitCheckinBtn" class="btn btn-primary" disabled>Submit Check-In</button>
@@ -135,14 +138,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const submitCheckinBtn = document.getElementById('submitCheckinBtn');
     const locationStatus = document.getElementById('location-status');
+    const locationSpinner = document.getElementById('location-spinner');
 
     const toggleHospitalUI = (showCreate) => {
-        hospitalCreateUI.style.display = showCreate ? 'block' : 'none';
-        hospitalSelectUI.style.display = showCreate ? 'none' : 'block';
+        hospitalCreateUI.style.display = showCreate ? 'flex' : 'none';
+        hospitalSelectUI.style.display = showCreate ? 'none' : 'flex';
     };
     const toggleDoctorUI = (showCreate) => {
-        doctorCreateUI.style.display = showCreate ? 'block' : 'none';
-        doctorSelectUI.style.display = showCreate ? 'none' : 'block';
+        doctorCreateUI.style.display = showCreate ? 'flex' : 'none';
+        doctorSelectUI.style.display = showCreate ? 'none' : 'flex';
     };
 
     showAddHospitalBtn.addEventListener('click', () => toggleHospitalUI(true));
@@ -156,11 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         doctorSelect.innerHTML = '<option value="" selected disabled>-- Select a Doctor --</option>';
         if (selectedHospitalId) {
-            const doctorsInHospital = allDoctors.filter(doc => doc.hospital === selectedHospitalId);
+            const doctorsInHospital = allDoctors.filter(doc => doc.hospital && doc.hospital._id === selectedHospitalId);
+            
             if (doctorsInHospital.length > 0) {
                 doctorsInHospital.forEach(doc => doctorSelect.appendChild(new Option(doc.name, doc.name)));
             } else {
-                doctorSelect.innerHTML = '<option value="" selected>-- No doctors found, add one! --</option>';
+                doctorSelect.innerHTML = '<option value="" disabled selected>-- No doctors found, add one! --</option>';
             }
             doctorSelect.disabled = false;
             showAddDoctorBtn.disabled = false;
@@ -214,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     const resizeCanvas = () => {
+        if (!sigCanvas.offsetParent) return; // Don't resize if modal is hidden
         const ratio = Math.max(window.devicePixelRatio || 1, 1);
         sigCanvas.width = sigCanvas.offsetWidth * ratio;
         sigCanvas.height = sigCanvas.offsetHeight * ratio;
@@ -223,6 +229,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
+    checkinModalEl.addEventListener('show.bs.modal', () => {
+        // Reset state on modal open
+        submitCheckinBtn.disabled = true;
+        locationStatus.textContent = 'Fetching location... Please allow permission.';
+        locationStatus.className = 'form-text text-muted';
+        locationSpinner.style.display = 'inline-block';
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                document.getElementById('lat').value = pos.coords.latitude;
+                document.getElementById('lng').value = pos.coords.longitude;
+                submitCheckinBtn.disabled = false;
+                locationStatus.textContent = 'Location captured successfully!';
+                locationStatus.className = 'form-text text-success';
+                locationSpinner.style.display = 'none';
+            },
+            (error) => {
+                console.error(`Geolocation error: ${error.message}`);
+                submitCheckinBtn.disabled = true;
+                locationStatus.textContent = 'Location access is required to check in.';
+                locationStatus.className = 'form-text text-danger';
+                locationSpinner.style.display = 'none';
+            },
+            { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+        );
+    });
+
     checkinModalEl.addEventListener('shown.bs.modal', () => {
         if (!signaturePad) {
             signaturePad = new SignaturePad(sigCanvas);
@@ -230,30 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
             signaturePad.clear();
         }
         resizeCanvas();
-
-        submitCheckinBtn.disabled = true;
-        locationStatus.textContent = 'Close the Checkin and refresh again. Please allow permission.';
-        locationStatus.classList.remove('text-success', 'text-danger');
-        locationStatus.classList.add('text-muted');
-
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                document.getElementById('lat').value = pos.coords.latitude;
-                document.getElementById('lng').value = pos.coords.longitude;
-                submitCheckinBtn.disabled = false;
-                locationStatus.textContent = "Have a great Day!";
-                locationStatus.classList.remove('text-muted', 'text-danger');
-                locationStatus.classList.add('text-success');
-            },
-            (error) => {
-                console.error(`Geolocation error: ${error.message}`);
-                submitCheckinBtn.disabled = true;
-                locationStatus.textContent = 'Please close or refresh this page to and allow all the permision to proceed.';
-                locationStatus.classList.remove('text-success', 'text-muted');
-                locationStatus.classList.add('text-danger');
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
     });
 
     window.addEventListener("resize", resizeCanvas);
@@ -263,11 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
         cameraContainer.style.display = 'block';
         photoPreview.style.display = 'none';
         proofBase64Input.value = '';
+        proofUploadInput.value = '';
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
             videoPreview.srcObject = stream;
         } catch (err) {
             alert("Could not access the camera. Please check permissions.");
+            cameraContainer.style.display = 'none';
         }
     });
     
@@ -288,9 +299,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (signaturePad && !signaturePad.isEmpty()) {
             sigDataInput.value = signaturePad.toDataURL('image/png');
         }
-
+        // Add a simple confirmation alert
+        // The page will redirect after the server responds.
         setTimeout(() => {
-            alert("Check-in submitted successfully!");
+            alert("Submitting your check-in...");
         }, 100);
     });
 });
