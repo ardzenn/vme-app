@@ -1,5 +1,6 @@
 const DailyReport = require('../models/DailyReport');
 const CheckIn = require('../models/CheckIn');
+const DailyPlan = require('../models/DailyPlan');
 const User = require('../models/User');
 const { Parser } = require('json2csv');
 const { sendNotificationToAdmins } = require('./pushController');
@@ -8,29 +9,23 @@ const upload = require('../config/cloudinary');
 
 exports.uploadAttachments = upload.array('attachments', 10);
 
+// Add middleware for ending odometer photo
+exports.uploadReportAttachments = upload.fields([
+    { name: 'attachments', maxCount: 10 },
+    { name: 'endingOdometerPhoto', maxCount: 1 }
+]);
+
+
+
 exports.getReportForm = async (req, res) => {
     try {
+        // ... your existing code ...
+        // Get today's DailyPlan for startingOdometer
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todaysCheckIns = await CheckIn.find({ 
-            user: req.user.id, 
-            createdAt: { $gte: today } 
-        }).populate('hospital doctor').sort({ createdAt: -1 });
-        const lastClient = todaysCheckIns[0] ? (todaysCheckIns[0].hospital ? todaysCheckIns[0].hospital.name : '') : '';
-        const visitedCalls = todaysCheckIns.map(ci => ({
-            hospital: ci.hospital ? ci.hospital.name : 'N/A',
-            doctor: ci.doctor ? ci.doctor.name : 'N/A'
-        })).reverse();
-        const uniqueHospitals = [...new Set(visitedCalls.map(call => call.hospital))];
-        const prefilledData = {
-            lastClientVisited: lastClient,
-            visitedCalls: visitedCalls,
-            callSummary: {
-                hospitals: uniqueHospitals.length,
-                mds: visitedCalls.length,
-            }
-        };
-        res.render('report-form', { prefilledData });
+        const plan = await require('../models/DailyPlan').findOne({ user: req.user.id, planDate: today });
+        const startingOdometer = plan?.startingOdometer ?? '';
+        res.render('report-form', { prefilledData, startingOdometer });
     } catch (err) {
         req.flash('error_msg', 'Could not load report form.');
         res.redirect('/dashboard');
@@ -41,19 +36,32 @@ exports.submitReport = async (req, res) => {
     try {
         const {
             lastClientVisited, accomplishments, pharmacists, accountingStaff, sales,
-            collectionsCurrent, collectionsOverdue, meal, transportation, toll, parking, lodging
+            collectionsCurrent, collectionsOverdue, meal, transportation, toll, parking, lodging,
+            mtdNotes, startingOdometer, endingOdometer, endingOdometerNote
         } = req.body;
+
+        let endingOdometerPhoto = '';
+        if (req.files && req.files['endingOdometerPhoto'] && req.files['endingOdometerPhoto'][0]) {
+            endingOdometerPhoto = req.files['endingOdometerPhoto'][0].path;
+        }
+
+        // Compute total km
+        let totalKmReading = (startingOdometer && endingOdometer)
+            ? (Number(endingOdometer) - Number(startingOdometer))
+            : undefined;
+
         const visitedCalls = req.body.hospitals.map((hospital, index) => ({
             hospital: hospital,
             doctor: req.body.doctors[index]
         }));
+
         const newReport = new DailyReport({
             user: req.user.id, lastClientVisited, visitedCalls,
             callSummary: {
                 hospitals: [...new Set(req.body.hospitals)].length,
                 mds: req.body.doctors.length,
-                pharmacists: pharmacists,
-                accountingStaff: accountingStaff,
+                pharmacists,
+                accountingStaff,
             },
             accomplishments,
             dailySales: sales ? Object.values(sales) : [],
@@ -62,7 +70,15 @@ exports.submitReport = async (req, res) => {
                 overdue: collectionsOverdue
             },
             expenses: { meal, transportation, toll, parking, lodging },
-            attachments: req.files ? req.files.map(file => file.path) : []
+            attachments: req.files && req.files['attachments']
+                ? req.files['attachments'].map(file => file.path)
+                : [],
+            mtdNotes,
+            startingOdometer: startingOdometer ? Number(startingOdometer) : undefined,
+            endingOdometer: endingOdometer ? Number(endingOdometer) : undefined,
+            endingOdometerPhoto,
+            endingOdometerNote,
+            totalKmReading
         });
         await newReport.save();
 

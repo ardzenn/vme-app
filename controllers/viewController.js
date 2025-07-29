@@ -25,6 +25,9 @@ const formatDates = (items) => {
         if (newItem.weekStartDate) {
             newItem.weekStartDateFormatted = moment(item.weekStartDate).tz(userTimezone).format('M/D/YYYY');
         }
+        if (newItem.reportDate) {
+            newItem.reportDateFormatted = moment(item.reportDate).tz(userTimezone).format('M/D/YYYY');
+        }
         return newItem;
     });
 };
@@ -52,13 +55,14 @@ exports.getMSRDashboard = async (req, res) => {
             ]).then(result => result[0] ? result[0].total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')
         };
         
-        let [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries] = await Promise.all([
+        let [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
             CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10).populate('hospital doctor'),
             Order.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10),
             Hospital.find({ createdBy: req.user.id }),
             Doctor.find({ createdBy: req.user.id }).populate('hospital'),
             DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 }).limit(10),
-            WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 }).limit(10)
+            WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 }).limit(10),
+            DailyReport.find({ user: req.user.id }).sort({ reportDate: -1 }).limit(10)
         ]);
 
         res.render('dashboard', { 
@@ -70,6 +74,7 @@ exports.getMSRDashboard = async (req, res) => {
             allDoctors, 
             dailyPlans: formatDates(dailyPlans), 
             weeklyItineraries: formatDates(weeklyItineraries),
+            dailyReports: formatDates(dailyReports),
             currentUser: req.user
         });
     } catch (err) {

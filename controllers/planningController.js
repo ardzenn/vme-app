@@ -6,6 +6,13 @@ const Hospital = require('../models/Hospital');
 const { Parser } = require('json2csv');
 const moment = require('moment-timezone');
 const { createNotificationsForGroup, createNotification, getAdminAndITIds } = require('../services/notificationService');
+const upload = require('../config/cloudinary');
+
+
+// Middleware for handling file upload for starting odometer photo
+exports.uploadDailyPlanAttachments = upload.fields([
+    { name: 'startingOdometerPhoto', maxCount: 1 }
+]);
 
 // --- Weekly Itinerary Forms & Submission ---
 exports.getWeeklyItineraryForm = async (req, res) => {
@@ -113,24 +120,19 @@ exports.getMyPlans = async (req, res) => {
         res.redirect('/dashboard');
     }
 };
-
 exports.getDailyPlanForm = async (req, res) => {
     try {
         const userTimezone = req.user.timezone || 'Asia/Manila';
         const today = moment.tz(userTimezone).startOf('day');
-
         const existingPlan = await DailyPlan.findOne({
             user: req.user.id,
             planDate: today.toDate()
         });
-
         if (existingPlan) {
             req.flash('error_msg', 'You have already submitted a plan for today. You can view or edit it from "My Plans".');
             return res.redirect('/planning/my-plans');
         }
-
         const myHospitals = await Hospital.find({ createdBy: req.user.id }).sort({ name: 1 });
-
         res.render('daily-plan-form', {
             planDate: today.format('YYYY-MM-DD'),
             myHospitals,
@@ -143,27 +145,12 @@ exports.getDailyPlanForm = async (req, res) => {
     }
 };
 
-exports.getDailyPlanForEdit = async (req, res) => {
-    try {
-        let plan = await DailyPlan.findById(req.params.id).lean();
-        if (!plan || plan.user.toString() !== req.user.id) {
-            req.flash('error_msg', 'Plan not found or you do not have permission to edit it.');
-            return res.redirect('/planning/my-plans');
-        }
-        
-        const myHospitals = await Hospital.find({ createdBy: req.user.id }).sort({ name: 1 });
-        const planDate = moment(plan.planDate).format('YYYY-MM-DD');
+// Update this to support file upload (multipart/form-data)
 
-        res.render('daily-plan-form', { planDate, plan, myHospitals });
-    } catch (err) {
-        req.flash('error_msg', 'Could not load the daily plan form for editing.');
-        res.redirect('/planning/my-plans');
-    }
-};
 
 exports.submitDailyPlan = async (req, res) => {
     try {
-        const { planDate, firstClientCall, areasToVisit, hospitalsToVisit, salesObjectives, targetCollections } = req.body;
+        const { planDate, firstClientCall, areasToVisit, hospitalsToVisit, startingOdometer, note } = req.body;
         const planDateObj = moment.tz(planDate, req.user.timezone || 'Asia/Manila').startOf('day').toDate();
 
         const existingPlan = await DailyPlan.findOne({ user: req.user.id, planDate: planDateObj });
@@ -171,11 +158,25 @@ exports.submitDailyPlan = async (req, res) => {
             return res.status(409).json({ success: false, message: 'A plan for this date has already been submitted.' });
         }
 
+        const itinerary = JSON.parse(req.body.itinerary || '[]');
+        const salesObjectives = JSON.parse(req.body.salesObjectives || '[]');
+        const targetCollectionsCurrent = JSON.parse(req.body.targetCollectionsCurrent || '[]');
+        const targetCollectionsOverdue = JSON.parse(req.body.targetCollectionsOverdue || '[]');
+
         const planData = {
-            user: req.user.id, planDate: planDateObj, firstClientCall, areasToVisit,
-            hospitalsToVisit: (hospitalsToVisit || []).filter(item => item.name && item.name.trim() !== ''),
-            salesObjectives: (salesObjectives || []).filter(o => o.description && o.description.trim() !== ''),
-            targetCollections: (targetCollections || []).filter(c => c.clientName && c.clientName.trim() !== '')
+            user: req.user.id,
+            planDate: planDateObj,
+            firstClientCall,
+            areasToVisit,
+            itinerary,
+            salesObjectives,
+            targetCollections: {
+                current: targetCollectionsCurrent,
+                overdue: targetCollectionsOverdue
+            },
+            startingOdometer: isNaN(parseFloat(startingOdometer)) ? 0 : parseFloat(startingOdometer),
+            startingOdometerPhoto: req.file ? req.file.path : '',
+            startingOdometerNote: note
         };
 
         const plan = await DailyPlan.create(planData);
@@ -342,5 +343,23 @@ exports.markPlanAsRead = async (req, res) => {
         res.status(200).json({ success: true, message: 'Plan marked as read.' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error.' });
+    }
+}
+
+exports.getDailyPlanForEdit = async (req, res) => {
+    try {
+        const plan = await DailyPlan.findById(req.params.id);
+        if (!plan) {
+            req.flash('error_msg', 'Daily plan not found.');
+            return res.redirect('/planning/my-plans');
+        }
+        res.render('daily-plan-form', {
+            plan,
+            planDate: plan.planDate ? plan.planDate.toISOString().split('T')[0] : ''
+        });
+    } catch (err) {
+        console.error('Error loading daily plan for edit:', err);
+        req.flash('error_msg', 'Could not load daily plan for editing.');
+        res.redirect('/planning/my-plans');
     }
 };

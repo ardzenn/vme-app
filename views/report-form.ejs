@@ -6,6 +6,9 @@
     <title>Daily Coverage Report - VME App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .odometer-preview { max-width: 150px; display: block; margin-top: 10px; }
+    </style>
 </head>
 <body>
     <%- include('partials/navbar') %>
@@ -69,6 +72,30 @@
                         </div>
                     </div>
 
+                    <div class="row mb-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Starting Odometer</label>
+                            <input type="number" name="startingOdometer" class="form-control" value="<%= typeof startingOdometer !== 'undefined' ? startingOdometer : '' %>" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Ending Odometer</label>
+                            <input type="number" name="endingOdometer" id="endingOdometer" class="form-control" placeholder="Enter ending odometer" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Total Km. Reading</label>
+                            <input type="number" id="totalKmReading" class="form-control" value="" readonly>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label for="endingOdometerNote" class="form-label">Odometer Note</label>
+                        <input type="text" id="endingOdometerNote" name="endingOdometerNote" class="form-control" placeholder="Optional note about ending odometer...">
+                    </div>
+                    <div class="mb-2">
+                        <label for="endingOdometerPhoto" class="form-label">Ending Odometer Photo (Take or Upload)</label>
+                        <input type="file" id="endingOdometerPhoto" name="endingOdometerPhoto" accept="image/*" capture="environment" class="form-control">
+                        <img id="endingOdometerPreview" class="odometer-preview" style="display:none;">
+                    </div>
+
                     <h5 class="mt-4">Expense Report for the Day:</h5>
                      <div class="row g-3 mb-4 align-items-end">
                         <div class="col-md-3"><label class="form-label">A.) Meal</label><input type="number" name="meal" class="form-control expense-input" value="0" min="0" step="0.01"></div>
@@ -85,6 +112,11 @@
                         <label for="attachments" class="form-label fw-bold">Upload Supporting Images (Optional)</label>
                         <input class="form-control" type="file" id="attachments" name="attachments" multiple accept="image/*">
                     </div>
+
+                    <input type="hidden" name="itinerary" id="itineraryField">
+                    <input type="hidden" name="salesObjectives" id="salesObjectivesField">
+                    <input type="hidden" name="targetCollectionsCurrent" id="targetCollectionsCurrentField">
+                    <input type="hidden" name="targetCollectionsOverdue" id="targetCollectionsOverdueField">
                 </div>
                 <div class="card-footer text-end">
                     <a href="/dashboard" class="btn btn-secondary">Cancel</a>
@@ -124,6 +156,31 @@
         }
         document.querySelectorAll('.expense-input').forEach(input => {
             input.addEventListener('input', updateTotalExpenses);
+        });
+
+        // Odometer: live calculation
+        const ending = document.getElementById('endingOdometer');
+        const total = document.getElementById('totalKmReading');
+        const starting = document.querySelector('[name="startingOdometer"]');
+        function updateTotalKm() {
+            const start = Number(starting.value || 0);
+            const end = Number(ending.value || 0);
+            total.value = (start && end && end >= start) ? (end - start) : '';
+        }
+        ending.addEventListener('input', updateTotalKm);
+
+        // Preview for ending odometer photo
+        document.getElementById('endingOdometerPhoto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const img = document.getElementById('endingOdometerPreview');
+                    img.src = ev.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
         });
     </script>
 </body>
