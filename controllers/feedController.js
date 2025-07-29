@@ -17,7 +17,7 @@ exports.getFeedPage = async (req, res) => {
             })
             .populate('reactions.user', 'firstName lastName')
             .sort({ createdAt: -1 })
-            .lean(); // FIXED: Added .lean() to convert documents to plain JavaScript objects
+            .lean();
 
         res.render('feed', { posts });
     } catch (err) {
@@ -40,12 +40,11 @@ exports.createPost = async (req, res) => {
             author: req.user.id,
         };
         
-        if (req.file) {
+        if (req.file && req.file.path) {
             newPostData.mediaUrl = req.file.path;
+            newPostData.mediaPublicId = req.file.filename;
+            // This now correctly uses the resource_type provided by Cloudinary
             newPostData.mediaType = req.file.resource_type;
-            if (req.file.resource_type === 'video') {
-                newPostData.mediaPublicId = req.file.filename;
-            }
         }
 
         const newPost = new Post(newPostData);

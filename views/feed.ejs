@@ -71,7 +71,7 @@
         <div id="feed-container">
             <% posts.forEach(post => { %>
                 <%
-                    const reactions = post.reactions || []; // FIXED: Provide a fallback empty array
+                    const reactions = post.reactions || [];
                     const reactionCounts = reactions.reduce((acc, r) => { acc[r.type] = (acc[r.type] || 0) + 1; return acc; }, {});
                     const currentUserReaction = reactions.find(r => r.user && r.user._id.toString() === currentUser.id.toString());
                     const reactionEmojis = { like: '👍', heart: '❤️', laugh: '😂', wow: '😮', sad: '😢' };
