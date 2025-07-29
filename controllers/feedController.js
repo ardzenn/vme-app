@@ -2,7 +2,6 @@ const Post = require('../models/Post');
 const Comment = require('../models/Comment');
 const upload = require('../config/cloudinary');
 
-// MODIFIED: Renamed for clarity to handle both images and videos
 exports.uploadPostMedia = upload.single('postMedia');
 
 exports.getFeedPage = async (req, res) => {
@@ -16,6 +15,7 @@ exports.getFeedPage = async (req, res) => {
                     select: 'firstName lastName profilePicture'
                 }
             })
+            .populate('reactions.user', 'firstName lastName')
             .sort({ createdAt: -1 });
 
         res.render('feed', { posts });
@@ -26,7 +26,7 @@ exports.getFeedPage = async (req, res) => {
     }
 };
 
-// MODIFIED: This now handles both image and video uploads
+// MODIFIED: This function is now more robust in saving media details.
 exports.createPost = async (req, res) => {
     try {
         const { content } = req.body;
@@ -40,14 +40,19 @@ exports.createPost = async (req, res) => {
             author: req.user.id,
         };
         
-        if (req.file) {
-            newPostData.mediaUrl = req.file.path;
-            // Cloudinary's response includes resource_type ('image' or 'video')
-            newPostData.mediaType = req.file.resource_type;
+        // Check if a file was successfully uploaded by our middleware
+        if (req.file && req.file.path) {
+            newPostData.mediaUrl = req.file.path; // The full URL from Cloudinary
+            newPostData.mediaType = req.file.resource_type; // 'image' or 'video'
+            // The `filename` from multer-storage-cloudinary is the public_id
+            newPostData.mediaPublicId = req.file.filename;
         }
 
         const newPost = new Post(newPostData);
         await newPost.save();
+
+
+        console.log("--- SERVER LOG: POST SAVED TO DATABASE ---", newPost);
         req.flash('success_msg', 'Your post has been published!');
         res.redirect('/feed');
 
@@ -73,26 +78,45 @@ exports.deletePost = async (req, res) => {
     }
 };
 
-exports.toggleLike = async (req, res) => {
+exports.toggleReaction = async (req, res) => {
     try {
-        const post = await Post.findById(req.params.id);
+        const postId = req.params.id;
         const userId = req.user.id;
-        const isLiked = post.likes.includes(userId);
+        const { reactionType } = req.body;
 
-        if (isLiked) {
-            await Post.updateOne({ _id: req.params.id }, { $pull: { likes: userId } });
+        const post = await Post.findById(postId);
+        const existingReactionIndex = post.reactions.findIndex(r => r.user.toString() === userId);
+
+        let currentUserReactionType = null;
+
+        if (existingReactionIndex > -1) {
+            if (post.reactions[existingReactionIndex].type === reactionType) {
+                post.reactions.splice(existingReactionIndex, 1);
+                currentUserReactionType = null;
+            } else {
+                post.reactions[existingReactionIndex].type = reactionType;
+                currentUserReactionType = reactionType;
+            }
         } else {
-            await Post.updateOne({ _id: req.params.id }, { $addToSet: { likes: userId } });
+            post.reactions.push({ user: userId, type: reactionType });
+            currentUserReactionType = reactionType;
         }
+
+        await post.save();
         
-        const updatedPost = await Post.findById(req.params.id);
+        const reactionCounts = post.reactions.reduce((acc, reaction) => {
+            acc[reaction.type] = (acc[reaction.type] || 0) + 1;
+            return acc;
+        }, {});
+
         res.json({
             success: true,
-            likeCount: updatedPost.likes.length,
-            isLiked: !isLiked
+            reactions: reactionCounts,
+            currentUserReaction: currentUserReactionType
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: 'Could not update like status.' });
+        console.error("Reaction Error:", err);
+        res.status(500).json({ success: false, message: 'Could not update reaction.' });
     }
 };
 

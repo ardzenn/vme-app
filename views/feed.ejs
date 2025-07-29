@@ -11,9 +11,30 @@
         .post-card { margin-bottom: 1.5rem; }
         .post-author-img { width: 45px; height: 45px; object-fit: cover; }
         .post-img { max-height: 400px; object-fit: cover; cursor: pointer; }
-        .like-btn.liked { color: var(--bs-primary); font-weight: bold; }
         .comment { background-color: #f8f9fa; border-radius: 15px; }
         .post-actions { position: absolute; top: 1rem; right: 1rem; }
+        .reactions-container { position: relative; }
+        .reactions-palette {
+            visibility: hidden; opacity: 0;
+            position: absolute;
+            bottom: 100%; left: 0;
+            background: white;
+            border-radius: 20px;
+            padding: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            margin-bottom: 5px;
+            white-space: nowrap;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .reactions-container:hover .reactions-palette { visibility: visible; opacity: 1; }
+        .reaction-icon { font-size: 1.5rem; margin: 0 5px; cursor: pointer; transition: transform 0.2s; }
+        .reaction-icon:hover { transform: scale(1.3); }
+        .reaction-summary { display: flex; gap: 0.5rem; align-items: center; }
+        .reaction-summary span { font-size: 0.8rem; color: #6c757d; }
+        .react-btn { font-weight: bold; }
+        .react-btn.liked-like { color: #0d6efd; }
+        .react-btn.liked-heart { color: #dc3545; }
+        .react-btn.liked-laugh, .react-btn.liked-wow, .react-btn.liked-sad { color: #ffc107; }
     </style>
 </head>
 <body>
@@ -31,7 +52,7 @@
             <div class="card-body">
                 <form action="/feed/posts" method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
-                        <textarea name="content" class="form-control" rows="3" placeholder="What's on your mind, <%= currentUser.firstName %>?"></textarea>
+                        <textarea name="content" class="form-control" rows="3" placeholder="What's on your mind, <%= currentUser.firstName %>?" required></textarea>
                     </div>
                     <img id="post-image-preview" src="#" alt="Image Preview" class="img-fluid rounded mb-3" style="display:none; max-height: 200px;"/>
                     <video id="post-video-preview" class="img-fluid rounded mb-3" style="display:none; max-height: 200px;" controls></video>
@@ -49,6 +70,12 @@
 
         <div id="feed-container">
             <% posts.forEach(post => { %>
+                <%
+                    const reactions = post.reactions || []; // FIXED: Provide a fallback empty array
+                    const reactionCounts = reactions.reduce((acc, r) => { acc[r.type] = (acc[r.type] || 0) + 1; return acc; }, {});
+                    const currentUserReaction = reactions.find(r => r.user && r.user._id.toString() === currentUser.id.toString());
+                    const reactionEmojis = { like: '👍', heart: '❤️', laugh: '😂', wow: '😮', sad: '😢' };
+                %>
                 <div class="card post-card" id="post-<%= post._id %>" data-search-term="<%= post.author.firstName.toLowerCase() %> <%= post.author.lastName.toLowerCase() %> <%= post.content.toLowerCase() %>">
                     <div class="card-body position-relative">
                         <div class="d-flex align-items-center mb-3">
@@ -58,7 +85,6 @@
                                 <div class="text-muted small"><%= new Date(post.createdAt).toLocaleString('en-US', { timeZone: 'Asia/Manila' }) %></div>
                             </div>
                         </div>
-
                         <% if (currentUser.role === 'Admin' || currentUser.role === 'IT') { %>
                             <div class="post-actions">
                                 <form action="/feed/posts/<%= post._id %>/delete" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this post?');">
@@ -66,31 +92,39 @@
                                 </form>
                             </div>
                         <% } %>
-                        
                         <p class="card-text" style="white-space: pre-wrap;"><%= post.content %></p>
                     </div>
                     
                     <% if(post.mediaUrl) { %>
                         <% if (post.mediaType === 'image') { %>
                             <img src="<%= post.mediaUrl %>" class="card-img-bottom post-img" alt="Post image" data-bs-toggle="modal" data-bs-target="#image-viewer-modal" data-img-src="<%= post.mediaUrl %>">
-                        <% } else if (post.mediaType === 'video') { %>
-                            <video
-                                id="video-player-<%= post._id %>"
-                                class="cld-video-player cld-fluid"
-                                data-cld-public-id="<%= post.mediaUrl.split('/').pop().split('.')[0] %>"
-                                preload="auto"
-                                controls
-                            ></video>
+                        <% } else if (post.mediaType === 'video' && post.mediaPublicId) { %>
+                            <video id="video-player-<%= post._id %>" class="cld-video-player cld-fluid" preload="auto" controls></video>
                         <% } %>
                     <% } %>
                     
                     <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-                        <div>
-                            <button class="btn btn-link text-decoration-none like-btn <%= post.likes.includes(currentUser.id) ? 'liked' : '' %>" data-post-id="<%= post._id %>">
-                                <i class="fas fa-thumbs-up"></i> Like
+                        <div class="reactions-container" data-post-id="<%= post._id %>">
+                            <div class="reactions-palette">
+                                <span class="reaction-icon" data-type="like">👍</span>
+                                <span class="reaction-icon" data-type="heart">❤️</span>
+                                <span class="reaction-icon" data-type="laugh">😂</span>
+                                <span class="reaction-icon" data-type="wow">😮</span>
+                                <span class="reaction-icon" data-type="sad">😢</span>
+                            </div>
+                            <button class="btn btn-link text-decoration-none react-btn <%= currentUserReaction ? 'liked-' + currentUserReaction.type : '' %>">
+                                <% if (currentUserReaction) { %>
+                                    <%- reactionEmojis[currentUserReaction.type] %> <%= currentUserReaction.type.charAt(0).toUpperCase() + currentUserReaction.type.slice(1) %>
+                                <% } else { %>
+                                    <i class="fas fa-thumbs-up"></i> React
+                                <% } %>
                             </button>
                         </div>
-                        <span class="like-count text-muted small"><%= post.likes.length %> Likes</span>
+                        <div class="reaction-summary">
+                            <% for(const type in reactionCounts) { %>
+                                <span><%= reactionEmojis[type] %> <%= reactionCounts[type] %></span>
+                            <% } %>
+                        </div>
                     </div>
                     <div class="card-footer bg-light">
                         <div class="comments-section" id="comments-<%= post._id %>">
@@ -133,8 +167,7 @@
             imageViewerModal.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget;
                 const imageUrl = button.getAttribute('data-img-src');
-                const modalImage = document.getElementById('modal-image');
-                modalImage.src = imageUrl;
+                document.getElementById('modal-image').src = imageUrl;
             });
 
             const postMediaInput = document.getElementById('postMediaInput');
@@ -146,15 +179,11 @@
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         if (file.type.startsWith('image')) {
-                            videoPreview.style.display = 'none';
-                            videoPreview.src = '';
-                            imagePreview.src = e.target.result;
-                            imagePreview.style.display = 'block';
+                            videoPreview.style.display = 'none'; videoPreview.src = '';
+                            imagePreview.src = e.target.result; imagePreview.style.display = 'block';
                         } else if (file.type.startsWith('video')) {
-                            imagePreview.style.display = 'none';
-                            imagePreview.src = '#';
-                            videoPreview.src = e.target.result;
-                            videoPreview.style.display = 'block';
+                            imagePreview.style.display = 'none'; imagePreview.src = '#';
+                            videoPreview.src = e.target.result; videoPreview.style.display = 'block';
                         }
                     }
                     reader.readAsDataURL(file);
@@ -162,33 +191,61 @@
             });
             
             const cld = cloudinary.Cloudinary.new({ cloud_name: '<%= process.env.CLOUDINARY_CLOUD_NAME %>' });
-            const videoPlayers = document.querySelectorAll('.cld-video-player');
-            videoPlayers.forEach(player => {
-                cld.videoPlayer(player.id, {
-                    sourceTypes: ['hls', 'dash', 'mp4'],
-                    transformation: { quality: 'auto', fetch_format: 'auto' }
-                });
+            const postsData = <%- JSON.stringify(posts) %>;
+            postsData.forEach(post => {
+                if (post.mediaType === 'video' && post.mediaPublicId) {
+                    cld.videoPlayer(`video-player-${post._id}`, { publicId: post.mediaPublicId, fluid: true, controls: true });
+                }
             });
 
             const searchInput = document.getElementById('feed-search-input');
             searchInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase();
                 document.querySelectorAll('#feed-container .post-card').forEach(post => {
-                    const postContent = post.dataset.searchTerm || '';
-                    post.style.display = postContent.includes(searchTerm) ? 'block' : 'none';
+                    post.style.display = (post.dataset.searchTerm || '').includes(searchTerm) ? 'block' : 'none';
                 });
             });
 
+            const reactionEmojis = { like: '👍', heart: '❤️', laugh: '😂', wow: '😮', sad: '😢' };
+            function updateReactionsUI(postId, reactionData) {
+                const postCard = document.getElementById(`post-${postId}`);
+                if (!postCard) return;
+                const summaryContainer = postCard.querySelector('.reaction-summary');
+                const reactBtn = postCard.querySelector('.react-btn');
+                
+                let summaryHTML = '';
+                for (const type in reactionData.reactions) {
+                    if (reactionData.reactions[type] > 0) {
+                        summaryHTML += `<span>${reactionEmojis[type]} ${reactionData.reactions[type]}</span>`;
+                    }
+                }
+                summaryContainer.innerHTML = summaryHTML;
+
+                reactBtn.className = 'btn btn-link text-decoration-none react-btn';
+                if (reactionData.currentUserReaction) {
+                    const reactionType = reactionData.currentUserReaction;
+                    reactBtn.classList.add(`liked-${reactionType}`);
+                    reactBtn.innerHTML = `${reactionEmojis[reactionType]} ${reactionType.charAt(0).toUpperCase() + reactionType.slice(1)}`;
+                } else {
+                    reactBtn.innerHTML = `<i class="fas fa-thumbs-up"></i> React`;
+                }
+            }
+            
             document.body.addEventListener('click', async (e) => {
-                if (e.target.matches('.like-btn, .like-btn *')) {
-                    const button = e.target.closest('.like-btn');
-                    const postId = button.dataset.postId;
-                    const response = await fetch(`/feed/posts/${postId}/like`, { method: 'POST' });
+                const reactionIcon = e.target.closest('.reaction-icon');
+                if (reactionIcon) {
+                    e.preventDefault();
+                    const reactionType = reactionIcon.dataset.type;
+                    const postId = reactionIcon.closest('.reactions-container').dataset.postId;
+                    
+                    const response = await fetch(`/feed/posts/${postId}/react`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reactionType })
+                    });
                     const result = await response.json();
                     if (result.success) {
-                        button.classList.toggle('liked', result.isLiked);
-                        const countEl = button.closest('.card-footer').querySelector('.like-count');
-                        countEl.textContent = `${result.likeCount} Likes`;
+                        updateReactionsUI(postId, result);
                     }
                 }
             });
@@ -228,8 +285,7 @@
             });
             
             $('.comment-input').emojioneArea({
-                pickerPosition: 'top',
-                tonesStyle: 'bullet',
+                pickerPosition: 'top', tonesStyle: 'bullet',
                 events: {
                     keypress: function (editor, event) {
                         if (event.which == 13 && !event.shiftKey) {

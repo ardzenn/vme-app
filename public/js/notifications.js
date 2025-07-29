@@ -7,6 +7,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const notificationBadge = document.getElementById('notification-badge');
     const notificationList = document.getElementById('notification-list');
     
+    const notificationIcons = {
+        'NEW_CHECKIN': 'fa-map-marker-alt text-danger',
+        'NEW_ORDER': 'fa-box text-primary',
+        'ORDER_UPDATE': 'fa-info-circle text-primary',
+        'NEW_PLAN': 'fa-calendar-alt text-info',
+        'NEW_WEEKLY_ITINERARY': 'fa-calendar-week text-info',
+        'NEW_REPORT': 'fa-file-alt text-success',
+        'NEW_COLLECTION': 'fa-money-bill-wave text-success',
+        'NEW_DEPOSIT': 'fa-university text-success',
+        'NEW_STOCK': 'fa-cubes text-warning',
+        'NEW_COMMENT': 'fa-comment text-secondary',
+        'PLAN_COMMENT': 'fa-comment text-secondary',
+        'NEW_CHAT_MESSAGE': 'fa-comments text-secondary',
+        'ANNOUNCEMENT': 'fa-bullhorn text-danger'
+    };
+    
     function formatTimeAgo(date) {
         const seconds = Math.floor((new Date() - new Date(date)) / 1000);
         let interval = seconds / 31536000;
@@ -25,20 +41,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderNotifications(notifications = []) {
         if (!notificationList) return;
         if (notifications.length === 0) {
-            notificationList.innerHTML = '<li class="p-3 text-center text-muted">No new notifications.</li>';
+            notificationList.innerHTML = '<li class="p-3 text-center text-muted">You have no new notifications.</li>';
             return;
         }
 
-        notificationList.innerHTML = notifications.map(notif => `
+        notificationList.innerHTML = notifications.map(notif => {
+            const sender = notif.sender || { profilePicture: '/images/logo.png' };
+            const iconClass = notificationIcons[notif.type] || 'fa-bell text-muted';
+            
+            return `
             <li>
-                <a class="dropdown-item d-flex align-items-start p-2 ${!notif.read ? 'bg-light' : ''}" href="${notif.link}" style="white-space: normal;">
+                <a class="dropdown-item d-flex align-items-center p-2 ${!notif.isRead ? 'bg-light' : ''}" href="${notif.link}" style="white-space: normal;">
+                    <img src="${sender.profilePicture}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">
                     <div class="flex-grow-1">
-                        <p class="mb-0 small">${notif.text}</p>
+                        <p class="mb-0 small">${notif.message}</p>
                         <small class="text-muted">${formatTimeAgo(notif.createdAt)}</small>
                     </div>
+                    <i class="fas ${iconClass} ms-2"></i>
                 </a>
             </li>
-        `).join('');
+        `}).join('');
     }
 
     function updateBadge(count) {
@@ -88,6 +110,5 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchInitialNotifications();
     });
 
-    // Join personal room for real-time updates
     socket.emit('joinPersonalRoom', userId);
 });

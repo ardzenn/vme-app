@@ -336,6 +336,30 @@
         </div>
     </main>
 
+<% if (currentUser && currentUser.role === 'Admin') { %>
+<div class="modal fade" id="announcementModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Make an Announcement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/admin/announce" method="POST">
+        <div class="modal-body">
+            <p class="text-muted small">This message will be sent as a notification to every user in the system.</p>
+            <textarea name="message" class="form-control" rows="4" placeholder="Type your announcement here..." required></textarea>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Send to Everyone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<% } %>
+
+
     <%- include('partials/order-detail-modal') %>
     <%- include('partials/image-zoom-modal') %>
 
@@ -537,6 +561,8 @@
                 });
             }
         });
+
+        
     </script>
     <%- include('partials/chat-widget.ejs') %>
     <script src="/js/chat-widget.js"></script>

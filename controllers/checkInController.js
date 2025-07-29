@@ -27,13 +27,7 @@ exports.createCheckIn = async (req, res) => {
             { upsert: true, new: true }
         );
 
-        const newCheckInData = {
-            user: req.user.id,
-            hospital: hospital.id,
-            doctor: doctor.id,
-            activity,
-            notes,
-        };
+        const newCheckInData = { user: req.user.id, hospital: hospital.id, doctor: doctor.id, activity, notes };
         
         if (req.file) {
             newCheckInData.proof = req.file.path;
@@ -65,9 +59,13 @@ exports.createCheckIn = async (req, res) => {
         io.emit('newCheckIn', populatedCheckIn);
 
         const adminIds = await getAdminAndITIds();
-        const notificationText = `${req.user.firstName} ${req.user.lastName} has just checked in at ${hospital.name}.`;
-        const notificationLink = `/admin-dashboard#checkins-panel`;
-        await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
+        await createNotificationsForGroup(io, {
+            recipients: adminIds,
+            sender: req.user.id,
+            type: 'NEW_CHECKIN',
+            message: `${req.user.firstName} ${req.user.lastName} has just checked in at ${hospital.name}.`,
+            link: `/admin-dashboard#checkins-panel`
+        });
 
         res.status(201).json({
             success: true,

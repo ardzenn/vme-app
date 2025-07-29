@@ -74,9 +74,13 @@ exports.submitTransaction = async (req, res) => {
         
         const io = req.app.get('io');
         const financeUsers = await getFinanceAndAdminIds();
-        const notificationText = `${req.user.firstName} ${req.user.lastName} submitted a new ${type}.`;
-        const notificationLink = `/admin-dashboard#transactions-panel`;
-        await createNotificationsForGroup(io, financeUsers, notificationText, notificationLink);
+        await createNotificationsForGroup(io, {
+            recipients: financeUsers,
+            sender: req.user.id,
+            type: type === 'Collection' ? 'NEW_COLLECTION' : 'NEW_DEPOSIT',
+            message: `${req.user.firstName} ${req.user.lastName} submitted a new ${type}.`,
+            link: `/admin-dashboard#transactions-panel`
+        });
 
         req.flash('success_msg', `${type} submitted successfully!`);
         res.redirect('/transactions/my-submissions');
@@ -93,7 +97,6 @@ exports.submitTransaction = async (req, res) => {
     }
 };
 
-// ADDED: New function to handle adding comments to a transaction
 exports.addComment = async (req, res) => {
     try {
         const { text } = req.body;
@@ -111,12 +114,15 @@ exports.addComment = async (req, res) => {
             { new: true }
         );
 
-        // Notify the original submitter of the transaction, if it wasn't them who commented
         if (transaction.user.toString() !== req.user.id.toString()) {
             const io = req.app.get('io');
-            const notificationText = `${req.user.firstName} commented on your ${transaction.type} submission.`;
-            const notificationLink = `/transactions/${transaction._id}`;
-            await createNotification(io, transaction.user, notificationText, notificationLink);
+            await createNotification(io, {
+                recipient: transaction.user,
+                sender: req.user.id,
+                type: 'NEW_COMMENT',
+                message: `${req.user.firstName} commented on your ${transaction.type} submission.`,
+                link: `/transactions/${transaction._id}`
+            });
         }
 
         req.flash('success_msg', 'Comment added successfully.');

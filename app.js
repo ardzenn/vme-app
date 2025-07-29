@@ -23,10 +23,11 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // --- Pre-load all models to prevent schema errors ---
 require('./models/User');
-require('./models/Order');
-require('./models/Message');
 require('./models/Hospital');
 require('./models/Doctor');
+require('./models/Product');
+require('./models/Order');
+require('./models/Message');
 require('./models/CheckIn');
 require('./models/Collection');
 require('./models/Transaction');
@@ -34,9 +35,9 @@ require('./models/Conversation');
 require('./models/DailyReport');
 require('./models/DailyPlan');
 require('./models/WeeklyItinerary');
-require('./models/Product');
 require('./models/StockItem');
 require('./models/InventoryMovement');
+require('./models/Notification');
 require('./models/Post');
 require('./models/Comment');
 const User = require('./models/User');
@@ -117,6 +118,9 @@ async function startServer() {
         app.use('/notifications', require('./routes/notifications'));
         app.use('/api/conversations', require('./routes/conversations'));
         app.use('/feed', require('./routes/feed'));
+        app.use('/admin', require('./routes/admin'));
+ 
+
 
 
 
