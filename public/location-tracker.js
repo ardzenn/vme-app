@@ -1,32 +1,40 @@
-// This script runs for MSR/KAS users to send their location data to the server.
+// This script silently prepares a user's location on the dashboard page.
 document.addEventListener('DOMContentLoaded', () => {
-    // This script assumes the socket.io client is already loaded on the page.
-    const socket = io();
+    // A global variable to store the most recent position
+    window.VME_APP_CURRENT_POSITION = null;
 
-    const sendLocation = () => {
-        // We use low accuracy to be fast and save battery.
+    const getLocation = () => {
+        if (!navigator.geolocation) return;
+
+        // Use the smart two-step process to get a location
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                const coords = {
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude
-                };
-                // Send the location to the server via WebSocket
-                socket.emit('updateLocation', coords);
-                console.log('Location sent:', coords);
+                // Success: store the position object
+                window.VME_APP_CURRENT_POSITION = pos;
+                console.log('Pre-emptive location captured:', pos.coords);
             },
             (err) => {
-                console.error('Could not get location:', err.message);
+                // If the first (fast) attempt fails, try again with high accuracy
+                if (err.code === 3) { // TIMEOUT
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            window.VME_APP_CURRENT_POSITION = pos;
+                            console.log('Pre-emptive location captured (High Accuracy):', pos.coords);
+                        },
+                        (highAccuracyErr) => {
+                            console.error('High accuracy location fetch failed:', highAccuracyErr.message);
+                        },
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                    );
+                } else {
+                     console.error('Pre-emptive location fetch failed:', err.message);
+                }
             },
-            {
-                enableHighAccuracy: false, // Use less battery
-                timeout: 8000,
-                maximumAge: 60000 // Ok to use a location that is up to 1 minute old
-            }
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 } // Fast, cached attempt first
         );
     };
 
-    // Send location immediately on load, and then every 60 seconds.
-    sendLocation();
-    setInterval(sendLocation, 60000); // 60,000 milliseconds = 1 minute
+    // Get location on page load, and then every 60 seconds
+    getLocation();
+    setInterval(getLocation, 60000);
 });

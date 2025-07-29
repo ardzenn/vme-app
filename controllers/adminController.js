@@ -9,16 +9,21 @@ exports.sendAnnouncement = async (req, res) => {
             return res.redirect('/admin-dashboard');
         }
 
-        // Fetch all user IDs
         const allUsers = await User.find({}).select('_id');
         const allUserIds = allUsers.map(user => user._id);
 
         const io = req.app.get('io');
         const notificationText = `Announcement: ${message}`;
-        const notificationLink = '/feed'; // Link to the feed to see any related discussion
+        const notificationLink = '/feed';
 
-        // Use our existing service to create a notification for every single user
-        await createNotificationsForGroup(io, allUserIds, notificationText, notificationLink);
+        // FIXED: The function now passes a single object with named properties
+        await createNotificationsForGroup(io, {
+            recipients: allUserIds,
+            sender: req.user.id,
+            type: 'ANNOUNCEMENT',
+            message: notificationText,
+            link: notificationLink
+        });
 
         req.flash('success_msg', 'Your announcement has been broadcast to all users.');
         res.redirect('/admin-dashboard');

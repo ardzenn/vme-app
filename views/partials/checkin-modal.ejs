@@ -79,6 +79,8 @@
           
           <input type="hidden" name="signature" id="signature-data">
           <input type="hidden" name="proof_base64" id="proof-base64-data">
+          <input type="hidden" name="lat" id="lat">
+          <input type="hidden" name="lng" id="lng">
          </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -98,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!checkinModalEl) return;
     const checkinModal = new bootstrap.Modal(checkinModalEl);
 
-    // --- Element references ---
     const hospitalSelectUI = document.getElementById('hospital-selection-ui');
     const hospitalCreateUI = document.getElementById('hospital-creation-ui');
     const showAddHospitalBtn = document.getElementById('show-add-hospital-btn');
@@ -129,14 +130,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let stream;
     const submitCheckinBtn = document.getElementById('submitCheckinBtn');
     const notificationArea = document.getElementById('checkin-notification-area');
+    const latInput = document.getElementById('lat');
+    const lngInput = document.getElementById('lng');
 
-    // --- Logic for adding hospitals/doctors (no changes) ---
     const toggleHospitalUI = (showCreate) => { hospitalCreateUI.style.display = showCreate ? 'flex' : 'none'; hospitalSelectUI.style.display = showCreate ? 'none' : 'flex'; };
     const toggleDoctorUI = (showCreate) => { doctorCreateUI.style.display = showCreate ? 'flex' : 'none'; doctorSelectUI.style.display = showCreate ? 'none' : 'flex'; };
+    
     showAddHospitalBtn.addEventListener('click', () => toggleHospitalUI(true));
     cancelAddHospitalBtn.addEventListener('click', () => toggleHospitalUI(false));
     showAddDoctorBtn.addEventListener('click', () => toggleDoctorUI(true));
     cancelAddDoctorBtn.addEventListener('click', () => toggleDoctorUI(false));
+    
     hospitalSelect.addEventListener('change', () => {
         const selectedOption = hospitalSelect.options[hospitalSelect.selectedIndex];
         const selectedHospitalId = selectedOption ? selectedOption.dataset.hospitalId : null;
@@ -151,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showAddDoctorBtn.disabled = true;
         }
     });
+    
     saveNewHospitalBtn.addEventListener('click', async () => {
         const name = newHospitalNameInput.value.trim();
         if (!name) return;
@@ -167,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { alert(result.message); }
         } catch (err) { alert('An error occurred.'); }
     });
+    
     saveNewDoctorBtn.addEventListener('click', async () => {
         const name = newDoctorNameInput.value.trim();
         const hospitalId = hospitalSelect.options[hospitalSelect.selectedIndex].dataset.hospitalId;
@@ -184,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { alert('An error occurred.'); }
     });
 
-    // --- Signature & Camera Logic (no changes) ---
     const resizeCanvas = () => { if (!sigCanvas.offsetParent) return; const ratio = Math.max(window.devicePixelRatio || 1, 1); sigCanvas.width = sigCanvas.offsetWidth * ratio; sigCanvas.height = sigCanvas.offsetHeight * ratio; sigCanvas.getContext("2d").scale(ratio, ratio); if (signaturePad) { signaturePad.clear(); } };
     checkinModalEl.addEventListener('shown.bs.modal', () => { if (!signaturePad) { signaturePad = new SignaturePad(sigCanvas); } else { signaturePad.clear(); } resizeCanvas(); });
     window.addEventListener("resize", resizeCanvas);
@@ -192,33 +197,18 @@ document.addEventListener('DOMContentLoaded', () => {
     startCameraButton.addEventListener('click', async () => { cameraContainer.style.display = 'block'; photoPreview.style.display = 'none'; proofBase64Input.value = ''; proofUploadInput.value = ''; try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }); videoPreview.srcObject = stream; } catch (err) { alert("Could not access camera."); cameraContainer.style.display = 'none'; } });
     captureButton.addEventListener('click', () => { photoCanvas.width = videoPreview.videoWidth; photoCanvas.height = videoPreview.videoHeight; photoCanvas.getContext('2d').drawImage(videoPreview, 0, 0); const dataUrl = photoCanvas.toDataURL('image/jpeg'); photoPreview.src = dataUrl; photoPreview.style.display = 'block'; proofBase64Input.value = dataUrl; if(stream) { stream.getTracks().forEach(track => track.stop()); } cameraContainer.style.display = 'none'; proofUploadInput.value = ''; });
     
-    // **NEW** Handles the background location fetching and updating
-    const updateLocationInBackground = (checkInId) => {
-        const handleSuccess = async (pos) => {
-            console.log('Loading...', pos.coords);
-            await fetch(`/checkin/location/${checkInId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-            });
-        };
-        const handleError = (err) => {
-            console.error('load failed:', err.message);
-            // First attempt (low accuracy) timed out, try again with high accuracy
-            if (err.code === 3) {
-                 navigator.geolocation.getCurrentPosition(handleSuccess, (e) => console.error('loading failed:', e.message), { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
-            }
-        };
-        // Try fast first, then fallback in error handler if it times out
-        navigator.geolocation.getCurrentPosition(handleSuccess, handleError, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
-    };
-
-    // **MODIFIED** Form submission logic
     checkinForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         submitCheckinBtn.disabled = true;
-        submitCheckinBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
-        notificationArea.innerHTML = '';
+        submitCheckinBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Submitting...`;
+
+        if (window.VME_APP_CURRENT_POSITION) {
+            latInput.value = window.VME_APP_CURRENT_POSITION.coords.latitude;
+            lngInput.value = window.VME_APP_CURRENT_POSITION.coords.longitude;
+        } else {
+            latInput.value = '';
+            lngInput.value = '';
+        }
 
         if (signaturePad && !signaturePad.isEmpty()) {
             sigDataInput.value = signaturePad.toDataURL('image/png');
@@ -227,41 +217,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(checkinForm);
         
         try {
-            const response = await fetch('/checkin', {
-                method: 'POST',
-                body: formData
-            });
-
+            const response = await fetch('/checkin', { method: 'POST', body: formData });
             const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'An error occurred.');
 
-            if (!response.ok) {
-                throw new Error(result.message || 'An unknown error occurred.');
+            if (!latInput.value) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    fetch(`/checkin/location/${result.checkIn._id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+                    });
+                });
             }
-
-            // SUCCESS: Check-in is saved. Now start location fetch and close modal.
-            notificationArea.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
             
-            // Start the background location update
-            updateLocationInBackground(result.checkIn._id);
-
-            // Close the modal after a short delay
-            setTimeout(() => {
-                checkinModal.hide();
-            }, 2000);
-
+            checkinModal.hide();
         } catch (error) {
             notificationArea.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
             submitCheckinBtn.disabled = false;
-            submitCheckinBtn.textContent = 'Submit Check-In';
+            submitCheckinBtn.innerHTML = 'Submit Check-In';
         }
     });
 
     checkinModalEl.addEventListener('hide.bs.modal', () => {
-        // Reset form completely when modal is hidden
         checkinForm.reset();
         notificationArea.innerHTML = '';
         submitCheckinBtn.disabled = false;
-        submitCheckinBtn.textContent = 'Submit Check-In';
+        submitCheckinBtn.innerHTML = 'Submit Check-In';
         if(stream) { stream.getTracks().forEach(track => track.stop()); }
         cameraContainer.style.display = 'none';
         photoPreview.style.display = 'none';

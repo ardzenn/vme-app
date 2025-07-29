@@ -16,7 +16,8 @@ exports.getFeedPage = async (req, res) => {
                 }
             })
             .populate('reactions.user', 'firstName lastName')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean(); // FIXED: Added .lean() to convert documents to plain JavaScript objects
 
         res.render('feed', { posts });
     } catch (err) {
@@ -26,7 +27,6 @@ exports.getFeedPage = async (req, res) => {
     }
 };
 
-// MODIFIED: This function is now more robust in saving media details.
 exports.createPost = async (req, res) => {
     try {
         const { content } = req.body;
@@ -40,19 +40,17 @@ exports.createPost = async (req, res) => {
             author: req.user.id,
         };
         
-        // Check if a file was successfully uploaded by our middleware
-        if (req.file && req.file.path) {
-            newPostData.mediaUrl = req.file.path; // The full URL from Cloudinary
-            newPostData.mediaType = req.file.resource_type; // 'image' or 'video'
-            // The `filename` from multer-storage-cloudinary is the public_id
-            newPostData.mediaPublicId = req.file.filename;
+        if (req.file) {
+            newPostData.mediaUrl = req.file.path;
+            newPostData.mediaType = req.file.resource_type;
+            if (req.file.resource_type === 'video') {
+                newPostData.mediaPublicId = req.file.filename;
+            }
         }
 
         const newPost = new Post(newPostData);
         await newPost.save();
-
-
-        console.log("--- SERVER LOG: POST SAVED TO DATABASE ---", newPost);
+        
         req.flash('success_msg', 'Your post has been published!');
         res.redirect('/feed');
 

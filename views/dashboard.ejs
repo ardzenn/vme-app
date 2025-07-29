@@ -55,7 +55,7 @@
                 <div class="card card-tab">
                     <div class="card-body">
                         <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search your sales orders...">
-                         <div class="table-responsive">
+                          <div class="table-responsive">
                             <table class="table table-hover" id="orderTable">
                                 <thead><tr><th>Reference</th><th>Customer</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
                                  <tbody>
@@ -67,16 +67,16 @@
                                                 <td><span class="badge bg-primary"><%= order.status || 'N/A' %></span></td>
                                                 <td><%= order.dateOnlyFormatted %></td>
                                                 <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View</button></td>
-                                             </tr>
+                                            </tr>
                                         <% }) %>
                                     <% } else { %>
                                         <tr><td colspan="5" class="text-center p-4">No sales orders found.</td></tr>
                                     <% } %>
-                                 </tbody>
+                                  </tbody>
                             </table>
                         </div>
                     </div>
-                 </div>
+                </div>
             </div>      
                         
             <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
@@ -85,59 +85,59 @@
                         <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search your check-ins...">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle" id="checkinTable">
-                                 <thead>
+                                <thead>
                                     <tr>
                                         <th>Hospital</th>
                                         <th>Doctor</th>
                                         <th>Activity</th>
-                                         <th>Proof</th>
+                                        <th>Proof</th>
                                         <th>Signature</th>
                                         <th>Date</th>
                                      </tr>
                                 </thead>
-                                 <tbody>
+                                <tbody>
                                      <% if(checkins.length > 0) { %>
                                         <% checkins.forEach(checkin => { %>
-                                             <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
+                                           <tr data-search="<%= (checkin.hospital ? checkin.hospital.name : '').toLowerCase() %> <%= (checkin.doctor ? checkin.doctor.name : '').toLowerCase() %>">
                                                 <td><%= checkin.hospital ? checkin.hospital.name : 'N/A' %></td>
                                                 <td><%= checkin.doctor ? checkin.doctor.name : 'N/A' %></td>
                                                 <td><%= checkin.activity || 'N/A' %></td>
-                                                 <td>
+                                                <td>
                                                     <% if (checkin.proof) { %>
                                                         <img src="<%= checkin.proof %>" alt="Proof" width="70" style="border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.proof %>')">
                                                     <% } else { %><span class="text-muted">No Proof</span><% } %>
-                                                 </td>
+                                                </td>
                                                 <td>
-                                                     <% if (checkin.signature) { %>
+                                                      <% if (checkin.signature) { %>
                                                         <img src="<%= checkin.signature %>" alt="Signature" width="70" style="background-color: #fafafa; border-radius: 0.25rem; cursor: pointer;" onclick="showImageInModal('<%= checkin.signature %>')">
                                                     <% } else { %><span class="text-muted">No Signature</span><% } %>
-                                                 </td>
+                                                </td>
                                                 <td><%= checkin.createdAtFormatted %></td>
-                                             </tr>
+                                            </tr>
                                         <% }) %>
                                     <% } else { %>
                                          <tr><td colspan="6" class="text-center p-4">No check-in history found.</td></tr>
                                     <% } %>
-                                 </tbody>
+                                  </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-             </div>
+            </div>
 
             <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
                 <div class="card card-tab">
                     <div class="card-body">
                          <div class="table-responsive">
-                             <table class="table table-hover">
+                            <table class="table table-hover">
                                 <thead>
                                     <tr>
                                         <th>Plan Date</th>
                                         <th>First Client Call</th>
-                                         <th>Areas</th>
+                                        <th>Areas</th>
                                         <th>Actions</th>
                                      </tr>
-                                 </thead>
+                                </thead>
                                 <tbody>
                                      <% if(dailyPlans && dailyPlans.length > 0) { %>
                                         <% dailyPlans.forEach(plan => { %>
@@ -146,16 +146,16 @@
                                                 <td><%= plan.firstClientCall %></td>
                                                 <td><%= plan.areasToVisit %></td>
                                                 <td>
-                                                     <a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                    <a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-outline-primary">View</a>
                                                     <a href="/planning/daily-plan-form/<%= plan._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
                                                 </td>
                                              </tr>
                                         <% }) %>
                                     <% } else { %>
-                                         <tr><td colspan="4" class="text-center p-4">No daily plans found.</td></tr>
+                                        <tr><td colspan="4" class="text-center p-4">No daily plans found.</td></tr>
                                     <% } %>
                                  </tbody>
-                             </table>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -165,34 +165,34 @@
                 <div class="card card-tab">
                     <div class="card-body">
                          <div class="table-responsive">
-                             <table class="table table-hover">
+                            <table class="table table-hover">
                                 <thead>
                                      <tr>
                                         <th>Week Period</th>
                                         <th>Total Sales Target</th>
-                                         <th>Total Collection Target</th>
+                                        <th>Total Collection Target</th>
                                         <th>Actions</th>
                                      </tr>
-                                 </thead>
+                                </thead>
                                 <tbody>
                                      <% if(weeklyItineraries && weeklyItineraries.length > 0) { %>
                                         <% weeklyItineraries.forEach(itinerary => { %>
                                              <tr>
                                                 <td><%= itinerary.weekPeriod || itinerary.weekStartDateFormatted %></td>
                                                 <td>₱<%= (itinerary.totalTargetSales || 0).toLocaleString() %></td>
-                                                 <td>₱<%= (itinerary.totalTargetCollections || 0).toLocaleString() %></td>
+                                                <td>₱<%= (itinerary.totalTargetCollections || 0).toLocaleString() %></td>
                                                 <td>
-                                                     <a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                    <a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-outline-primary">View</a>
                                                     <a href="/planning/weekly-itinerary-form/<%= itinerary._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                                 </td>
+                                                </td>
                                             </tr>
-                                         <% }) %>
+                                        <% }) %>
                                     <% } else { %>
                                         <tr><td colspan="4" class="text-center p-4">No weekly itineraries found.</td></tr>
-                                     <% } %>
+                                    <% } %>
                                 </tbody>
                             </table>
-                         </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -200,7 +200,6 @@
     </main>
 
     <%- include('partials/checkin-modal.ejs', { allHospitals: allHospitals, allDoctors: allDoctors }) %>
-    
     <%- include('partials/order-detail-modal.ejs') %>
     <%- include('partials/image-zoom-modal.ejs') %>
 
@@ -231,22 +230,22 @@
             const addTableFilter = (inputId, tableId) => {
                 const searchInput = document.getElementById(inputId);
                 if (searchInput) {
-                      searchInput.addEventListener('input', (e) => {
+                     searchInput.addEventListener('input', (e) => {
                         const searchTerm = e.target.value.toLowerCase();
                         document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
                             row.style.display = (row.dataset.search || '').includes(searchTerm) ? '' : 'none';
-                         });
+                        });
                     });
                 }
             };
             addTableFilter('orderSearch', 'orderTable');
             addTableFilter('checkinSearch', 'checkinTable');
 
-              if ('serviceWorker' in navigator) {
+             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('/sw.js')
                         .then(registration => console.log('Service Worker registered.'))
-                         .catch(error => console.log('Service Worker registration failed:', error));
+                        .catch(error => console.log('Service Worker registration failed:', error));
                 });
             }
         });
