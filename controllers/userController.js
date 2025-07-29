@@ -1,68 +1,45 @@
 const mongoose = require('mongoose');
 const User = mongoose.model('User');
-const multer = require('multer');
-const path = require('path');
+const upload = require('../config/cloudinary'); // Assumes your cloudinary config is here
 
-// --- Multer Configuration for File Uploads ---
-const storage = multer.diskStorage({
-    destination: './public/uploads/',
-    filename: function (req, file, cb) {
-        cb(null, `${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
-    }
-});
-
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 2000000 }, // 2MB Limit
-    fileFilter: function (req, file, cb) {
-        const filetypes = /jpeg|jpg|png|gif/;
-        const mimetype = filetypes.test(file.mimetype);
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        if (mimetype && extname) {
-            return cb(null, true);
-        }
-        cb('Error: File upload only supports the following filetypes - ' + filetypes);
-    }
-}).single('profilePicture');
+// --- Cloudinary Upload Middleware ---
+// This middleware will handle uploading the image to Cloudinary when a user submits their profile.
+// The public URL from Cloudinary will be available in `req.file.path`.
+exports.uploadProfilePicture = upload.single('profilePicture');
 
 
 // --- Controller Functions ---
 
 // Handles updating a user's own profile information.
-exports.updateProfile = (req, res) => {
-    upload(req, res, async (err) => {
-        if (err) {
-            req.flash('error_msg', err);
+exports.updateProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            req.flash('error_msg', 'User not found.');
             return res.redirect('/profile');
         }
 
-        try {
-            const user = await User.findById(req.user.id);
-            if (!user) {
-                req.flash('error_msg', 'User not found.');
-                return res.redirect('/profile');
-            }
+        user.firstName = req.body.firstName;
+        user.lastName = req.body.lastName;
+        user.birthdate = req.body.birthdate;
+        user.area = req.body.area;
+        user.address = req.body.address;
 
-            user.firstName = req.body.firstName;
-            user.lastName = req.body.lastName;
-            user.birthdate = req.body.birthdate;
-            user.area = req.body.area;
-            user.address = req.body.address;
-
-            if (req.file) {
-                user.profilePicture = `/uploads/${req.file.filename}`;
-            }
-
-            await user.save();
-            req.flash('success_msg', 'Profile updated successfully!');
-            res.redirect('/profile');
-
-        } catch (dbErr) {
-            console.error("Profile update error:", dbErr);
-            req.flash('error_msg', 'An error occurred while updating your profile.');
-            res.redirect('/profile');
+        // If a new file was uploaded, req.file will exist.
+        // The path property will contain the secure URL from Cloudinary.
+        if (req.file && req.file.path) {
+            user.profilePicture = req.file.path;
         }
-    });
+
+        await user.save();
+        req.flash('success_msg', 'Profile updated successfully!');
+        res.redirect('/profile');
+
+    } catch (dbErr) {
+        console.error("Profile update error:", dbErr);
+        req.flash('error_msg', 'An error occurred while updating your profile.');
+        res.redirect('/profile');
+    }
 };
 
 // Handles an admin updating another user's role.
@@ -80,7 +57,7 @@ exports.updateUserRole = async (req, res) => {
     }
 };
 
-// NEW: Handles an admin deleting a user.
+// Handles an admin deleting a user.
 exports.deleteUser = async (req, res) => {
     try {
         // Safety check: prevent an admin from deleting their own account
