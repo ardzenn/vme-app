@@ -122,8 +122,6 @@ async function startServer() {
         app.use('/admin', require('./routes/admin'));
         app.use('/location', locationRoutes);
 
-        // --- ADDITIONAL DASHBOARD ROUTES ---
-        // Note: Inventory dashboard is handled in /products/inventory/dashboard route
 
         // --- HEALTH CHECK ROUTES ---
         app.get('/health', (req, res) => {

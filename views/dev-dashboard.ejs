@@ -55,6 +55,7 @@
             <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Check-ins (Today)</h5><p class="card-text fs-2 fw-bold" id="checkins-today-count"><%= stats.checkInsToday %></p></div></div></div>
             <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Online Now</h5><p class="card-text fs-2 fw-bold" id="online-users-count">0</p></div></div></div>
         </div>
+        <!-- Add this Online Users widget to admin-dashboard.ejs, accounting-dashboard.ejs, sales-manager-dashboard.ejs, and inventory-dashboard.ejs -->
 
 <!-- Online Users Widget - Add this after the stats cards -->
 <div class="row mb-4">
@@ -688,7 +689,9 @@
                             <img src="${user.profilePicture || '/images/default-profile.png'}"
                                  class="rounded-circle me-2" width="40" height="40"
                                  style="object-fit: cover;" alt="${user.firstName} ${user.lastName}">
-                           
+                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
+                                <span class="visually-hidden">Online</span>
+                            </span>
                         </div>
                         <div>
                             <div class="fw-medium">${user.firstName} ${user.lastName}</div>
