@@ -300,3 +300,31 @@ body::-webkit-scrollbar-thumb:hover,
     display: flex;
     align-items: center;
     font-weight: 600;
+}
+
+/*Online Users*/
+.online-user-item {
+    margin-bottom: 0.5rem;
+}
+
+.online-user-item:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+}
+
+.position-relative .badge {
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border: 2px solid white;
+}
+
+@media (max-width: 768px) {
+    #online-users-container {
+        flex-direction: column;
+    }
+    
+    .online-user-item {
+        width: 100%;
+    }
+}

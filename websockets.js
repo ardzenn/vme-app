@@ -1,19 +1,23 @@
+// Enhanced websockets.js - Update your existing websockets.js
+
 const Conversation = require('./models/Conversation');
 const User = require('./models/User');
 const Message = require('./models/Message');
-const axios = require('axios');
 const { createNotificationsForGroup } = require('./services/notificationService');
 
 const onlineUsers = new Map();
 
 function initializeWebsockets(io) {
     io.on('connection', async (socket) => {
+        console.log('User connected:', socket.id);
+        
         const userId = socket.handshake.query.userId;
         
         if (userId) {
             try {
-                const user = await User.findById(userId).select('firstName lastName role lastLocation lastKnownAddress');
+                const user = await User.findById(userId).select('firstName lastName role lastLocation lastKnownAddress profilePicture');
                 if (user) {
+                    // Store user with enhanced information
                     onlineUsers.set(userId, {
                         socketId: socket.id,
                         _id: user._id,
@@ -21,27 +25,39 @@ function initializeWebsockets(io) {
                         lastName: user.lastName,
                         role: user.role,
                         lastLocation: user.lastLocation,
-                        lastKnownAddress: user.lastKnownAddress
+                        lastKnownAddress: user.lastKnownAddress,
+                        profilePicture: user.profilePicture,
+                        connectedAt: new Date()
                     });
+
+                    // Join personal room for notifications
+                    socket.join(userId);
+
+                    // Join conversation rooms
+                    const conversations = await Conversation.find({ participants: userId });
+                    conversations.forEach(convo => socket.join(convo._id.toString()));
+
+                    // Emit updated online user list to all connected clients
+                    io.emit('updateUserList', Array.from(onlineUsers.values()));
+                    
+                    console.log(`${user.firstName} ${user.lastName} (${user.role}) is now online`);
                 }
-
-                socket.join(userId);
-
-                Conversation.find({ participants: userId }).then(convos => {
-                    convos.forEach(convo => socket.join(convo._id.toString()));
-                });
-
-                io.emit('updateUserList', Array.from(onlineUsers.values()));
-                
             } catch (err) {
                 console.error("Error on user connection:", err);
             }
         }
 
+        // Handle personal room joining
+        socket.on('joinPersonalRoom', (userId) => {
+            socket.join(userId);
+        });
+
+        // Handle conversation joining
         socket.on('joinNewGroup', (conversationId) => {
             socket.join(conversationId);
         });
 
+        // Handle typing indicators
         socket.on('startTyping', ({ conversationId }) => {
             const senderData = Array.from(onlineUsers.values()).find(u => u.socketId === socket.id);
             if (!senderData) return;
@@ -52,7 +68,7 @@ function initializeWebsockets(io) {
         });
 
         socket.on('stopTyping', ({ conversationId }) => {
-             const senderData = Array.from(onlineUsers.values()).find(u => u.socketId === socket.id);
+            const senderData = Array.from(onlineUsers.values()).find(u => u.socketId === socket.id);
             if (!senderData) return;
             socket.to(conversationId).emit('userStoppedTyping', {
                 conversationId,
@@ -60,92 +76,114 @@ function initializeWebsockets(io) {
             });
         });
 
+        // Handle order room joining
         socket.on('joinOrderRoom', (orderId) => {
             socket.join(`order_${orderId}`);
         });
 
-        socket.on('sendMessage', async ({ conversationId, content }) => {
-            if (!userId || !conversationId || !content) return;
+        // Handle location updates
+        socket.on('locationUpdate', async (locationData) => {
+            const userData = Array.from(onlineUsers.values()).find(u => u.socketId === socket.id);
+            if (!userData) return;
+
             try {
-                const conversation = await Conversation.findById(conversationId);
-                if (!conversation || !conversation.participants.includes(userId)) return;
-                const newMessage = new Message({
-                    conversation: conversationId,
-                    sender: userId,
-                    content,
+                // Update user location in database
+                await User.findByIdAndUpdate(userData._id, {
+                    lastLocation: locationData.coords,
+                    lastKnownAddress: locationData.address,
+                    lastLocationUpdate: new Date()
                 });
-                await newMessage.save();
-                await Conversation.findByIdAndUpdate(conversationId, {
-                    lastMessage: newMessage._id,
-                    lastMessageTime: new Date(),
-                });
-                const populatedMessage = await newMessage.populate('sender', 'firstName lastName profilePicture');
-                io.to(conversationId).emit('newMessage', populatedMessage);
-                const recipients = conversation.participants.filter(p => p.toString() !== userId);
-                const senderUser = await User.findById(userId).select('firstName lastName');
-                const notifMessage = `${senderUser.firstName} ${senderUser.lastName}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`;
-                await createNotificationsForGroup(io, {
-                    recipients,
-                    sender: userId,
-                    type: 'NEW_CHAT_MESSAGE',
-                    message: notifMessage,
-                    link: `/chat/${conversationId}`
-                });
-            } catch (err) {
-                console.error('Error sending message:', err);
+
+                // Update in-memory data
+                const userInMap = onlineUsers.get(userData._id.toString());
+                if (userInMap) {
+                    userInMap.lastLocation = locationData.coords;
+                    userInMap.lastKnownAddress = locationData.address;
+                    onlineUsers.set(userData._id.toString(), userInMap);
+                }
+
+                // Emit updated user list
+                io.emit('updateUserList', Array.from(onlineUsers.values()));
+            } catch (error) {
+                console.error('Error updating user location:', error);
             }
         });
 
-        socket.on('updateLocation', async (coords) => {
-            if (userId && coords) {
-                try {
-                    let address = 'Address lookup failed.';
-                    const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+        // Handle requests for user list
+        socket.on('requestUserList', () => {
+            socket.emit('updateUserList', Array.from(onlineUsers.values()));
+        });
 
-                    if (mapboxToken) {
-                        try {
-                            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?access_token=${mapboxToken}&types=poi,address&limit=1`;
-                            const response = await axios.get(url);
-                            if (response.data && response.data.features && response.data.features.length > 0) {
-                                address = response.data.features[0].place_name;
-                            } else {
-                                address = 'Near specified coordinates.';
-                            }
-                        } catch (apiError) {
-                            console.error("Mapbox API Error:", apiError.message);
-                            address = "Could not retrieve address."
-                        }
-                    } else {
-                        address = "Mapbox token not configured."
-                    }
-                    
-                    const updatedUser = await User.findByIdAndUpdate(userId, {
-                        lastLocation: { type: 'Point', coordinates: [coords.lng, coords.lat] },
-                        lastLocationUpdate: Date.now(),
-                        lastKnownAddress: address
-                    }, { new: true }).select('firstName lastName role lastLocation lastKnownAddress lastLocationUpdate');
-                    
-                    if (updatedUser) {
-                        const onlineUser = onlineUsers.get(userId);
-                        if (onlineUser) {
-                            onlineUser.lastLocation = updatedUser.lastLocation;
-                            onlineUser.lastKnownAddress = updatedUser.lastKnownAddress;
-                        }
-                        io.emit('locationUpdate', updatedUser);
-                    }
-                } catch (error) {
-                    console.error("Error updating user location:", error);
+        // Handle disconnection
+        socket.on('disconnect', () => {
+            console.log('User disconnected:', socket.id);
+            
+            // Find and remove the disconnected user
+            let disconnectedUser = null;
+            for (const [userId, userData] of onlineUsers.entries()) {
+                if (userData.socketId === socket.id) {
+                    disconnectedUser = userData;
+                    onlineUsers.delete(userId);
+                    break;
                 }
             }
+
+            if (disconnectedUser) {
+                console.log(`${disconnectedUser.firstName} ${disconnectedUser.lastName} is now offline`);
+            }
+
+            // Emit updated online user list
+            io.emit('updateUserList', Array.from(onlineUsers.values()));
         });
 
-        socket.on('disconnect', () => {
-            if (userId) {
-                onlineUsers.delete(userId);
-                io.emit('updateUserList', Array.from(onlineUsers.values()));
+        // Handle admin broadcasts
+        socket.on('adminBroadcast', async (data) => {
+            const senderData = Array.from(onlineUsers.values()).find(u => u.socketId === socket.id);
+            if (!senderData || !['Admin', 'IT'].includes(senderData.role)) return;
+
+            try {
+                const allUsers = await User.find({ role: { $ne: 'Pending' } }).select('_id');
+                const recipients = allUsers.map(u => u._id);
+
+                await createNotificationsForGroup(io, {
+                    recipients,
+                    sender: senderData._id,
+                    type: 'ANNOUNCEMENT',
+                    message: data.message,
+                    link: '/dashboard'
+                });
+
+                // Also emit real-time broadcast
+                io.emit('adminBroadcast', {
+                    message: data.message,
+                    sender: `${senderData.firstName} ${senderData.lastName}`,
+                    timestamp: new Date()
+                });
+            } catch (error) {
+                console.error('Error broadcasting message:', error);
             }
         });
     });
+
+    // Periodic cleanup of stale connections
+    setInterval(() => {
+        const now = new Date();
+        const staleThreshold = 5 * 60 * 1000; // 5 minutes
+
+        for (const [userId, userData] of onlineUsers.entries()) {
+            if (now - userData.connectedAt > staleThreshold) {
+                // Check if socket is still connected
+                const socket = io.sockets.sockets.get(userData.socketId);
+                if (!socket || !socket.connected) {
+                    console.log(`Cleaning up stale connection for user ${userData.firstName}`);
+                    onlineUsers.delete(userId);
+                }
+            }
+        }
+
+        // Emit updated list after cleanup
+        io.emit('updateUserList', Array.from(onlineUsers.values()));
+    }, 60000); // Run every minute
 }
 
 module.exports = initializeWebsockets;

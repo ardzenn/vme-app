@@ -41,34 +41,98 @@
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>
       </ul>
 
-      <div class="tab-content pt-3" id="accountingTabContent">
-            <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
-                <div class="card card-tab"><div class="card-body">
-                    <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search orders...">
-                    <div class="table-responsive"><table class="table table-hover align-middle" id="orderTable">
-                        <thead><tr><th>User</th><th>Reference</th><th>Customer</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
-                        <tbody>
-                            <% orders.forEach(order => { %>
-                                <% if (order.user) { %>
-                                    <tr data-search="<%= (order.user.firstName || '').toLowerCase() %> <%= (order.user.lastName || '').toLowerCase() %> <%= (order.reference || '').toLowerCase() %>">
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <img src="<%= order.user.profilePicture || '/images/default-profile.png' %>" alt="Avatar" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
-                                                <div><strong><%= order.user.firstName %> <%= order.user.lastName %></strong></div>
-                                            </div>
-                                        </td>
-                                        <td><%= order.reference || 'N/A' %></td>
-                                        <td><%= order.customerName || 'N/A' %></td>
-                                        <td><span class="badge bg-primary"><%= order.status || 'N/A' %></span></td>
-                                        <td><%= order.dateOnlyFormatted %></td>
-                                        <td><button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">View/Edit</button></td>
-                                    </tr>
-                                <% } %>
-                            <% }) %>
-                        </tbody>
-                    </table></div>
-                </div></div>
+     <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
+    <div class="card card-tab">
+        <div class="card-body">
+            <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search orders...">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="orderTable">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Reference</th>
+                            <th>Customer</th>
+                            <th>Order Status</th>
+                            <th>Payment Status</th>
+                            <th>Products</th>
+                            <th>Total Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% orders.forEach(order => { %>
+                            <tr data-search="<%= (order.user ? (order.user.firstName || '') + ' ' + (order.user.lastName || '') : '').toLowerCase() %> <%= (order.reference || '').toLowerCase() %> <%= (order.customerName || '').toLowerCase() %>">
+                                <td>
+                                    <% if (order.user) { %>
+                                        <div class="d-flex align-items-center">
+                                            <img src="<%= order.user.profilePicture || '/images/default-profile.png' %>" 
+                                                 class="rounded-circle me-2" width="32" height="32" style="object-fit: cover;">
+                                            <%= order.user.firstName %> <%= order.user.lastName %>
+                                        </div>
+                                    <% } else { %>
+                                        <span class="text-muted">[User Deleted]</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <strong><%= order.reference %></strong>
+                                    <br><small class="text-muted"><%= new Date(order.createdAt).toLocaleDateString() %></small>
+                                </td>
+                                <td><%= order.customerName %></td>
+                                <td>
+                                    <% 
+                                    let statusClass = 'secondary';
+                                    switch(order.status) {
+                                        case 'Pending': statusClass = 'warning'; break;
+                                        case 'Processing': statusClass = 'info'; break;
+                                        case 'Order Shipped': statusClass = 'primary'; break;
+                                        case 'Delivered': statusClass = 'success'; break;
+                                        case 'Rejected': statusClass = 'danger'; break;
+                                        case 'Cancelled': statusClass = 'dark'; break;
+                                        default: statusClass = 'secondary';
+                                    }
+                                    %>
+                                    <span class="badge bg-<%= statusClass %>"><%= order.status || 'Pending' %></span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= order.paymentStatus === 'Paid' ? 'success' : 'warning' %>">
+                                        <i class="fas fa-<%= order.paymentStatus === 'Paid' ? 'check-circle' : 'clock' %>"></i>
+                                        <%= order.paymentStatus || 'Unpaid' %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <% if (order.products && order.products.length > 0) { %>
+                                        <div class="product-preview" 
+                                             data-bs-toggle="tooltip" 
+                                             data-bs-placement="top" 
+                                             data-bs-html="true"
+                                             title="<% order.products.forEach((product, index) => { %><%= product.product || 'Unknown Product' %> (Qty: <%= product.quantity || 0 %>)<% if (index < order.products.length - 1) { %><br><% } %><% }) %>">
+                                            <span class="badge bg-primary me-1">
+                                                <%= order.products[0].product || 'Unknown Product' %>
+                                            </span>
+                                            <% if (order.products.length > 1) { %>
+                                                <span class="badge bg-secondary">+<%= order.products.length - 1 %> more</span>
+                                            <% } %>
+                                        </div>
+                                    <% } else { %>
+                                        <span class="text-muted">No products</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <strong>₱<%= (order.subtotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></strong>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
             </div>
+        </div>
+    </div>
+</div>
             <div class="tab-pane fade" id="transactions-panel" role="tabpanel">
                  <div class="card card-tab"><div class="card-body">
                     <input type="text" id="txnSearch" class="form-control mb-3" placeholder="Search transactions...">
@@ -172,6 +236,15 @@
     <script src="/js/dashboard-main.js"></script>
     <script src="/js/push-client.js"></script>
     <script>
+            // product hover
+            document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+
         document.addEventListener('DOMContentLoaded', () => {
             const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
             const modalZoomImage = document.getElementById('modalZoomImage');

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Inventory Dashboard - VME App</title>
+    <%- include('partials/header-meta') %>
+    <style>
+        .stock-card { border-left: 4px solid #28a745; }
+        .low-stock-card { border-left: 4px solid #ffc107; }
+        .out-stock-card { border-left: 4px solid #dc3545; }
+        .expiring-card { border-left: 4px solid #fd7e14; }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    
+    <main class="container-fluid my-4" style="padding: 0 2rem;">
+        <header class="page-header">
+            <div>
+                <h1>Inventory Management</h1>
+                <p class="text-muted">Monitor stock levels, track movements, and manage inventory</p>
+            </div>
+            <div>
+                <a href="/products/manage" class="btn btn-primary">Manage Products</a>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                    <i class="fas fa-plus"></i> Add Product
+                </button>
+            </div>
+        </header>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stock-card">
+                    <div class="card-body">
+                        <h5 class="card-title text-success">In Stock</h5>
+                        <h2><%= inventoryData.filter(item => item.totalStock > 10).length %></h2>
+                        <small class="text-muted">Products with good stock</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card low-stock-card">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning">Low Stock</h5>
+                        <h2><%= inventoryData.filter(item => item.totalStock > 0 && item.totalStock <= 10).length %></h2>
+                        <small class="text-muted">Products running low</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card out-stock-card">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger">Out of Stock</h5>
+                        <h2><%= inventoryData.filter(item => item.totalStock === 0).length %></h2>
+                        <small class="text-muted">Products out of stock</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card expiring-card">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning">Expiring Soon</h5>
+                        <h2><%= inventoryData.filter(item => item.expiringSoonCount > 0).length %></h2>
+                        <small class="text-muted">Products with batches expiring in 30 days</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Product Inventory</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Total Stock</th>
+                                <th>Batches</th>
+                                <th>Status</th>
+                                <th>Expiring Soon</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% inventoryData.forEach(item => { %>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="<%= item.imageUrl || '/images/default-product.png' %>" class="rounded me-2" width="40" height="40" style="object-fit: cover;" alt="<%= item.name %>">
+                                        <div>
+                                            <strong><%= item.name %></strong>
+                                            <br>
+                                            <small class="text-muted"><%= item.category %></small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><strong><%= item.totalStock %></strong></td>
+                                
+                                <td><%= item.stockItems.length %></td>
+
+                                <td>
+                                    <% if (item.totalStock === 0) { %>
+                                        <span class="badge bg-secondary">Out of Stock</span>
+                                    <% } else if (item.totalStock <= 10) { %>
+                                        <span class="badge bg-danger">Low Stock</span>
+                                    <% } else { %>
+                                        <span class="badge bg-success">In Stock</span>
+                                    <% } %>
+                                </td>
+
+                                <td>
+                                    <% if (item.expiringSoonCount > 0) { %>
+                                        <span class="badge bg-warning"><%= item.expiringSoonCount %></span>
+                                    <% } else { %>
+                                        <span class="text-muted">-</span>
+                                    <% } %>
+                                </td>
+                                
+                                <td>
+                                    <a href="/products/inventory/<%= item._id %>" class="btn btn-sm btn-outline-primary">Details</a>
+                                </td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Inventory Movements</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Product</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>User</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% recentMovements.forEach(movement => { %>
+                            <tr>
+                                <td><%= new Date(movement.createdAt).toLocaleDateString() %></td>
+                                <td><%= movement.product ? movement.product.name : 'N/A' %></td>
+                                <td>
+                                    <span class="badge bg-<%= movement.type === 'Stock In' ? 'success' : movement.type === 'Stock Out' ? 'danger' : 'info' %>">
+                                        <%= movement.type %>
+                                    </span>
+                                </td>
+                                <td><%= movement.quantity > 0 ? '+' : '' %><%= movement.quantity %></td>
+                                <td><%= movement.user ? movement.user.firstName + ' ' + movement.user.lastName : 'System' %></td>
+                                <td><%= movement.notes || '-' %></td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductModalLabel">Add New Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/products/add" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label">Category</label>
+                                <input type="text" class="form-control" id="category" name="category" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="unit" class="form-label">Unit (e.g., pcs, box)</label>
+                                <input type="text" class="form-control" id="unit" name="unit" value="pcs" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="price" class="form-label">Price</label>
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="productImage" class="form-label">Product Image</label>
+                            <input type="file" class="form-control" id="productImage" name="productImage">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Save Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    </body>
+</html>

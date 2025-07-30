@@ -15,6 +15,7 @@ const MongoStore = require('connect-mongo');
 // --- 2. LOCAL IMPORTS ---
 const dbConnect = require('./dbConnect');
 const initializeWebsockets = require('./websockets');
+const { ensureAuthenticated } = require('./middleware/auth'); // Add this import
 
 // --- Create upload directories ---
 const fs = require('fs');
@@ -42,8 +43,6 @@ require('./models/Post');
 require('./models/Comment');
 const User = require('./models/User');
 const locationRoutes = require('./routes/location');
-
-
 
 // --- MAIN ASYNC STARTUP FUNCTION ---
 async function startServer() {
@@ -123,26 +122,25 @@ async function startServer() {
         app.use('/admin', require('./routes/admin'));
         app.use('/location', locationRoutes);
 
+        // --- ADDITIONAL DASHBOARD ROUTES ---
+        // Note: Inventory dashboard is handled in /products/inventory/dashboard route
 
- 
+        // --- HEALTH CHECK ROUTES ---
+        app.get('/health', (req, res) => {
+            res.status(200).json({ 
+                status: 'OK', 
+                timestamp: new Date().toISOString(),
+                service: 'VME App',
+                uptime: process.uptime(),
+                version: '1.0.0'
+            });
+        });
 
+        // Alternative simple health check
+        app.get('/ping', (req, res) => {
+            res.status(200).send('pong');
+        });
 
-
-
-     app.get('/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'OK', 
-        timestamp: new Date().toISOString(),
-        service: 'VME App',
-        uptime: process.uptime(),
-        version: '1.0.0'
-    });
-});
-
-// Alternative simple health check
-app.get('/ping', (req, res) => {
-    res.status(200).send('pong');
-});
         const PORT = process.env.PORT || 3000;
         server.listen(PORT, () => {
             console.log(`🚀 Server is running on http://localhost:${PORT}`);

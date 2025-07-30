@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Gallery - VME App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .product-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .product-img {
+            height: 220px;
+            width: 100%;
+            object-fit: cover;
+        }
+        .stock-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    <main class="container my-5">
+        <header class="page-header">
+            <div>
+                <h1>Product Gallery</h1>
+                <p class="text-muted">Browse our product catalog</p>
+            </div>
+            <div class="d-flex gap-2">
+                <% if (['Admin', 'Accounting', 'Sales Manager', 'Inventory'].includes(currentUser.role)) { %>
+                    <a href="/products/manage" class="btn btn-primary">Manage Products</a>
+                    <a href="/products/inventory-dashboard" class="btn btn-info">Inventory Dashboard</a>
+                <% } %>
+            </div>
+        </header>
+
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-secondary filter-btn active" data-filter="all">All Products</button>
+                    <button type="button" class="btn btn-secondary filter-btn" data-filter="Service Products">Service Products</button>
+                    <button type="button" class="btn btn-secondary filter-btn" data-filter="Exclusive Meds">Exclusive Meds</button>
+                    <button type="button" class="btn btn-secondary filter-btn" data-filter="Other">Other</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <input type="text" id="productSearch" class="form-control" placeholder="Search products...">
+            </div>
+        </div>
+
+        <div class="row g-4" id="product-grid">
+            <% if (products && products.length > 0) { %>
+                <% products.forEach(product => { %>
+                    <div class="col-lg-4 col-md-6 product-item" data-category="<%= product.category %>" data-name="<%= product.name.toLowerCase() %>">
+                        <div class="card h-100 product-card">
+                            <div class="position-relative">
+                                <img src="<%= product.imageUrl || '/images/default-product.png' %>" class="card-img-top product-img" alt="<%= product.name %>">
+                                <% if (product.stock !== undefined && ['Admin', 'Accounting', 'Sales Manager', 'Inventory'].includes(currentUser.role)) { %>
+                                    <% if (product.stock <= (product.minStock || 10)) { %>
+                                        <span class="badge bg-danger stock-badge">Low Stock: <%= product.stock %></span>
+                                    <% } else { %>
+                                        <span class="badge bg-success stock-badge">In Stock: <%= product.stock %></span>
+                                    <% } %>
+                                <% } %>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title"><%= product.name %></h5>
+                                <p class="card-text text-muted"><%= product.description || 'No description available' %></p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold">₱<%= (product.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></span>
+                                    <span class="text-muted"><%= product.unit %></span>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <small class="text-muted">Category: <%= product.category %></small>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <h4>No products available</h4>
+                        <p>There are currently no products in the gallery.</p>
+                        <% if (currentUser.role === 'Admin') { %>
+                            <a href="/products/manage" class="btn btn-primary">Add Products</a>
+                        <% } %>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('productSearch');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const productItems = document.querySelectorAll('.product-item');
+            let activeFilter = 'all';
+
+            function applyFilters() {
+                const searchTerm = searchInput.value.toLowerCase();
+                productItems.forEach(item => {
+                    const categoryMatch = activeFilter === 'all' || item.dataset.category === activeFilter;
+                    const nameMatch = item.dataset.name.includes(searchTerm);
+                    item.style.display = categoryMatch && nameMatch ? '' : 'none';
+                });
+            }
+
+            searchInput.addEventListener('input', applyFilters);
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    activeFilter = btn.dataset.filter;
+                    applyFilters();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
