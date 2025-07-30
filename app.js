@@ -129,12 +129,19 @@ async function startServer() {
 
 
 
-       app.get('/health', (req, res) => {
+     app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        service: 'VME App'
+        service: 'VME App',
+        uptime: process.uptime(),
+        version: '1.0.0'
     });
+});
+
+// Alternative simple health check
+app.get('/ping', (req, res) => {
+    res.status(200).send('pong');
 });
         const PORT = process.env.PORT || 3000;
         server.listen(PORT, () => {

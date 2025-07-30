@@ -180,35 +180,45 @@
             }
             document.querySelectorAll('.expense-input').forEach(input => { input.addEventListener('input', updateTotalExpenses); });
             
-            const endingInput = document.getElementById('endingOdometer');
-            const totalKmInput = document.getElementById('totalKmReading');
-            const startingInput = document.getElementById('startingOdometer');
-            
-    function updateTotalKm() {
+        });
+           function updateTotalKm() {
+    const startingInput = document.getElementById('startingOdometer');
+    const endingInput = document.getElementById('endingOdometer');
+    const totalKmInput = document.getElementById('totalKmReading');
+    
     const start = parseFloat(startingInput.value) || 0;
     const end = parseFloat(endingInput.value) || 0;
-
-    totalKmInput.value = end - start;
+    
+    // Calculate the difference (Total KM traveled)
+    const totalKm = end > start ? end - start : 0;
+    
+    // Set the calculated value
+    totalKmInput.value = totalKm;
+    
+    // Optional: Add validation to prevent negative values
+    if (end < start && end > 0) {
+        alert('Ending odometer reading cannot be less than starting odometer reading!');
+        endingInput.value = '';
+        totalKmInput.value = 0;
+    }
 }
-            
-            endingInput.addEventListener('input', updateTotalKm);
-            
-            document.getElementById('endingOdometerPhoto').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(ev) {
-                        const img = document.getElementById('endingOdometerPreview');
-                        img.src = ev.target.result;
-                        img.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
 
-            updateCallSummary();
-            addSaleRow();
-        });
+// Add event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const endingInput = document.getElementById('endingOdometer');
+    const startingInput = document.getElementById('startingOdometer');
+    
+    if (endingInput && startingInput) {
+        // Update total when ending odometer changes
+        endingInput.addEventListener('input', updateTotalKm);
+        
+        // Also update when starting odometer changes (in case it gets modified)
+        startingInput.addEventListener('input', updateTotalKm);
+        
+        // Calculate initial value if both fields have values
+        updateTotalKm();
+    }
+});
     </script>
 </body>
 </html>
