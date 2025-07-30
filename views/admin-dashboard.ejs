@@ -399,15 +399,18 @@
                 }
             }
 
+                  // --- FIXED SEARCH BAR LOGIC ---
             const setupSearch = (inputId, tableId) => {
                 const searchInput = document.getElementById(inputId);
                 if (!searchInput) return;
                 const tableRows = document.querySelectorAll(`#${tableId} tbody tr`);
                 searchInput.addEventListener('keyup', () => {
-                    const filter = searchInput.value.toLowerCase();
+                    const filter = searchInput.value.toLowerCase().trim();
                     tableRows.forEach(row => {
                         const searchData = row.dataset.search || '';
-                        row.style.display = searchData.includes(filter) ? '' : 'none';
+                        // This now checks if all words in the filter appear in the search data
+                        const isMatch = filter.split(' ').every(word => searchData.includes(word));
+                        row.style.display = isMatch ? '' : 'none';
                     });
                 });
             };
