@@ -118,7 +118,15 @@ exports.addMessageToConversation = async (req, res) => {
         const recipientIds = conversation.participants.filter(pId => pId.toString() !== sender._id.toString());
         const notificationText = `You have a new message from ${sender.firstName} in "${conversation.groupName || 'your chat'}".`;
         const notificationLink = `/chat?convoId=${conversationId}`;
-        await createNotificationsForGroup(io, recipientIds, notificationText, notificationLink);
+        
+        // FIX: Use correct parameter format
+        await createNotificationsForGroup(io, {
+            recipients: recipientIds,
+            sender: sender._id,
+            type: 'NEW_CHAT_MESSAGE',
+            message: notificationText,
+            link: notificationLink
+        });
 
         res.status(201).json({ success: true, message: populatedMessage });
     } catch (err) {
