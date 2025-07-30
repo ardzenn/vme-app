@@ -62,7 +62,7 @@
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel">Check-in History</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Itinerary</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel">Weekly Itineraries</button></li>
-            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-reports-panel">End of Day Report</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-reports-panel">End of day Report</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#location-log-panel">Location Log</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#map-panel">Live Map</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#users-panel">User Management</button></li>
@@ -292,56 +292,35 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="map-panel" role="tabpanel">
-                 <div class="card card-tab"><div class="card-body">
-                     <div id="map" style="height: 60vh; width: 100%;"></div>
-                </div></div>
+           <div class="tab-pane fade" id="map-panel" role="tabpanel">
+    <div class="card card-tab">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="mapUserFilter" class="form-label">Select User</label>
+                    <select id="mapUserFilter" class="form-select">
+                        <option value="">-- All Users --</option>
+                        <% users.forEach(user => { %>
+                            <% if (user.role === 'MSR' || user.role === 'KAS') { %>
+                                <option value="<%= user._id %>"><%= user.firstName %> <%= user.lastName %></option>
+                            <% } %>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="mapDateFilter" class="form-label">Select Date</label>
+                    <input type="date" id="mapDateFilter" class="form-control">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button id="loadTracksBtn" class="btn btn-primary w-100">Load Historical Track</button>
+                </div>
             </div>
-            <div class="tab-pane fade" id="users-panel" role="tabpanel">
-                <div class="card card-tab"><div class="card-body">
-                    <input type="text" id="userSearch" class="form-control mb-3" placeholder="Search users...">
-                     <div class="table-responsive"><table class="table table-hover align-middle" id="userTable">
-                        <thead><tr><th>Name</th><th>Role</th><th>Actions</th></tr></thead>
-                        <tbody>
-                             <% users.forEach(user => { %>
-                                <tr data-search="<%= (user.firstName || '').toLowerCase() %> <%= (user.lastName || '').toLowerCase() %> <%= (user.username || '').toLowerCase() %>">
-                                    <td>
-                                         <div class="d-flex align-items-center">
-                                             <img src="<%= user.profilePicture %>" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
-                                             <div><strong><%= user.firstName %> <%= user.lastName %></strong><div class="text-muted small"><%= user.username %></div></div>
-                                         </div>
-                                    </td>
-                                     <td>
-                                        <div class="role-container">
-                                            <span class="role-display"><span class="badge bg-secondary"><%= user.role %></span></span>
-                                            <form action="/users/update-role/<%= user._id %>" method="POST" class="d-flex align-items-center role-edit-form" style="display: none;" onsubmit="return confirm('Are you sure you want to change the role for <%= user.firstName %> <%= user.lastName %>?');">
-                                                <select name="role" class="form-select form-select-sm me-2">
-                                                    <option value="Pending" <%= user.role === 'Pending' ? 'selected' : '' %>>Pending</option>
-                                                    <option value="MSR" <%= user.role === 'MSR' ? 'selected' : '' %>>MSR</option>
-                                                    <option value="KAS" <%= user.role === 'KAS' ? 'selected' : '' %>>KAS</option>
-                                                    <option value="Accounting" <%= user.role === 'Accounting' ? 'selected' : '' %>>Accounting</option>
-                                                    <option value="Admin" <%= user.role === 'Admin' ? 'selected' : '' %>>Admin</option>
-                                                </select>
-                                                <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                                <button type="button" class="btn btn-sm btn-light ms-1 cancel-role-edit">Cancel</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                     <td>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary edit-role-btn">Edit Role</button>
-                                        <% if (currentUser.id !== user.id) { %>
-                                            <form action="/users/delete/<%= user._id %>" method="POST" class="d-inline-block ms-1" onsubmit="return confirm('Are you sure you want to permanently delete this user? This action cannot be undone.');">
-                                                <button type="submit" class="btn btn-sm btn-danger">Delete User</button>
-                                            </form>
-                                        <% } %>
-                                    </td>
-                                </tr>
-                            <% }) %>
-                        </tbody>
-                    </table></div>
-                </div></div>
-            </div>
+            <div id="map" style="height: 60vh; width: 100%;"></div>
         </div>
+    </div>
+</div>
+
+<div class="tab-pane fade" id="users-panel" role="tabpanel">
     </main>
 
     <% if (currentUser && currentUser.role === 'Admin') { %>
@@ -569,6 +548,188 @@
                 });
             }
         });
+
+
+      let map = null;
+const userMarkers = {};
+let isMapInitialized = false;
+
+// Function to initialize the map
+function initializeMap() {
+    if (isMapInitialized) return;
+    
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) return;
+    
+    // Initialize map centered on Philippines
+    map = L.map('map').setView([12.8797, 121.7740], 6);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    isMapInitialized = true;
+    
+    // Load all current user positions
+    loadCurrentPositions();
+}
+
+// Function to load current positions of all users
+async function loadCurrentPositions() {
+    try {
+        const response = await fetch('/api/users');
+        const users = await response.json();
+        
+        users.forEach(user => {
+            if ((user.role === 'MSR' || user.role === 'KAS') && user.lastLocation && user.lastLocation.coordinates) {
+                updateUserMarker(user);
+            }
+        });
+    } catch (error) {
+        console.error('Failed to load user positions:', error);
+    }
+}
+
+// Function to update or create a user marker
+function updateUserMarker(user) {
+    if (!map || !user.lastLocation || !user.lastLocation.coordinates) return;
+    
+    const [lng, lat] = user.lastLocation.coordinates;
+    if (lat === 0 && lng === 0) return; // Skip invalid coordinates
+    
+    const markerId = user._id;
+    const markerIcon = L.divIcon({
+        html: `<div style="background-color: ${user.role === 'MSR' ? '#007bff' : '#28a745'}; 
+                width: 30px; height: 30px; border-radius: 50%; 
+                display: flex; align-items: center; justify-content: center; 
+                color: white; font-weight: bold; border: 2px solid white;">
+                ${user.firstName.charAt(0)}
+               </div>`,
+        iconSize: [30, 30],
+        className: 'custom-user-marker'
+    });
+    
+    const popupContent = `
+        <div>
+            <strong>${user.firstName} ${user.lastName}</strong><br>
+            <small>${user.role}</small><br>
+            <em>${user.lastKnownAddress || 'Getting address...'}</em><br>
+            <small>Updated: ${user.lastLocationUpdate ? new Date(user.lastLocationUpdate).toLocaleString() : 'N/A'}</small>
+        </div>
+    `;
+    
+    if (userMarkers[markerId]) {
+        // Update existing marker
+        userMarkers[markerId].setLatLng([lat, lng]);
+        userMarkers[markerId].setPopupContent(popupContent);
+    } else {
+        // Create new marker
+        userMarkers[markerId] = L.marker([lat, lng], { icon: markerIcon })
+            .addTo(map)
+            .bindPopup(popupContent);
+    }
+}
+
+// Listen for map tab activation
+document.addEventListener('DOMContentLoaded', () => {
+    const mapTabButton = document.querySelector('button[data-bs-target="#map-panel"]');
+    if (mapTabButton) {
+        mapTabButton.addEventListener('shown.bs.tab', () => {
+            if (!isMapInitialized) {
+                initializeMap();
+            } else {
+                // Refresh map size
+                setTimeout(() => {
+                    if (map) map.invalidateSize();
+                }, 100);
+            }
+        });
+    }
+    
+    // Socket event listeners
+    const socket = io();
+    
+    socket.on('locationUpdate', (user) => {
+        console.log('Location update received:', user);
+        
+        // Update marker on map if map is initialized
+        if (map && user) {
+            updateUserMarker(user);
+        }
+        
+        // Update location log table
+        const logRow = document.getElementById(`location-row-${user._id}`);
+        if (logRow) {
+            const addressCell = logRow.querySelector('.location-address');
+            const timeCell = logRow.querySelector('.location-update-time');
+            if (addressCell) addressCell.textContent = user.lastKnownAddress || 'N/A';
+            if (timeCell) timeCell.textContent = new Date(user.lastLocationUpdate).toLocaleString();
+            
+            // Add flash animation
+            logRow.classList.add('new-entry-flash');
+            setTimeout(() => logRow.classList.remove('new-entry-flash'), 2000);
+        }
+    });
+    
+    socket.on('userDisconnected', (userId) => {
+        // Optionally change marker appearance for offline users
+        if (userMarkers[userId]) {
+            userMarkers[userId].setOpacity(0.5);
+        }
+    });
+    
+    socket.on('updateUserList', (onlineUsers) => {
+        // Update online users count
+        const onlineUsersCountEl = document.getElementById('online-users-count');
+        if (onlineUsersCountEl) {
+            onlineUsersCountEl.textContent = onlineUsers.length;
+        }
+        
+        // Update markers for online users
+        if (map) {
+            onlineUsers.forEach(user => {
+                if ((user.role === 'MSR' || user.role === 'KAS') && user.lastLocation) {
+                    updateUserMarker(user);
+                    if (userMarkers[user._id]) {
+                        userMarkers[user._id].setOpacity(1);
+                    }
+                }
+            });
+        }
+    });
+});
+function debugLocationSystem() {
+    console.log('=== Location System Debug ===');
+    
+    // Check if map is initialized
+    console.log('Map initialized:', !!map);
+    console.log('User markers:', Object.keys(userMarkers).length);
+    
+    // Check WebSocket connection
+    if (typeof socket !== 'undefined') {
+        console.log('Socket connected:', socket.connected);
+    }
+    
+    // Test location API
+    fetch('/api/users-with-locations')
+        .then(res => res.json())
+        .then(users => {
+            console.log('Users with locations:', users.length);
+            users.forEach(user => {
+                console.log(`${user.firstName} ${user.lastName}:`, user.lastLocation);
+            });
+        });
+    
+    // Check browser location permission
+    navigator.permissions.query({ name: 'geolocation' })
+        .then(result => {
+            console.log('Geolocation permission:', result.state);
+        });
+}
+
+// Run debug
+debugLocationSystem();
     </script>
     <%- include('partials/chat-widget.ejs') %>
     <script src="/js/chat-widget.js"></script>

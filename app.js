@@ -41,6 +41,8 @@ require('./models/Notification');
 require('./models/Post');
 require('./models/Comment');
 const User = require('./models/User');
+const locationRoutes = require('./routes/location');
+
 
 
 // --- MAIN ASYNC STARTUP FUNCTION ---
@@ -119,6 +121,9 @@ async function startServer() {
         app.use('/api/conversations', require('./routes/conversations'));
         app.use('/feed', require('./routes/feed'));
         app.use('/admin', require('./routes/admin'));
+        app.use('/location', locationRoutes);
+
+
  
 
 

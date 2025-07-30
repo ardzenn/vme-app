@@ -85,3 +85,81 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+// Add this to your sw-src.js file after the existing code
+
+// --- PUSH NOTIFICATION HANDLER ---
+self.addEventListener('push', (event) => {
+    console.log('[Service Worker] Push received:', event);
+    
+    let notificationData = {
+        title: 'VME App Notification',
+        body: 'You have a new notification',
+        icon: '/images/icons/icon-192x192.png',
+        badge: '/images/icons/icon-192x192.png',
+        data: {
+            url: '/dashboard'
+        }
+    };
+
+    // Parse the push payload if it exists
+    if (event.data) {
+        try {
+            const payload = event.data.json();
+            notificationData = {
+                title: payload.title || 'VME App Notification',
+                body: payload.body || 'You have a new notification',
+                icon: '/images/icons/icon-192x192.png',
+                badge: '/images/icons/icon-192x192.png',
+                data: {
+                    url: payload.url || '/dashboard'
+                },
+                // Add these for better notification behavior
+                requireInteraction: true, // Keep notification until user interacts
+                vibrate: [200, 100, 200], // Vibration pattern for mobile
+                tag: 'vme-notification' // Prevents duplicate notifications
+            };
+        } catch (err) {
+            console.error('[Service Worker] Error parsing push data:', err);
+        }
+    }
+
+    // Show the notification
+    event.waitUntil(
+        self.registration.showNotification(notificationData.title, {
+            body: notificationData.body,
+            icon: notificationData.icon,
+            badge: notificationData.badge,
+            data: notificationData.data,
+            requireInteraction: notificationData.requireInteraction,
+            vibrate: notificationData.vibrate,
+            tag: notificationData.tag
+        })
+    );
+});
+
+// --- NOTIFICATION CLICK HANDLER ---
+self.addEventListener('notificationclick', (event) => {
+    console.log('[Service Worker] Notification clicked:', event);
+    
+    // Close the notification
+    event.notification.close();
+    
+    // Get the URL from notification data
+    const url = event.notification.data?.url || '/dashboard';
+    
+    // Open or focus the app
+    event.waitUntil(
+        clients.matchAll({ type: 'window' }).then((clientList) => {
+            // If VME app is already open, focus it
+            for (const client of clientList) {
+                if (client.url.includes(url) && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // If not open, open a new window
+            if (clients.openWindow) {
+                return clients.openWindow(url);
+            }
+        })
+    );
+});

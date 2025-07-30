@@ -5,8 +5,12 @@ const orderController = require('../controllers/orderController');
 const chatController = require('../controllers/chatController');
 const { ensureAuthenticated } = require('../middleware/auth');
 
-// --- Location API Route ---
+// --- Location API Routes ---
 router.post('/location', ensureAuthenticated, apiController.updateLocation);
+router.get('/location-log/history', ensureAuthenticated, apiController.getUserLocationHistory);
+router.get('/location/history', apiController.getUserLocationHistory);
+router.get('/users-with-locations', ensureAuthenticated, apiController.getUsersWithLocations);
+
 
 // --- Order API Route ---
 router.get('/orders/:id', ensureAuthenticated, orderController.getOrderDetailsAndMessages);
