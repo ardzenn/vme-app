@@ -33,19 +33,19 @@
                     <div id="visited-calls-container" class="mb-2">
                          <label class="form-label fw-bold">1.) Visited Hospitals and MDs:</label>
                         <% prefilledData.visitedCalls.forEach((call, index) => { %>
-                            <div class="input-group mb-2">
+                            <div class="input-group mb-2 visit-row">
                                 <span class="input-group-text"><%= index + 1 %>.</span>
-                                <input type="text" name="hospitals[]" class="form-control" value="<%= call.hospital %>" placeholder="Hospital Name">
-                                <input type="text" name="doctors[]" class="form-control" value="<%= call.doctor %>" placeholder="Doctor Name">
+                                <input type="text" name="hospitals" class="form-control hospital-input" value="<%= call.hospital %>" placeholder="Hospital Name">
+                                <input type="text" name="doctors" class="form-control doctor-input" value="<%= call.doctor %>" placeholder="Doctor Name">
                             </div>
                         <% }) %>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary mb-4" onclick="addVisitRow()">+ Add Another Visit</button>
+                    <button type="button" id="add-visit-btn" class="btn btn-sm btn-outline-secondary mb-4">+ Add Another Visit</button>
                     
                     <h5 class="mt-4">Summary of Client Calls:</h5>
                     <div class="row g-3 mb-4">
-                        <div class="col-md-3"><label class="form-label">A. No. of Hospitals</label><input type="number" class="form-control" value="<%= prefilledData.callSummary.hospitals %>" readonly></div>
-                        <div class="col-md-3"><label class="form-label">B. No. of MDs</label><input type="number" class="form-control" value="<%= prefilledData.callSummary.mds %>" readonly></div>
+                        <div class="col-md-3"><label class="form-label">A. No. of Hospitals</label><input type="number" id="hospital-summary" class="form-control" value="0" readonly></div>
+                        <div class="col-md-3"><label class="form-label">B. No. of MDs</label><input type="number" id="md-summary" class="form-control" value="0" readonly></div>
                         <div class="col-md-3"><label class="form-label">C. No. of Pharmacists</label><input type="number" name="pharmacists" class="form-control" value="0" min="0"></div>
                         <div class="col-md-3"><label class="form-label">D. No. of Acctg Staff</label><input type="number" name="accountingStaff" class="form-control" value="0" min="0"></div>
                     </div>
@@ -59,7 +59,7 @@
                         <div class="col-md-6 mb-3">
                              <label class="form-label fw-bold">2.) Sales for the Day:</label>
                             <div id="sales-container"></div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addSaleRow()">+ Add Sale</button>
+                            <button type="button" id="add-sale-btn" class="btn btn-sm btn-outline-secondary mt-2">+ Add Sale</button>
                         </div>
                         <div class="col-md-6 mb-3">
                              <label class="form-label fw-bold">3.) Collections (90 Days & Below):</label>
@@ -81,21 +81,20 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Ending Odometer</label>
-                            <input type="number" name="endingOdometer" id="endingOdometer" class="form-control" placeholder="Enter ending odometer" min="0">
+                            <input type="number" name="endingOdometer" id="endingOdometer" class="form-control" min="0">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Total Km. Reading</label>
-                            <input type="number" id="totalKmReading" class="form-control" readonly>
+                            <input type="number" id="totalKmReading" name="totalKmReading" class="form-control" readonly>
                         </div>
                     </div>
                     <div class="mb-2">
-                        <label for="endingOdometerNote" class="form-label">Odometer Note</label>
-                        <input type="text" id="endingOdometerNote" name="endingOdometerNote" class="form-control" placeholder="Optional note about ending odometer...">
+                        <label class="form-label">Upload image</label>
+                        <input type="file" name="endingOdometerPhoto" id="endingOdometerPhoto" class="form-control" accept="image/*">
                     </div>
-                    <div class="mb-2">
-                        <label for="endingOdometerPhoto" class="form-label">Ending Odometer Photo (Take or Upload)</label>
-                        <input type="file" id="endingOdometerPhoto" name="endingOdometerPhoto" accept="image/*" capture="environment" class="form-control">
-                        <img id="endingOdometerPreview" class="odometer-preview" style="display:none;">
+                    <div class="mb-4">
+                        <label class="form-label">Note</label>
+                        <textarea name="endingOdometerNote" class="form-control" rows="2"></textarea>
                     </div>
 
                     <h5 class="mt-4">Expense Report for the Day:</h5>
@@ -123,35 +122,76 @@
         </form>
     </main>
     <script>
-        let saleIndex = 0;
-        function addSaleRow() { /* ... existing code ... */ }
-        addSaleRow();
-        let visitIndex = document.querySelectorAll('#visited-calls-container .input-group').length;
-        function addVisitRow() { /* ... existing code ... */ }
-        function updateTotalExpenses() { /* ... existing code ... */ }
-        document.querySelectorAll('.expense-input').forEach(input => {
-            input.addEventListener('input', updateTotalExpenses);
-        });
-        const ending = document.getElementById('endingOdometer');
-        const total = document.getElementById('totalKmReading');
-        const starting = document.querySelector('[name="startingOdometer"]');
-        function updateTotalKm() {
-            const start = Number(starting.value || 0);
-            const end = Number(ending.value || 0);
-            total.value = (start && end && end >= start) ? (end - start) : '';
-        }
-        ending.addEventListener('input', updateTotalKm);
-        document.getElementById('endingOdometerPhoto').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    const img = document.getElementById('endingOdometerPreview');
-                    img.src = ev.target.result;
-                    img.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
+        document.addEventListener('DOMContentLoaded', () => {
+            const visitedCallsContainer = document.getElementById('visited-calls-container');
+            const salesContainer = document.getElementById('sales-container');
+            const hospitalSummary = document.getElementById('hospital-summary');
+            const mdSummary = document.getElementById('md-summary');
+            let saleIndex = 0;
+
+            function updateCallSummary() {
+                const hospitalInputs = visitedCallsContainer.querySelectorAll('.hospital-input');
+                const doctorInputs = visitedCallsContainer.querySelectorAll('.doctor-input');
+                const uniqueHospitals = new Set();
+                hospitalInputs.forEach(input => {
+                    if (input.value.trim() !== '') {
+                        uniqueHospitals.add(input.value.trim().toLowerCase());
+                    }
+                });
+                let mdCount = 0;
+                doctorInputs.forEach(input => {
+                    if (input.value.trim() !== '') { mdCount++; }
+                });
+                hospitalSummary.value = uniqueHospitals.size;
+                mdSummary.value = mdCount;
             }
+
+            function addVisitRow() {
+                const index = visitedCallsContainer.querySelectorAll('.visit-row').length + 1;
+                const div = document.createElement('div');
+                div.className = 'input-group mb-2 visit-row';
+                div.innerHTML = `<span class="input-group-text">${index}.</span><input type="text" name="hospitals" class="form-control hospital-input" placeholder="Hospital Name"><input type="text" name="doctors" class="form-control doctor-input" placeholder="Doctor Name"><button type="button" class="btn btn-outline-danger remove-visit-btn">&times;</button>`;
+                visitedCallsContainer.appendChild(div);
+                updateCallSummary();
+            }
+            
+            function addSaleRow() {
+                const div = document.createElement('div');
+                div.className = 'input-group mb-2';
+                div.innerHTML = `<input type="text" name="sales[${saleIndex}][client]" class="form-control" placeholder="Client Name"><span class="input-group-text">₱</span><input type="number" name="sales[${saleIndex}][amount]" class="form-control" placeholder="Amount" min="0" step="0.01">`;
+                salesContainer.appendChild(div);
+                saleIndex++;
+            }
+
+            visitedCallsContainer.addEventListener('input', updateCallSummary);
+            visitedCallsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-visit-btn')) {
+                    e.target.closest('.visit-row').remove();
+                    updateCallSummary();
+                }
+            });
+            document.getElementById('add-visit-btn').addEventListener('click', addVisitRow);
+            document.getElementById('add-sale-btn').addEventListener('click', addSaleRow);
+
+            function updateTotalExpenses() {
+                let total = 0;
+                document.querySelectorAll('.expense-input').forEach(input => { total += Number(input.value) || 0; });
+                document.getElementById('total-expenses-display').textContent = `₱${total.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            }
+            document.querySelectorAll('.expense-input').forEach(input => { input.addEventListener('input', updateTotalExpenses); });
+            
+            const endingInput = document.getElementById('endingOdometer');
+            const totalKmInput = document.getElementById('totalKmReading');
+            const startingInput = document.querySelector('input[name="startingOdometer"]');
+            function updateTotalKm() {
+                const start = Number(startingInput.value || 0);
+                const end = Number(endingInput.value || 0);
+                totalKmInput.value = (start > 0 && end > 0 && end >= start) ? (end - start) : '';
+            }
+            endingInput.addEventListener('input', updateTotalKm);
+            
+            updateCallSummary();
+            addSaleRow();
         });
     </script>
 </body>

@@ -35,7 +35,9 @@
                         <li class="p-3 text-center text-muted">Loading notifications...</li>
                     </ul>
                 </li>
-          
+
+             
+
                 <li class="nav-item dropdown ms-2">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <img src="<%= currentUser.profilePicture || '/images/default-profile.png' %>" class="rounded-circle me-2" width="30" height="30" style="object-fit: cover;">
@@ -48,6 +50,7 @@
                         <% } %>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        <li><a href="/forgot-password" class="dropdown-item">Reset Password</a></li>
                     </ul>
                 </li>
             </ul>

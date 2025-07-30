@@ -67,7 +67,6 @@
             </div>
         </form>
     </main>
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const planData = <%- JSON.stringify(plan || {}) %>;
@@ -109,7 +108,6 @@
                 overdueCollectionsContainer.appendChild(div);
             }
 
-            // Populate form if in edit mode
             if (isEditMode) {
                 if (planData.itinerary) planData.itinerary.forEach(item => addItineraryItem(item));
                 if (planData.salesObjectives) planData.salesObjectives.forEach(item => addSalesObjective(item));
@@ -119,13 +117,11 @@
                 }
             }
             
-            // Attach event listeners to buttons
             document.getElementById('add-itinerary-btn').addEventListener('click', () => addItineraryItem());
             document.getElementById('add-sales-objective-btn').addEventListener('click', () => addSalesObjective());
             document.getElementById('add-current-collection-btn').addEventListener('click', () => addCurrentCollection());
             document.getElementById('add-overdue-collection-btn').addEventListener('click', () => addOverdueCollection());
 
-            // Handle form submission
             document.getElementById('dailyPlanForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const actionUrl = isEditMode ? `/planning/daily/${planData._id}` : '/planning/daily';

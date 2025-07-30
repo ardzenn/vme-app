@@ -97,14 +97,6 @@ exports.getDailyPlanForm = async (req, res) => {
     try {
         const userTimezone = req.user.timezone || 'Asia/Manila';
         const today = moment.tz(userTimezone).startOf('day');
-        const existingPlan = await DailyPlan.findOne({
-            user: req.user.id,
-            planDate: today.toDate()
-        });
-        if (existingPlan) {
-            req.flash('error_msg', 'You have already submitted a plan for today. You can view it from "My Plans".');
-            return res.redirect('/planning/my-plans');
-        }
         res.render('daily-plan-form', {
             planDate: today.format('YYYY-MM-DD'),
             plan: {}

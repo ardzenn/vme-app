@@ -17,9 +17,7 @@ exports.getReportForm = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // This now fetches the plan but DOES NOT block if it's not found
         const plan = await DailyPlan.findOne({ user: req.user.id, planDate: today });
-
         const todaysCheckIns = await CheckIn.find({ 
             user: req.user.id, 
             createdAt: { $gte: today } 
@@ -30,9 +28,7 @@ exports.getReportForm = async (req, res) => {
             hospital: ci.hospital ? ci.hospital.name : 'N/A',
             doctor: ci.doctor ? ci.doctor.name : 'N/A'
         })).reverse();
-        
         const uniqueHospitals = [...new Set(visitedCalls.map(call => call.hospital))];
-
         const prefilledData = {
             lastClientVisited: lastClient,
             visitedCalls: visitedCalls,
@@ -41,7 +37,6 @@ exports.getReportForm = async (req, res) => {
                 mds: visitedCalls.length,
             }
         };
-        
         res.render('report-form', { 
             prefilledData, 
             startingOdometer: plan ? plan.startingOdometer : '' 
@@ -55,57 +50,51 @@ exports.getReportForm = async (req, res) => {
 
 exports.submitReport = async (req, res) => {
     try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Fetch the Daily Plan again to get a reliable starting odometer
+        const plan = await DailyPlan.findOne({ user: req.user.id, planDate: today });
+        const startingOdometer = plan ? plan.startingOdometer : 0;
+
         const {
             lastClientVisited, accomplishments, pharmacists, accountingStaff, sales,
             collectionsCurrent, collectionsOverdue, meal, transportation, toll, parking, lodging,
-            mtdNotes, startingOdometer, endingOdometer, endingOdometerNote
+            mtdNotes, endingOdometer, endingOdometerNote
         } = req.body;
 
-        let endingOdometerPhoto = '';
-        if (req.files && req.files['endingOdometerPhoto'] && req.files['endingOdometerPhoto'][0]) {
-            endingOdometerPhoto = req.files['endingOdometerPhoto'][0].path;
-        }
+        const endingOdometerNum = endingOdometer ? Number(endingOdometer) : 0;
+        const totalKmReading = (startingOdometer && endingOdometerNum && endingOdometerNum >= startingOdometer) ? (endingOdometerNum - startingOdometer) : 0;
 
-        const totalKmReading = (startingOdometer && endingOdometer) ? (Number(endingOdometer) - Number(startingOdometer)) : undefined;
-
-        const visitedCalls = req.body.hospitals.map((hospital, index) => ({
-            hospital: hospital,
-            doctor: req.body.doctors[index]
-        }));
-
-        const newReport = new DailyReport({
+        const newReportData = {
             user: req.user.id,
             lastClientVisited,
-            visitedCalls,
+            visitedCalls: req.body.hospitals ? req.body.hospitals.map((h, i) => ({ hospital: h, doctor: req.body.doctors[i] })) : [],
             callSummary: {
-                hospitals: [...new Set(req.body.hospitals)].length,
-                mds: req.body.doctors.length,
-                pharmacists,
-                accountingStaff,
+                hospitals: req.body.hospitals ? [...new Set(req.body.hospitals)].length : 0,
+                mds: req.body.doctors ? req.body.doctors.length : 0,
+                pharmacists, accountingStaff,
             },
             accomplishments,
             dailySales: sales ? Object.values(sales) : [],
-            dailyCollections: {
-                current: collectionsCurrent,
-                overdue: collectionsOverdue
-            },
+            dailyCollections: { current: collectionsCurrent, overdue: collectionsOverdue },
             expenses: { meal, transportation, toll, parking, lodging },
             attachments: req.files && req.files['attachments'] ? req.files['attachments'].map(file => file.path) : [],
             mtdNotes,
-            startingOdometer: startingOdometer ? Number(startingOdometer) : undefined,
-            endingOdometer: endingOdometer ? Number(endingOdometer) : undefined,
-            endingOdometerPhoto,
+            startingOdometer: startingOdometer,
+            endingOdometer: endingOdometerNum,
+            endingOdometerPhoto: req.files && req.files['endingOdometerPhoto'] ? req.files['endingOdometerPhoto'][0].path : undefined,
             endingOdometerNote,
             totalKmReading
-        });
-        await newReport.save();
+        };
 
+        const newReport = new DailyReport(newReportData);
+        await newReport.save();
+        
         const io = req.app.get('io');
         const adminIds = await getAdminAndITIds();
         await createNotificationsForGroup(io, {
-            recipients: adminIds,
-            sender: req.user.id,
-            type: 'NEW_REPORT',
+            recipients: adminIds, sender: req.user.id, type: 'NEW_REPORT',
             message: `${req.user.firstName} ${req.user.lastName} submitted their End of Day Report.`,
             link: `/report/${newReport._id}`
         });
@@ -168,6 +157,7 @@ exports.getDailyCheckInReport = async (req, res) => {
         res.redirect('/admin-dashboard');
     }
 };
+
 
 exports.exportDailyCheckInReport = async (req, res) => {
     try {

@@ -39,6 +39,7 @@ const dailyReportSchema = new Schema({
         lodging: { type: Number, default: 0 },
     },
 
+    startingOdometer: { type: Number },
     endingOdometer: { type: Number },
     endingOdometerPhoto: { type: String },
     endingOdometerNote: { type: String },

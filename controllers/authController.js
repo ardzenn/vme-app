@@ -89,7 +89,7 @@ exports.postForgotPassword = async (req, res) => {
 
         const mailOptions = {
             to: user.username,
-            from: `VME App <noreply@vme-app.com>`,
+            from: `VME admin@vintelmedenterprises.com`,
             subject: 'VME App Password Reset',
             text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\nhttp://${req.headers.host}/reset-password/${token}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\n`
         };
@@ -99,7 +99,7 @@ exports.postForgotPassword = async (req, res) => {
         res.redirect('/forgot-password');
     } catch (err) {
         console.error('FORGOT PASSWORD ERROR:', err);
-        req.flash('error_msg', 'An error occurred. Please check your .env file and email credentials.');
+        req.flash('error_msg', 'An error occurred. Please check your .env file, email credentials, and verified sender identity.');
         res.redirect('/forgot-password');
     }
 };

@@ -2,11 +2,9 @@ const Transaction = require('../models/Transaction');
 const upload = require('../config/cloudinary');
 const { createNotificationsForGroup, createNotification, getFinanceAndAdminIds } = require('../services/notificationService');
 
-// --- Middleware ---
 exports.uploadAttachment = upload.single('attachment');
 exports.uploadCommentAttachment = upload.single('commentAttachment');
 
-// --- Views ---
 exports.getTransactionPage = (req, res) => {
     res.render('transactions');
 };
@@ -45,7 +43,6 @@ exports.getMySubmissionsPage = async (req, res) => {
     }
 };
 
-// --- API & Actions ---
 exports.submitTransaction = async (req, res) => {
     try {
         const { type } = req.body;
@@ -58,12 +55,20 @@ exports.submitTransaction = async (req, res) => {
             attachmentUrl: req.file ? req.file.path : null
         };
 
+        // FIXED: This function removes commas before converting to a number
+        const parseCurrency = (value) => {
+            if (typeof value === 'string') {
+                return parseFloat(value.replace(/,/g, '')) || 0;
+            }
+            return Number(value) || 0;
+        };
+
         if (type === 'Collection') {
             const { customer, dateCollected, prCr, siDr, dateOfCheck, bankCheckNo, amount } = req.body;
-            Object.assign(newTransactionData, { customer, dateCollected, prCr, siDr, dateOfCheck, bankCheckNo, amount: parseFloat(amount) || 0 });
+            Object.assign(newTransactionData, { customer, dateCollected, prCr, siDr, dateOfCheck, bankCheckNo, amount: parseCurrency(amount) });
         } else if (type === 'Deposit') {
             const { details, hospital, dateDeposited, paymentMethod, totalAmountDeposited } = req.body;
-            Object.assign(newTransactionData, { details, hospital, dateDeposited, paymentMethod, totalAmountDeposited: parseFloat(totalAmountDeposited) || 0 });
+            Object.assign(newTransactionData, { details, hospital, dateDeposited, paymentMethod, totalAmountDeposited: parseCurrency(totalAmountDeposited) });
         } else {
             req.flash('error_msg', 'Invalid transaction type specified.');
             return res.redirect('/transactions');
