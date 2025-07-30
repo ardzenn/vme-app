@@ -60,16 +60,16 @@ exports.submitReport = async (req, res) => {
         const {
             lastClientVisited, accomplishments, pharmacists, accountingStaff, sales,
             collectionsCurrent, collectionsOverdue, meal, transportation, toll, parking, lodging,
-            mtdNotes, endingOdometer, endingOdometerNote, totalKmReading // <- totalKmReading added here
+            mtdNotes, endingOdometer, endingOdometerNote,
         } = req.body;
 
         const endingOdometerNum = endingOdometer ? Number(endingOdometer) : 0;
-        const totalKmReadingNum = totalKmReading ? Number(totalKmReading) : 0;
+        const totalKmReading = (endingOdometerNum >= startingOdometer) ? endingOdometerNum - startingOdometer : 0;
 
         const newReportData = {
             user: req.user.id,
             lastClientVisited,
-            visitedCalls: req.body.hospitals
+            visitedCalls: req.body.hospitals    
                 ? req.body.hospitals.map((h, i) => ({
                     hospital: h,
                     doctor: req.body.doctors[i]
@@ -108,7 +108,7 @@ exports.submitReport = async (req, res) => {
                     ? req.files['endingOdometerPhoto'][0].path
                     : undefined,
             endingOdometerNote,
-            totalKmReading: totalKmReadingNum
+            totalKmReading: totalKmReading
         };
 
         const newReport = new DailyReport(newReportData);

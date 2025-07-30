@@ -40,11 +40,35 @@ exports.createPost = async (req, res) => {
             author: req.user.id,
         };
         
-        if (req.file && req.file.path) {
-            newPostData.mediaUrl = req.file.path;
-            newPostData.mediaPublicId = req.file.filename;
-            // This now correctly uses the resource_type provided by Cloudinary
-            newPostData.mediaType = req.file.resource_type;
+        if (req.file) {
+            console.log('File uploaded:', req.file); // Debug log
+            
+            newPostData.mediaUrl = req.file.path || req.file.secure_url || req.file.url;
+            newPostData.mediaPublicId = req.file.filename || req.file.public_id;
+            
+            // Determine media type based on the mimetype or format
+            if (req.file.mimetype) {
+                if (req.file.mimetype.startsWith('image/')) {
+                    newPostData.mediaType = 'image';
+                } else if (req.file.mimetype.startsWith('video/')) {
+                    newPostData.mediaType = 'video';
+                }
+            } else if (req.file.resource_type) {
+                // Fallback to resource_type if available
+                newPostData.mediaType = req.file.resource_type;
+            } else if (req.file.format) {
+                // Another fallback based on file format
+                const videoFormats = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v'];
+                const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+                
+                if (videoFormats.includes(req.file.format.toLowerCase())) {
+                    newPostData.mediaType = 'video';
+                } else if (imageFormats.includes(req.file.format.toLowerCase())) {
+                    newPostData.mediaType = 'image';
+                }
+            }
+            
+            console.log('Media data:', newPostData); // Debug log
         }
 
         const newPost = new Post(newPostData);

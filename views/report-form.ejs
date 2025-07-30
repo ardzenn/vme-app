@@ -188,7 +188,7 @@
     const start = parseFloat(startingInput.value) || 0;
     const end = parseFloat(endingInput.value) || 0;
 
-    totalKmInput.value = start + end;
+    totalKmInput.value = end - start;
 }
             
             endingInput.addEventListener('input', updateTotalKm);
