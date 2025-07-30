@@ -7,27 +7,48 @@ const { sendNotificationToAdmins } = require('./pushController');
 const { createNotificationsForGroup, getAdminAndITIds } = require('../services/notificationService');
 const upload = require('../config/cloudinary');
 
-exports.uploadAttachments = upload.array('attachments', 10);
-
-// Add middleware for ending odometer photo
 exports.uploadReportAttachments = upload.fields([
     { name: 'attachments', maxCount: 10 },
     { name: 'endingOdometerPhoto', maxCount: 1 }
 ]);
 
-
-
 exports.getReportForm = async (req, res) => {
     try {
-        // ... your existing code ...
-        // Get today's DailyPlan for startingOdometer
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const plan = await require('../models/DailyPlan').findOne({ user: req.user.id, planDate: today });
-        const startingOdometer = plan?.startingOdometer ?? '';
-        res.render('report-form', { prefilledData, startingOdometer });
+
+        // This now fetches the plan but DOES NOT block if it's not found
+        const plan = await DailyPlan.findOne({ user: req.user.id, planDate: today });
+
+        const todaysCheckIns = await CheckIn.find({ 
+            user: req.user.id, 
+            createdAt: { $gte: today } 
+        }).populate('hospital doctor').sort({ createdAt: -1 });
+
+        const lastClient = todaysCheckIns[0] ? (todaysCheckIns[0].hospital ? todaysCheckIns[0].hospital.name : '') : '';
+        const visitedCalls = todaysCheckIns.map(ci => ({
+            hospital: ci.hospital ? ci.hospital.name : 'N/A',
+            doctor: ci.doctor ? ci.doctor.name : 'N/A'
+        })).reverse();
+        
+        const uniqueHospitals = [...new Set(visitedCalls.map(call => call.hospital))];
+
+        const prefilledData = {
+            lastClientVisited: lastClient,
+            visitedCalls: visitedCalls,
+            callSummary: {
+                hospitals: uniqueHospitals.length,
+                mds: visitedCalls.length,
+            }
+        };
+        
+        res.render('report-form', { 
+            prefilledData, 
+            startingOdometer: plan ? plan.startingOdometer : '' 
+        });
     } catch (err) {
-        req.flash('error_msg', 'Could not load report form.');
+        console.error("Error loading report form:", err);
+        req.flash('error_msg', 'Could not load the report form.');
         res.redirect('/dashboard');
     }
 };
@@ -45,10 +66,7 @@ exports.submitReport = async (req, res) => {
             endingOdometerPhoto = req.files['endingOdometerPhoto'][0].path;
         }
 
-        // Compute total km
-        let totalKmReading = (startingOdometer && endingOdometer)
-            ? (Number(endingOdometer) - Number(startingOdometer))
-            : undefined;
+        const totalKmReading = (startingOdometer && endingOdometer) ? (Number(endingOdometer) - Number(startingOdometer)) : undefined;
 
         const visitedCalls = req.body.hospitals.map((hospital, index) => ({
             hospital: hospital,
@@ -56,7 +74,9 @@ exports.submitReport = async (req, res) => {
         }));
 
         const newReport = new DailyReport({
-            user: req.user.id, lastClientVisited, visitedCalls,
+            user: req.user.id,
+            lastClientVisited,
+            visitedCalls,
             callSummary: {
                 hospitals: [...new Set(req.body.hospitals)].length,
                 mds: req.body.doctors.length,
@@ -70,9 +90,7 @@ exports.submitReport = async (req, res) => {
                 overdue: collectionsOverdue
             },
             expenses: { meal, transportation, toll, parking, lodging },
-            attachments: req.files && req.files['attachments']
-                ? req.files['attachments'].map(file => file.path)
-                : [],
+            attachments: req.files && req.files['attachments'] ? req.files['attachments'].map(file => file.path) : [],
             mtdNotes,
             startingOdometer: startingOdometer ? Number(startingOdometer) : undefined,
             endingOdometer: endingOdometer ? Number(endingOdometer) : undefined,
@@ -82,17 +100,19 @@ exports.submitReport = async (req, res) => {
         });
         await newReport.save();
 
-        // --- Create In-App Notification ---
         const io = req.app.get('io');
         const adminIds = await getAdminAndITIds();
-        const notificationText = `${req.user.firstName} ${req.user.lastName} submitted their End of Day Report.`;
-        const notificationLink = `/report/${newReport._id}`;
-        await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
+        await createNotificationsForGroup(io, {
+            recipients: adminIds,
+            sender: req.user.id,
+            type: 'NEW_REPORT',
+            message: `${req.user.firstName} ${req.user.lastName} submitted their End of Day Report.`,
+            link: `/report/${newReport._id}`
+        });
 
-        // --- Send Push Notification ---
         const payload = {
             title: 'New Daily Report Submitted',
-            body: `A new "Last Call" report was submitted by ${req.user.firstName} ${req.user.lastName}.`,
+            body: `A new report was submitted by ${req.user.firstName} ${req.user.lastName}.`,
             url: `/report/${newReport._id}`
         };
         sendNotificationToAdmins(payload);
@@ -100,6 +120,7 @@ exports.submitReport = async (req, res) => {
         req.flash('success_msg', 'Daily report submitted successfully!');
         res.redirect('/dashboard');
     } catch (err) {
+        console.error("Error submitting report:", err);
         req.flash('error_msg', 'Failed to submit report.');
         res.redirect('/report');
     }

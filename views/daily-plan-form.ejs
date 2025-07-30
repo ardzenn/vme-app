@@ -6,24 +6,11 @@
     <title>Daily Call Plan - VME App</title>
     <%- include('partials/header-meta') %>
     <style>
-        .card-body h5 {
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .list-group-item {
-            display: flex;
-            align-items: center;
-        }
-        .list-group-item .content {
-            flex-grow: 1;
-        }
-        .odometer-preview { max-width: 150px; display: block; margin-top: 10px; }
+        .card-body h5 { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
     <%- include('partials/navbar') %>
-
     <main class="container my-5" style="max-width: 800px;">
         <header class="page-header">
             <div>
@@ -31,283 +18,169 @@
                 <p class="text-muted">Outline your objectives and targets for the day.</p>
             </div>
         </header>
-
         <div id="notification-area"></div>
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
-        <% if (locals.error_msg && error_msg.length > 0) { %>
-            <div class="alert alert-danger"><%= error_msg %></div>
-        <% } %>
-
-        <form id="dailyPlanForm" enctype="multipart/form-data" method="POST" action="/planning/daily">
-            <input type="hidden" name="planId" value="<%= typeof plan !== 'undefined' && plan._id ? plan._id : '' %>">
-            <input type="hidden" name="itinerary" id="itineraryField">
-            <input type="hidden" name="salesObjectives" id="salesObjectivesField">
-            <input type="hidden" name="targetCollectionsCurrent" id="targetCollectionsCurrentField">
-            <input type="hidden" name="targetCollectionsOverdue" id="targetCollectionsOverdueField">
+        <form id="dailyPlanForm" enctype="multipart/form-data">
             <div class="card">
                 <div class="card-body">
-                    <div class="mb-3">
-                        <label for="planDate" class="form-label">Plan Date</label>
-                        <input type="date" id="planDate" name="planDate" class="form-control" value="<%= planDate %>" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="firstClientCall" class="form-label">First Client Call</label>
-                        <input type="text" id="firstClientCall" name="firstClientCall" class="form-control" placeholder="e.g., Davao City Hall" value="<%= plan.firstClientCall || '' %>">
-                    </div>
-                    <div class="mb-4">
-                        <label for="areasToVisit" class="form-label">Areas to Visit Today</label>
-                        <input type="text" id="areasToVisit" name="areasToVisit" class="form-control" placeholder="e.g., Digos, Davao del Sur" value="<%= plan.areasToVisit || '' %>">
-                    </div>
+                    <div class="mb-3"><label for="planDate" class="form-label">Plan Date</label><input type="date" id="planDate" name="planDate" class="form-control" value="<%= planDate %>" required></div>
+                    <div class="mb-3"><label for="firstClientCall" class="form-label">First Client Call</label><input type="text" id="firstClientCall" name="firstClientCall" class="form-control" placeholder="e.g., Jose R. Reyes Memorial Medical Center" value="<%= plan.firstClientCall || '' %>"></div>
+                    <div class="mb-4"><label for="areasToVisit" class="form-label">Areas to Visit Today</label><input type="text" id="areasToVisit" name="areasToVisit" class="form-control" placeholder="e.g., Manila, Quezon City" value="<%= plan.areasToVisit || '' %>"></div>
 
                     <h5 class="mt-4">1. Hospitals & Capitol to Visit</h5>
-                    <div id="itinerary-container">
-                        <% if (plan.itinerary) { %>
-                            <% plan.itinerary.forEach((item, index) => { %>
-                                <div class="input-group mb-2">
-                                    <span class="input-group-text"><%= index + 1 %>.</span>
-                                    <input type="text" class="form-control" placeholder="Place Name" value="<%= item %>" disabled>
-                                    <button class="btn btn-outline-danger remove-item-btn" type="button">X</button>
-                                </div>
-                            <% }) %>
-                        <% } %>
-                    </div>
-                    <div class="input-group">
-                        <input type="text" id="itinerary-input" class="form-control" placeholder="Enter Place Name...">
-                        <button type="button" class="btn btn-outline-primary add-item-btn" data-target="itinerary-container" data-input="itinerary-input">+ Add Place</button>
-                    </div>
+                    <div id="itinerary-container"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItineraryItem()">+ Add Place</button>
 
                     <h5 class="mt-4">2. Sales Objectives for the Day</h5>
-                    <div id="sales-objectives-container">
-                        <% if (plan.salesObjectives) { %>
-                            <% plan.salesObjectives.forEach((obj, index) => { %>
-                            <div class="input-group mb-2">
-                                <input type="text" class="form-control" placeholder="Objective description" value="<%= obj.objective %>" disabled>
-                                 <button class="btn btn-outline-danger remove-item-btn" type="button">X</button>
-                            </div>
-                            <% }) %>
-                        <% } %>
-                    </div>
-                    <div class="input-group">
-                        <input type="text" id="sales-objective-input" class="form-control" placeholder="Enter Objective...">
-                        <button type="button" class="btn btn-outline-primary add-item-btn" data-target="sales-objectives-container" data-input="sales-objective-input">+ Add Objective</button>
-                    </div>
+                    <div id="sales-objectives-container"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addSalesObjective()">+ Add Objective</button>
 
-                    <h5 class="mt-4">3. Target Collections for the Day (90 Days and Below)</h5>
-                    <div id="current-collections-container">
-                        <% if (plan.targetCollections && plan.targetCollections.current) { %>
-                            <% plan.targetCollections.current.forEach((col, index) => { %>
-                            <div class="input-group mb-2 collection-item" data-client="<%= col.client %>" data-amount="<%= col.amount %>">
-                                <input type="text" class="form-control" placeholder="Client Name" value="<%= col.client %>" disabled>
-                                <span class="input-group-text">₱</span>
-                                <input type="number" class="form-control" placeholder="Amount" value="<%= col.amount %>" step="0.01" disabled>
-                                <button class="btn btn-outline-danger remove-item-btn" type="button">X</button>
-                            </div>
-                            <% }) %>
-                        <% } %>
-                    </div>
-                    <div class="input-group">
-                        <input type="text" id="current-collection-client" class="form-control" placeholder="Client Name">
-                        <span class="input-group-text">₱</span>
-                        <input type="number" id="current-collection-amount" class="form-control" placeholder="Amount" step="0.01">
-                        <button type="button" id="add-current-collection-btn" class="btn btn-outline-primary">+ Add Target</button>
-                    </div>
+                    <h5 class="mt-4">3. Target Collections (90 Days and Below)</h5>
+                    <div id="current-collections-container"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCurrentCollection()">+ Add Target</button>
 
-                    <h5 class="mt-4">4. Target Collections for Overdue Accounts</h5>
-                    <div id="overdue-collections-container">
-                         <% if (plan.targetCollections && plan.targetCollections.overdue) { %>
-                             <% plan.targetCollections.overdue.forEach((col, index) => { %>
-                             <div class="card bg-light p-3 mb-2 overdue-collection-item" data-client="<%= col.client %>" data-si="<%= col.siDrNumber %>" data-date="<%= col.date ? new Date(col.date).toISOString().split('T')[0] : '' %>" data-amount="<%= col.amount %>">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h6>Overdue Target</h6>
-                                    <button class="btn btn-sm btn-danger remove-item-btn" type="button">Remove</button>
-                                </div>
-                                <input type="text" class="form-control mb-2" placeholder="Client Name" value="<%= col.client %>" disabled>
-                                <input type="text" class="form-control mb-2" placeholder="SI / DR Number" value="<%= col.siDrNumber %>" disabled>
-                                <input type="date" class="form-control mb-2" value="<%= col.date ? new Date(col.date).toISOString().split('T')[0] : '' %>" disabled>
-                                <input type="number" class="form-control" placeholder="Amount" value="<%= col.amount %>" step="0.01" disabled>
-                             </div>
-                             <% }) %>
-                         <% } %>
-                    </div>
-                    <div class="card bg-light p-3">
-                        <input type="text" id="overdue-client" class="form-control mb-2" placeholder="Client Name">
-                        <input type="text" id="overdue-si" class="form-control mb-2" placeholder="SI / DR Number">
-                        <input type="date" id="overdue-date" class="form-control mb-2">
-                        <input type="number" id="overdue-amount" class="form-control" placeholder="Amount" step="0.01">
-                        <button type="button" id="add-overdue-collection-btn" class="btn btn-primary mt-2">+ Add Overdue Target</button>
-                    </div>
-
-                    <h5 class="mt-4">5. Starting Odometer Reading</h5>
-                    <div class="mb-2">
-                        <label for="startingOdometer" class="form-label">Reading (km)</label>
-                        <input type="number" id="startingOdometer" name="startingOdometer" class="form-control" placeholder="e.g., 12345" value="<%= plan.startingOdometer || '' %>">
-                    </div>
-                    <div class="mb-2">
-                        <label for="startingOdometerPhoto" class="form-label">Photo (Take or Upload)</label>
-                        <input type="file" id="startingOdometerPhoto" name="startingOdometerPhoto" accept="image/*" capture="environment" class="form-control">
-                        <% if (plan.startingOdometerPhoto) { %>
-                            <img id="startingOdometerPreview" class="odometer-preview" src="<%= plan.startingOdometerPhoto %>" style="display:block;">
-                        <% } else { %>
-                            <img id="startingOdometerPreview" class="odometer-preview" style="display:none;">
-                        <% } %>
-                    </div>
-                    <div class="mb-2">
-                        <label for="startingOdometerNote" class="form-label">Note</label>
-                        <input type="text" id="startingOdometerNote" name="startingOdometerNote" class="form-control" placeholder="Optional note about odometer..." value="<%= plan.startingOdometerNote || '' %>">
+                    <h5 class="mt-4">4. Target Collections (Overdue)</h5>
+                    <div id="overdue-collections-container"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOverdueCollection()">+ Add Overdue Target</button>
+                    
+                    <h5 class="mt-4">Odometer Reading</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Starting Odometer (Km)</label>
+                            <input type="number" name="startingOdometer" class="form-control" value="<%= plan.startingOdometer || '' %>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Upload Odometer Photo</label>
+                            <input type="file" name="startingOdometerPhoto" class="form-control" accept="image/*">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Note</label>
+                            <textarea name="startingOdometerNote" class="form-control" rows="2"><%= plan.startingOdometerNote || '' %></textarea>
+                        </div>
                     </div>
                 </div>
                 <div class="card-footer text-end">
                     <a href="/planning/my-plans" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-success" id="submitBtn">Submit Plan</button>
+                    <button type="submit" class="btn btn-success" id="submitBtn">
+                        <%= plan._id ? 'Update Plan' : 'Submit Plan' %>
+                    </button>
                 </div>
             </div>
         </form>
     </main>
-
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // --- DYNAMIC LIST MANAGEMENT ---
-            document.body.addEventListener('click', function(e) {
-                // Generic handler for all "remove" buttons
-                if (e.target.matches('.remove-item-btn')) {
-                    e.target.closest('.input-group, .card').remove();
-                }
+        function addItineraryItem(value = '') {
+            const container = document.getElementById('itinerary-container');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `<span class="input-group-text">${index + 1}.</span><input type="text" class="form-control" placeholder="Place Name" value="${value}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
+            container.appendChild(div);
+        }
 
-                // Generic handler for simple "add" buttons (Itinerary, Sales Objectives)
-                if (e.target.matches('.add-item-btn')) {
-                    const targetContainerId = e.target.dataset.target;
-                    const inputId = e.target.dataset.input;
-                    const container = document.getElementById(targetContainerId);
-                    const input = document.getElementById(inputId);
-                    const value = input.value.trim();
-                    if (value) {
-                        const div = document.createElement('div');
-                        div.className = 'input-group mb-2';
-                        div.innerHTML = `
-                            <span class="input-group-text">${container.children.length + 1}.</span>
-                            <input type="text" class="form-control" value="${value}" disabled>
-                            <button class="btn btn-outline-danger remove-item-btn" type="button">X</button>
-                        `;
-                        container.appendChild(div);
-                        input.value = '';
-                    }
-                }
-            });
+        function addSalesObjective(value = '') {
+            const container = document.getElementById('sales-objectives-container');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `<input type="text" class="form-control" placeholder="Objective description" value="${value.objective || ''}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
+            container.appendChild(div);
+        }
 
-            // Handler for "Add Current Collection"
-            document.getElementById('add-current-collection-btn').addEventListener('click', function() {
-                const container = document.getElementById('current-collections-container');
-                const clientInput = document.getElementById('current-collection-client');
-                const amountInput = document.getElementById('current-collection-amount');
-                const client = clientInput.value.trim();
-                const amount = amountInput.value.trim();
-                if (client && amount) {
-                    const div = document.createElement('div');
-                    div.className = 'input-group mb-2 collection-item';
-                    div.dataset.client = client;
-                    div.dataset.amount = amount;
-                    div.innerHTML = `
-                        <input type="text" class="form-control" value="${client}" disabled>
-                        <span class="input-group-text">₱</span>
-                        <input type="number" class="form-control" value="${amount}" step="0.01" disabled>
-                        <button class="btn btn-outline-danger remove-item-btn" type="button">X</button>
-                    `;
-                    container.appendChild(div);
-                    clientInput.value = '';
-                    amountInput.value = '';
-                }
-            });
+        function addCurrentCollection(value = { client: '', amount: '' }) {
+            const container = document.getElementById('current-collections-container');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `<input type="text" class="form-control" placeholder="Client Name" value="${value.client}"><span class="input-group-text">₱</span><input type="number" class="form-control" placeholder="Amount" step="0.01" value="${value.amount}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
+            container.appendChild(div);
+        }
 
-            // Handler for "Add Overdue Collection"
-            document.getElementById('add-overdue-collection-btn').addEventListener('click', function() {
-                const container = document.getElementById('overdue-collections-container');
-                const clientInput = document.getElementById('overdue-client');
-                const siInput = document.getElementById('overdue-si');
-                const dateInput = document.getElementById('overdue-date');
-                const amountInput = document.getElementById('overdue-amount');
-                
-                const client = clientInput.value.trim();
-                const si = siInput.value.trim();
-                const date = dateInput.value;
-                const amount = amountInput.value.trim();
+        function addOverdueCollection(value = { client: '', siDrNumber: '', date: '', amount: '' }) {
+            const container = document.getElementById('overdue-collections-container');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'card bg-light p-3 mb-2';
+            div.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-2"><h6>Overdue Target ${index + 1}</h6><button class="btn btn-sm btn-danger" type="button" onclick="this.closest('.card').remove()">Remove</button></div><input type="text" class="form-control mb-2" placeholder="Client Name" value="${value.client}"><input type="text" class="form-control mb-2" placeholder="SI / DR Number" value="${value.siDrNumber}"><input type="date" class="form-control mb-2" value="${value.date}"><input type="number" class="form-control" placeholder="Amount" step="0.01" value="${value.amount}">`;
+            container.appendChild(div);
+        }
 
-                if (client && si && date && amount) {
-                    const div = document.createElement('div');
-                    div.className = 'card bg-light p-3 mb-2 overdue-collection-item';
-                    div.dataset.client = client;
-                    div.dataset.si = si;
-                    div.dataset.date = date;
-                    div.dataset.amount = amount;
-                    div.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6>Overdue Target</h6>
-                            <button class="btn btn-sm btn-danger remove-item-btn" type="button">Remove</button>
-                        </div>
-                        <input type="text" class="form-control mb-2" value="${client}" disabled>
-                        <input type="text" class="form-control mb-2" value="${si}" disabled>
-                        <input type="date" class="form-control mb-2" value="${date}" disabled>
-                        <input type="number" class="form-control" value="${amount}" step="0.01" disabled>
-                    `;
-                    container.appendChild(div);
-                    clientInput.value = '';
-                    siInput.value = '';
-                    dateInput.value = '';
-                    amountInput.value = '';
+        document.addEventListener('DOMContentLoaded', () => {
+            const planData = <%- JSON.stringify(plan) %>;
+            if (planData && planData.itinerary) {
+                planData.itinerary.forEach(item => addItineraryItem(item));
+                planData.salesObjectives.forEach(item => addSalesObjective(item));
+                if (planData.targetCollections) {
+                    planData.targetCollections.current.forEach(item => addCurrentCollection(item));
+                    planData.targetCollections.overdue.forEach(item => addOverdueCollection(item));
                 }
-            });
-
-            // Preview for starting odometer photo
-            document.getElementById('startingOdometerPhoto').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(ev) {
-                        const img = document.getElementById('startingOdometerPreview');
-                        img.src = ev.target.result;
-                        img.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
+            }
         });
 
-        document.getElementById('dailyPlanForm').addEventListener('submit', function(e) {
-            // Itinerary
-            const itinerary = [];
-            document.querySelectorAll('#itinerary-container .input-group input.form-control').forEach(input => {
-                if (input.value.trim()) itinerary.push(input.value.trim());
-            });
-            document.getElementById('itineraryField').value = JSON.stringify(itinerary);
+        document.getElementById('dailyPlanForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const isEditMode = !!<%- JSON.stringify(plan._id || null) %>;
+            const actionUrl = isEditMode ? `/planning/daily/${<%- JSON.stringify(plan._id) %>}` : '/planning/daily';
+            const submitBtn = document.getElementById('submitBtn');
+            const notificationArea = document.getElementById('notification-area');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Submitting...`;
+            notificationArea.innerHTML = '';
 
-            // Sales Objectives
-            const salesObjectives = [];
-            document.querySelectorAll('#sales-objectives-container .input-group input.form-control').forEach(input => {
-                if (input.value.trim()) salesObjectives.push({ objective: input.value.trim() });
-            });
-            document.getElementById('salesObjectivesField').value = JSON.stringify(salesObjectives);
+            try {
+                const textData = {
+                    planDate: document.getElementById('planDate').value,
+                    firstClientCall: document.getElementById('firstClientCall').value,
+                    areasToVisit: document.getElementById('areasToVisit').value,
+                    itinerary: Array.from(document.querySelectorAll('#itinerary-container input')).map(input => input.value).filter(val => val.trim() !== ''),
+                    salesObjectives: Array.from(document.querySelectorAll('#sales-objectives-container input')).map(input => ({ objective: input.value })).filter(val => val.objective.trim() !== ''),
+                    targetCollections: {
+                        current: Array.from(document.querySelectorAll('#current-collections-container .input-group')).map(item => ({
+                            client: item.children[0].value,
+                            amount: item.children[2].value
+                        })).filter(val => val.client.trim() !== ''),
+                        overdue: Array.from(document.querySelectorAll('#overdue-collections-container .card')).map(item => ({
+                            client: item.children[1].value,
+                            siDrNumber: item.children[2].value,
+                            date: item.children[3].value,
+                            amount: item.children[4].value
+                        })).filter(val => val.client.trim() !== '')
+                    }
+                };
 
-            // Target Collections (Current)
-            const currentCollections = [];
-            document.querySelectorAll('#current-collections-container .collection-item').forEach(div => {
-                const client = div.querySelector('input[type="text"]').value.trim();
-                const amount = div.querySelector('input[type="number"]').value.trim();
-                if (client && amount) currentCollections.push({ client, amount: parseFloat(amount) });
-            });
-            document.getElementById('targetCollectionsCurrentField').value = JSON.stringify(currentCollections);
+                const formData = new FormData(e.target);
+                for (const key in textData) {
+                    if (key === 'targetCollections' || key === 'salesObjectives' || key === 'itinerary') {
+                        formData.append(key, JSON.stringify(textData[key]));
+                    } else {
+                        formData.append(key, textData[key]);
+                    }
+                }
+                
+                // Remove individual fields that are now in JSON
+                formData.delete('itinerary[]'); 
+                formData.delete('salesObjectives[]');
+                formData.delete('targetCollections[]');
 
-            // Target Collections (Overdue)
-            const overdueCollections = [];
-            document.querySelectorAll('#overdue-collections-container .overdue-collection-item').forEach(div => {
-                const inputs = div.querySelectorAll('input');
-                const client = inputs[0].value.trim();
-                const siDrNumber = inputs[1].value.trim();
-                const date = inputs[2].value;
-                const amount = inputs[3].value.trim();
-                if (client && amount) overdueCollections.push({
-                    client, siDrNumber, date, amount: parseFloat(amount)
+
+                const response = await fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData
                 });
-            });
-            document.getElementById('targetCollectionsOverdueField').value = JSON.stringify(overdueCollections);
+                
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || 'An unknown server error occurred.');
+                }
+                
+                window.location.href = result.redirectUrl || '/planning/my-plans';
+
+            } catch (error) {
+                notificationArea.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = isEditMode ? 'Update Plan' : 'Submit Plan';
+            }
         });
     </script>
 </body>

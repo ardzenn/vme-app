@@ -36,9 +36,9 @@ const dailyPlanSchema = new Schema({
         current: [currentCollectionSchema],
         overdue: [overdueCollectionSchema]
     },
-    // --- NEW FIELDS ---
+    // --- ADDED NEW FIELDS ---
     startingOdometer: { type: Number },
-    startingOdometerPhoto: { type: String }, // image url/path
+    startingOdometerPhoto: { type: String },
     startingOdometerNote: { type: String },
     // -------------------
     comments: [commentSchema],

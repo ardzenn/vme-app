@@ -1,4 +1,3 @@
-// in models/DailyReport.js
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -20,7 +19,6 @@ const dailyReportSchema = new Schema({
     },
 
     accomplishments: { type: String },
-    
     mtdNotes: { type: String },
 
     dailySales: [{
@@ -41,12 +39,11 @@ const dailyReportSchema = new Schema({
         lodging: { type: Number, default: 0 },
     },
 
-    // --- NEW FIELDS ---
-    startingOdometer: { type: Number }, // Carry over from DailyPlan for display
+    // --- ADDED NEW FIELDS ---
     endingOdometer: { type: Number },
     endingOdometerPhoto: { type: String },
     endingOdometerNote: { type: String },
-    totalKmReading: { type: Number }, // Computed (ending - starting)
+    totalKmReading: { type: Number },
     // -------------------
 
     attachments: [{ type: String }]

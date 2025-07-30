@@ -14,11 +14,11 @@ router.get('/view/:type/:id', ensureAuthenticated, planningController.getPlanDet
 router.get('/coverage-report', ensureAuthenticated, planningController.getWeeklyCoverageReport);
 
 // --- ACTIONS (POST routes) ---
-router.post('/daily', ensureAuthenticated, planningController.submitDailyPlan);
+router.post('/daily', ensureAuthenticated, planningController.uploadDailyPlanAttachments, planningController.submitDailyPlan);
+// ADDED: New route for updating a daily plan
+router.post('/daily/:id', ensureAuthenticated, planningController.uploadDailyPlanAttachments, planningController.updateDailyPlan);
 router.post('/weekly', ensureAuthenticated, planningController.submitWeeklyItinerary);
 router.post('/comment', ensureAuthenticated, planningController.addComment);
-
-// ADDED: New route to mark a daily plan as read.
 router.post('/view/daily/:id/read', ensureAuthenticated, planningController.markPlanAsRead);
 
 // --- EXPORT ROUTE ---

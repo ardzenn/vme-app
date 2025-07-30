@@ -129,74 +129,130 @@ exports.getDailyPlanForm = async (req, res) => {
             planDate: today.toDate()
         });
         if (existingPlan) {
-            req.flash('error_msg', 'You have already submitted a plan for today. You can view or edit it from "My Plans".');
+            req.flash('error_msg', 'You have already submitted a plan for today. You can view it from "My Plans".');
             return res.redirect('/planning/my-plans');
         }
-        const myHospitals = await Hospital.find({ createdBy: req.user.id }).sort({ name: 1 });
         res.render('daily-plan-form', {
             planDate: today.format('YYYY-MM-DD'),
-            myHospitals,
             plan: {}
         });
     } catch (err) {
         console.error("Error loading daily plan form:", err);
         req.flash('error_msg', 'Could not load the daily plan form.');
-        res.redirect('/planning/my-plans');
+        res.redirect('/dashboard');
     }
 };
 
-// Update this to support file upload (multipart/form-data)
-
-
 exports.submitDailyPlan = async (req, res) => {
     try {
-        const { planDate, firstClientCall, areasToVisit, hospitalsToVisit, startingOdometer, note } = req.body;
-        const planDateObj = moment.tz(planDate, req.user.timezone || 'Asia/Manila').startOf('day').toDate();
+        const { planDate, firstClientCall, areasToVisit, startingOdometer, startingOdometerNote } = req.body;
+        const planDateObj = moment.tz(planDate, 'Asia/Manila').startOf('day').toDate();
 
         const existingPlan = await DailyPlan.findOne({ user: req.user.id, planDate: planDateObj });
         if (existingPlan) {
             return res.status(409).json({ success: false, message: 'A plan for this date has already been submitted.' });
         }
 
-        const itinerary = JSON.parse(req.body.itinerary || '[]');
-        const salesObjectives = JSON.parse(req.body.salesObjectives || '[]');
-        const targetCollectionsCurrent = JSON.parse(req.body.targetCollectionsCurrent || '[]');
-        const targetCollectionsOverdue = JSON.parse(req.body.targetCollectionsOverdue || '[]');
-
         const planData = {
             user: req.user.id,
             planDate: planDateObj,
             firstClientCall,
             areasToVisit,
-            itinerary,
-            salesObjectives,
-            targetCollections: {
-                current: targetCollectionsCurrent,
-                overdue: targetCollectionsOverdue
-            },
-            startingOdometer: isNaN(parseFloat(startingOdometer)) ? 0 : parseFloat(startingOdometer),
-            startingOdometerPhoto: req.file ? req.file.path : '',
-            startingOdometerNote: note
+            itinerary: req.body.itinerary ? JSON.parse(req.body.itinerary) : [],
+            salesObjectives: req.body.salesObjectives ? JSON.parse(req.body.salesObjectives) : [],
+            targetCollections: req.body.targetCollections ? JSON.parse(req.body.targetCollections) : { current: [], overdue: [] },
+            startingOdometer: startingOdometer ? Number(startingOdometer) : undefined,
+            startingOdometerPhoto: req.files && req.files['startingOdometerPhoto'] ? req.files['startingOdometerPhoto'][0].path : undefined,
+            startingOdometerNote
         };
 
         const plan = await DailyPlan.create(planData);
         const populatedPlan = await DailyPlan.findById(plan._id).populate('user', 'firstName lastName');
+        
         const io = req.app.get('io');
         io.emit('newDailyPlan', populatedPlan);
 
-        // --- Create Notification ---
         const adminIds = await getAdminAndITIds();
-        const notificationText = `${req.user.firstName} submitted a daily plan for ${new Date(planDateObj).toLocaleDateString()}.`;
-        const notificationLink = `/planning/view/daily/${populatedPlan._id}`;
-        await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
+        await createNotificationsForGroup(io, {
+            recipients: adminIds, sender: req.user.id, type: 'NEW_PLAN',
+            message: `${req.user.firstName} submitted a daily plan for ${new Date(planDateObj).toLocaleDateString()}.`,
+            link: `/planning/view/daily/${populatedPlan._id}`
+        });
 
-        res.status(201).json({ success: true, message: 'Daily plan submitted successfully!' });
-
+        res.status(200).json({ success: true, message: 'Daily plan submitted successfully!', redirectUrl: '/planning/my-plans' });
     } catch (err) {
         console.error("Error submitting daily plan:", err);
         res.status(500).json({ success: false, message: 'An error occurred while saving. Please try again.' });
     }
 };
+
+exports.updateDailyPlan = async (req, res) => {
+    try {
+        const { firstClientCall, areasToVisit, startingOdometer, startingOdometerNote } = req.body;
+        
+        const updateData = {
+            firstClientCall,
+            areasToVisit,
+            itinerary: req.body.itinerary ? JSON.parse(req.body.itinerary) : [],
+            salesObjectives: req.body.salesObjectives ? JSON.parse(req.body.salesObjectives) : [],
+            targetCollections: req.body.targetCollections ? JSON.parse(req.body.targetCollections) : { current: [], overdue: [] },
+            startingOdometer: startingOdometer ? Number(startingOdometer) : undefined,
+            startingOdometerNote
+        };
+
+        if (req.files && req.files['startingOdometerPhoto'] && req.files['startingOdometerPhoto'][0]) {
+            updateData.startingOdometerPhoto = req.files['startingOdometerPhoto'][0].path;
+        }
+
+        await DailyPlan.findByIdAndUpdate(req.params.id, updateData);
+        
+        res.status(200).json({ success: true, message: 'Daily plan updated successfully!', redirectUrl: '/planning/my-plans' });
+    } catch (err) {
+        console.error("Error updating daily plan:", err);
+        res.status(500).json({ success: false, message: 'An error occurred while updating. Please try again.' });
+    }
+};
+
+exports.getDailyPlanForEdit = async (req, res) => {
+    try {
+        const plan = await DailyPlan.findById(req.params.id);
+        if (!plan) {
+            req.flash('error_msg', 'Daily plan not found.');
+            return res.redirect('/planning/my-plans');
+        }
+        res.render('daily-plan-form', {
+            plan: plan.toObject(),
+            planDate: plan.planDate ? plan.planDate.toISOString().split('T')[0] : ''
+        });
+    } catch (err) {
+        req.flash('error_msg', 'Could not load daily plan for editing.');
+        res.redirect('/planning/my-plans');
+    }
+};
+
+exports.getDailyPlanForm = async (req, res) => {
+    try {
+        const userTimezone = req.user.timezone || 'Asia/Manila';
+        const today = moment.tz(userTimezone).startOf('day');
+        const existingPlan = await DailyPlan.findOne({
+            user: req.user.id,
+            planDate: today.toDate()
+        });
+        if (existingPlan) {
+            req.flash('error_msg', 'You have already submitted a plan for today. You can view it from "My Plans".');
+            return res.redirect('/planning/my-plans');
+        }
+        res.render('daily-plan-form', {
+            planDate: today.format('YYYY-MM-DD'),
+            plan: {}
+        });
+    } catch (err) {
+        console.error("Error loading daily plan form:", err);
+        req.flash('error_msg', 'Could not load the daily plan form.');
+        res.redirect('/dashboard');
+    }
+};
+
 
 exports.getPlanDetails = async (req, res) => {
     try {
