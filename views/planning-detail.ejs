@@ -16,6 +16,12 @@
         .table th {
             width: 30%;
         }
+        .odometer-photo {
+            max-height: 200px;
+            border-radius: .5rem;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -98,81 +104,34 @@
                             </tbody>
                         </table>
                     <% } else { %>
-                        <p class="text-muted">No overdue collection targets were submitted.</p>
+                         <p class="text-muted">No overdue collection targets were submitted.</p>
                     <% } %>
 
-                <% } else if (planType === 'weekly') { %>
-                    <h4 class="card-title mb-4">Weekly Itinerary for: <%= plan.weekPeriod || `Week of ${new Date(plan.weekStartDate).toLocaleDateString()}` %></h4>
-
-                    <h5 class="mt-4">Weekly Summary</h5>
-                     <table class="table table-bordered table-sm mb-4">
+                    <h5>Odometer Reading</h5>
+                    <table class="table table-bordered table-sm mb-4">
                         <tbody>
-                            <tr><th>Total Target Sales:</th><td><strong>₱<%= (plan.totalTargetSales || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></strong></td></tr>
-                            <tr><th>Total Target Collections:</th><td><strong>₱<%= (plan.totalTargetCollections || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></strong></td></tr>
+                            <tr><th>Starting Odometer:</th><td><%= plan.startingOdometer ? `${plan.startingOdometer} Km` : 'N/A' %></td></tr>
+                            <tr><th>Note:</th><td><%= plan.startingOdometerNote || 'N/A' %></td></tr>
+                            <tr>
+                                <th>Photo:</th>
+                                <td>
+                                    <% if (plan.startingOdometerPhoto) { %>
+                                        <img src="<%= plan.startingOdometerPhoto %>" alt="Odometer Photo" class="odometer-photo" onclick="showImageInModal('<%= plan.startingOdometerPhoto %>')">
+                                    <% } else { %>
+                                        <span class="text-muted">No photo uploaded.</span>
+                                    <% } %>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
-                    
-                    <hr>
 
-                    <% if (plan.dailyPlans && plan.dailyPlans.length > 0) { %>
-                        <% plan.dailyPlans.forEach(dayPlan => { %>
-                            <div class="card mb-3">
-                                <div class="card-header bg-light">
-                                    <strong><%= new Date(dayPlan.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></strong>
-                                    <span class="text-muted ms-2">(Area: <%= dayPlan.area || 'N/A' %>)</span>
-                                </div>
-                                <div class="card-body">
-                                    <h6>Places to Visit</h6>
-                                    <% if(dayPlan.placesToVisit && dayPlan.placesToVisit.length > 0) { %>
-                                        <% dayPlan.placesToVisit.forEach(place => { %>
-                                            <p class="mb-1"><strong><%= place.place %></strong></p>
-                                            <% if (place.doctors && place.doctors.length > 0) { %>
-                                            <ul class="list-unstyled ps-4">
-                                                <% place.doctors.forEach(doctor => { %>
-                                                    <li><small>- <%= doctor %></small></li>
-                                                <% }) %>
-                                            </ul>
-                                            <% } %>
-                                        <% }) %>
-                                    <% } else { %><p class="text-muted small">No places listed.</p><% } %>
-                                    
-                                    <h6 class="mt-3">Sales Objectives</h6>
-                                    <% if(dayPlan.salesObjectives && dayPlan.salesObjectives.length > 0) { %>
-                                        <ul class="list-group list-group-flush">
-                                        <% dayPlan.salesObjectives.forEach(obj => { %>
-                                            <li class="list-group-item d-flex justify-content-between align-items-center p-1">
-                                                <%= obj.client %>
-                                                <span class="badge bg-success rounded-pill">₱<%= (obj.amount || 0).toLocaleString() %></span>
-                                            </li>
-                                        <% }) %>
-                                        </ul>
-                                    <% } else { %><p class="text-muted small">No sales objectives.</p><% } %>
-
-                                    <h6 class="mt-3">Collection Objectives</h6>
-                                    <% if(dayPlan.collectionObjectives && dayPlan.collectionObjectives.length > 0) { %>
-                                        <ul class="list-group list-group-flush">
-                                        <% dayPlan.collectionObjectives.forEach(obj => { %>
-                                            <li class="list-group-item d-flex justify-content-between align-items-center p-1">
-                                                <%= obj.client %>
-                                                <span class="badge bg-info rounded-pill">₱<%= (obj.amount || 0).toLocaleString() %></span>
-                                            </li>
-                                        <% }) %>
-                                        </ul>
-                                    <% } else { %><p class="text-muted small">No collection objectives.</p><% } %>
-                                </div>
-                            </div>
-                        <% }) %>
-                    <% } else { %>
-                        <p class="text-muted">No daily plans were submitted for this week.</p>
+                <% } else if (planType === 'weekly') { %>
                     <% } %>
-                <% } %>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-header">
-                <h4>Comments</h4>
-            </div>
+            <div class="card-header"><h4>Comments</h4></div>
             <div class="card-body">
                 <% if(plan.comments && plan.comments.length > 0) { %>
                     <% plan.comments.forEach(comment => { %>
@@ -194,7 +153,7 @@
                     <input type="hidden" name="planId" value="<%= plan._id %>">
                     <input type="hidden" name="planType" value="<%= planType %>">
                     <div class="input-group">
-                        <input type="text" name="text" class="form-control" placeholder="Write a comment..." required>
+                         <input type="text" name="text" class="form-control" placeholder="Write a comment..." required>
                         <button type="submit" class="btn btn-primary">Post Comment</button>
                     </div>
                 </form>

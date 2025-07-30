@@ -34,14 +34,21 @@
                         <tbody>
                             <% if(reports.length > 0) { %>
                                 <% reports.forEach(report => { %>
-                            <tr data-search="<%= report.user.firstName.toLowerCase() %> <%= report.user.lastName.toLowerCase() %> <%= new Date(report.reportDate).toLocaleDateString().toLowerCase() %> <%= report.lastClientVisited.toLowerCase() %>">
-                                        <td><%= report.user.firstName %> <%= report.user.lastName %></td>
-                                        <td><%= new Date(report.reportDate).toLocaleDateString() %></td>
-                                        <td><%= report.lastClientVisited %></td>
-                                        <td>
-                                            <a href="/report/<%= report._id %>" class="btn btn-sm btn-primary">View Details</a>
-                                        </td>
-                                    </tr>
+                                    <% if (report.user) { %>
+                                        <tr data-search="<%= report.user.firstName.toLowerCase() %> <%= report.user.lastName.toLowerCase() %> <%= new Date(report.reportDate).toLocaleDateString().toLowerCase() %> <%= report.lastClientVisited.toLowerCase() %>">
+                                            <td><%= report.user.firstName %> <%= report.user.lastName %></td>
+                                            <td><%= new Date(report.reportDate).toLocaleDateString() %></td>
+                                            <td><%= report.lastClientVisited %></td>
+                                            <td><a href="/report/<%= report._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                        </tr>
+                                    <% } else { %>
+                                        <tr class="table-warning">
+                                            <td>[User Deleted]</td>
+                                            <td><%= new Date(report.reportDate).toLocaleDateString() %></td>
+                                            <td><%= report.lastClientVisited %></td>
+                                            <td><a href="/report/<%= report._id %>" class="btn btn-sm btn-secondary">View Details</a></td>
+                                        </tr>
+                                    <% } %>
                                 <% }) %>
                             <% } else { %>
                                 <tr>
@@ -57,7 +64,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('reportSearch');
-        const tableRows = document.querySelectorAll('#reportHistoryTable tbody tr'); // Add id="reportHistoryTable" to your table tag
+        const tableRows = document.querySelectorAll('#reportHistoryTable tbody tr');
 
         searchInput.addEventListener('keyup', () => {
             const filter = searchInput.value.toLowerCase();

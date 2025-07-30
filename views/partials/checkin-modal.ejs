@@ -5,7 +5,7 @@
         <h5 class="modal-title" id="checkinModalLabel">New Check-In</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="checkinForm" action="/checkin" method="POST" enctype="multipart/form-data">
+      <form id="checkinForm" enctype="multipart/form-data">
         <div class="modal-body">
           <div id="checkin-notification-area"></div>
           
@@ -92,6 +92,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     let allDoctors = <%- JSON.stringify(locals.allDoctors || []) %>;
@@ -132,6 +133,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const notificationArea = document.getElementById('checkin-notification-area');
     const latInput = document.getElementById('lat');
     const lngInput = document.getElementById('lng');
+
+    const DB_NAME = 'vme-offline-requests';
+    const STORE_NAME = 'checkin-requests';
+
+    const openDB = () => {
+      return idb.openDB(DB_NAME, 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+          }
+        },
+      });
+    };
+
+    const saveRequestForSync = async (formDataObject) => {
+        const db = await openDB();
+        await db.add(STORE_NAME, { body: formDataObject });
+    };
+
+    const registerBackgroundSync = async () => {
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.sync.register('offline-checkin-sync');
+        }
+    };
+    
+    const dataURItoBlob = (dataURI) => {
+        const byteString = atob(dataURI.split(',')[1]);
+        const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], { type: mimeString });
+    };
 
     const toggleHospitalUI = (showCreate) => { hospitalCreateUI.style.display = showCreate ? 'flex' : 'none'; hospitalSelectUI.style.display = showCreate ? 'none' : 'flex'; };
     const toggleDoctorUI = (showCreate) => { doctorCreateUI.style.display = showCreate ? 'flex' : 'none'; doctorSelectUI.style.display = showCreate ? 'none' : 'flex'; };
@@ -201,11 +238,16 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         submitCheckinBtn.disabled = true;
         submitCheckinBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Submitting...`;
+        notificationArea.innerHTML = '';
 
-        if (window.VME_APP_CURRENT_POSITION) {
-            latInput.value = window.VME_APP_CURRENT_POSITION.coords.latitude;
-            lngInput.value = window.VME_APP_CURRENT_POSITION.coords.longitude;
-        } else {
+        try {
+            const pos = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000, enableHighAccuracy: true });
+            });
+            latInput.value = pos.coords.latitude;
+            lngInput.value = pos.coords.longitude;
+        } catch (err) {
+            console.warn("Could not get location during final submission:", err.message);
             latInput.value = '';
             lngInput.value = '';
         }
@@ -213,29 +255,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (signaturePad && !signaturePad.isEmpty()) {
             sigDataInput.value = signaturePad.toDataURL('image/png');
         }
-
-        const formData = new FormData(checkinForm);
         
-        try {
-            const response = await fetch('/checkin', { method: 'POST', body: formData });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'An error occurred.');
+        const formData = new FormData(checkinForm);
+        const formDataObject = Object.fromEntries(formData.entries());
 
-            if (!latInput.value) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    fetch(`/checkin/location/${result.checkIn._id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-                    });
-                });
+        const proofFile = proofUploadInput.files[0];
+        if (proofFile) {
+            formDataObject.proof = proofFile;
+        } else if (formDataObject.proof_base64) {
+            formDataObject.proof = dataURItoBlob(formDataObject.proof_base64);
+        }
+        delete formDataObject.proof_base64;
+
+        if (formDataObject.signature) {
+             formDataObject.signature = dataURItoBlob(formDataObject.signature);
+        }
+
+        if (!navigator.onLine) {
+            try {
+                await saveRequestForSync(formDataObject);
+                await registerBackgroundSync();
+                notificationArea.innerHTML = `<div class="alert alert-info">You are offline. Your check-in has been saved and will be uploaded automatically when you reconnect.</div>`;
+                setTimeout(() => checkinModal.hide(), 3000);
+            } catch (err) {
+                notificationArea.innerHTML = `<div class="alert alert-danger">Could not save check-in for offline sync. Please try again.</div>`;
+                submitCheckinBtn.disabled = false;
+                submitCheckinBtn.innerHTML = 'Submit Check-In';
             }
-            
-            checkinModal.hide();
-        } catch (error) {
-            notificationArea.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-            submitCheckinBtn.disabled = false;
-            submitCheckinBtn.innerHTML = 'Submit Check-In';
+        } else {
+            try {
+                const response = await fetch('/checkin', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'An error occurred.');
+                
+                checkinModal.hide();
+            } catch (error) {
+                notificationArea.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+                submitCheckinBtn.disabled = false;
+                submitCheckinBtn.innerHTML = 'Submit Check-In';
+            }
         }
     });
 
