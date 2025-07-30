@@ -8,163 +8,41 @@ const moment = require('moment-timezone');
 const { createNotificationsForGroup, createNotification, getAdminAndITIds } = require('../services/notificationService');
 const upload = require('../config/cloudinary');
 
-
-// Middleware for handling file upload for starting odometer photo
 exports.uploadDailyPlanAttachments = upload.fields([
     { name: 'startingOdometerPhoto', maxCount: 1 }
 ]);
 
-// --- Weekly Itinerary Forms & Submission ---
-exports.getWeeklyItineraryForm = async (req, res) => {
-    try {
-        const today = new Date();
-        const day = today.getDay();
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
-        const startOfWeek = new Date(today.setDate(diff));
-        startOfWeek.setHours(0, 0, 0, 0);
-        const weekStartDate = startOfWeek.toISOString().split('T')[0];
-        res.render('weekly-itinerary-form', { 
-            weekStartDate, 
-            itinerary: { dailyPlans: [] }
-        });
-    } catch (err) {
-        req.flash('error_msg', 'Could not load the itinerary form.');
-        res.redirect('/planning/my-plans');
+const parsePlanDataFromRequest = (req) => {
+    const { body, files } = req;
+    const data = {
+        planDate: body.planDate,
+        firstClientCall: body.firstClientCall,
+        areasToVisit: body.areasToVisit,
+        itinerary: body.itinerary ? JSON.parse(body.itinerary) : [],
+        salesObjectives: body.salesObjectives ? JSON.parse(body.salesObjectives) : [],
+        targetCollections: body.targetCollections ? JSON.parse(body.targetCollections) : { current: [], overdue: [] },
+        startingOdometer: body.startingOdometer ? Number(body.startingOdometer) : undefined,
+        startingOdometerNote: body.startingOdometerNote
+    };
+
+    if (files && files['startingOdometerPhoto'] && files['startingOdometerPhoto'][0]) {
+        data.startingOdometerPhoto = files['startingOdometerPhoto'][0].path;
     }
-};
-exports.getWeeklyItineraryForEdit = async (req, res) => {
-    try {
-        const itinerary = await WeeklyItinerary.findById(req.params.id);
-        if (!itinerary || itinerary.user.toString() !== req.user.id) {
-            req.flash('error_msg', 'Itinerary not found or you do not have permission to edit it.');
-            return res.redirect('/planning/my-plans');
-        }
-        const weekStartDate = itinerary.weekStartDate.toISOString().split('T')[0];
-        res.render('weekly-itinerary-form', { weekStartDate, itinerary });
-    } catch (err) {
-        req.flash('error_msg', 'Could not load the itinerary form.');
-        res.redirect('/planning/my-plans');
-    }
-};
-exports.submitWeeklyItinerary = async (req, res) => {
-    try {
-        const { weekPeriod, dailyPlans } = req.body;
-        if (!dailyPlans || !dailyPlans.some(d => d && d.date)) {
-             req.flash('error_msg', 'Please provide a date for at least one day in the plan.');
-             return res.redirect('back');
-        }
-        const firstDate = new Date(dailyPlans.find(d => d && d.date).date);
-        const dayOfWeek = firstDate.getUTCDay();
-        const diff = firstDate.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        const weekStartDate = new Date(firstDate.setUTCDate(diff));
-        weekStartDate.setUTCHours(0, 0, 0, 0);
-
-        let totalTargetSales = 0;
-        let totalTargetCollections = 0;
-
-        const processedDailyPlans = (dailyPlans || []).map(day => {
-            if (!day || !day.date) return null;
-            (day.salesObjectives || []).forEach(obj => totalTargetSales += parseFloat(obj.amount || 0));
-            (day.collectionObjectives || []).forEach(obj => totalTargetCollections += parseFloat(obj.amount || 0));
-            return {
-                date: new Date(day.date),
-                area: day.area,
-                salesObjectives: (day.salesObjectives || []).filter(o => o.client && o.client.trim() !== ''),
-                collectionObjectives: (day.collectionObjectives || []).filter(o => o.client && o.client.trim() !== ''),
-                placesToVisit: (day.placesToVisit || []).filter(p => p.place && p.place.trim() !== '').map(p => ({
-                    place: p.place,
-                    doctors: (p.doctors || []).filter(d => d && d.trim() !== '')
-                }))
-            };
-        }).filter(p => p !== null);
-
-        const weekData = {
-            user: req.user.id,
-            weekStartDate,
-            weekPeriod,
-            dailyPlans: processedDailyPlans,
-            totalTargetSales,
-            totalTargetCollections
-        };
-
-        const savedItinerary = await WeeklyItinerary.findOneAndUpdate(
-            { user: req.user.id, weekStartDate: weekData.weekStartDate },
-            weekData,
-            { new: true, upsert: true, runValidators: true }
-        );
-
-        // --- Create Notification ---
-        const io = req.app.get('io');
-        const adminIds = await getAdminAndITIds();
-        const notificationText = `${req.user.firstName} submitted a weekly itinerary for the week of ${weekStartDate.toLocaleDateString()}.`;
-        const notificationLink = `/planning/view/weekly/${savedItinerary._id}`;
-        await createNotificationsForGroup(io, adminIds, notificationText, notificationLink);
-
-        req.flash('success_msg', 'Weekly itinerary saved successfully!');
-        res.redirect('/planning/my-plans');
-    } catch (err) {
-        console.error("Error submitting weekly itinerary:", err);
-        req.flash('error_msg', 'An error occurred while saving your itinerary.');
-        res.redirect('back');
-    }
-};
-
-// --- Daily Plans & History ---
-exports.getMyPlans = async (req, res) => {
-    try {
-        const dailyPlans = await DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 });
-        const weeklyItineraries = await WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 });
-        res.render('my-plans', { dailyPlans, weeklyItineraries });
-    } catch (err) {
-        req.flash('error_msg', 'Could not load your plans.');
-        res.redirect('/dashboard');
-    }
-};
-exports.getDailyPlanForm = async (req, res) => {
-    try {
-        const userTimezone = req.user.timezone || 'Asia/Manila';
-        const today = moment.tz(userTimezone).startOf('day');
-        const existingPlan = await DailyPlan.findOne({
-            user: req.user.id,
-            planDate: today.toDate()
-        });
-        if (existingPlan) {
-            req.flash('error_msg', 'You have already submitted a plan for today. You can view it from "My Plans".');
-            return res.redirect('/planning/my-plans');
-        }
-        res.render('daily-plan-form', {
-            planDate: today.format('YYYY-MM-DD'),
-            plan: {}
-        });
-    } catch (err) {
-        console.error("Error loading daily plan form:", err);
-        req.flash('error_msg', 'Could not load the daily plan form.');
-        res.redirect('/dashboard');
-    }
+    return data;
 };
 
 exports.submitDailyPlan = async (req, res) => {
     try {
-        const { planDate, firstClientCall, areasToVisit, startingOdometer, startingOdometerNote } = req.body;
-        const planDateObj = moment.tz(planDate, 'Asia/Manila').startOf('day').toDate();
+        const planData = parsePlanDataFromRequest(req);
+        const planDateObj = moment.tz(planData.planDate, 'Asia/Manila').startOf('day').toDate();
 
         const existingPlan = await DailyPlan.findOne({ user: req.user.id, planDate: planDateObj });
         if (existingPlan) {
             return res.status(409).json({ success: false, message: 'A plan for this date has already been submitted.' });
         }
 
-        const planData = {
-            user: req.user.id,
-            planDate: planDateObj,
-            firstClientCall,
-            areasToVisit,
-            itinerary: req.body.itinerary ? JSON.parse(req.body.itinerary) : [],
-            salesObjectives: req.body.salesObjectives ? JSON.parse(req.body.salesObjectives) : [],
-            targetCollections: req.body.targetCollections ? JSON.parse(req.body.targetCollections) : { current: [], overdue: [] },
-            startingOdometer: startingOdometer ? Number(startingOdometer) : undefined,
-            startingOdometerPhoto: req.files && req.files['startingOdometerPhoto'] ? req.files['startingOdometerPhoto'][0].path : undefined,
-            startingOdometerNote
-        };
+        planData.user = req.user.id;
+        planData.planDate = planDateObj;
 
         const plan = await DailyPlan.create(planData);
         const populatedPlan = await DailyPlan.findById(plan._id).populate('user', 'firstName lastName');
@@ -188,22 +66,7 @@ exports.submitDailyPlan = async (req, res) => {
 
 exports.updateDailyPlan = async (req, res) => {
     try {
-        const { firstClientCall, areasToVisit, startingOdometer, startingOdometerNote } = req.body;
-        
-        const updateData = {
-            firstClientCall,
-            areasToVisit,
-            itinerary: req.body.itinerary ? JSON.parse(req.body.itinerary) : [],
-            salesObjectives: req.body.salesObjectives ? JSON.parse(req.body.salesObjectives) : [],
-            targetCollections: req.body.targetCollections ? JSON.parse(req.body.targetCollections) : { current: [], overdue: [] },
-            startingOdometer: startingOdometer ? Number(startingOdometer) : undefined,
-            startingOdometerNote
-        };
-
-        if (req.files && req.files['startingOdometerPhoto'] && req.files['startingOdometerPhoto'][0]) {
-            updateData.startingOdometerPhoto = req.files['startingOdometerPhoto'][0].path;
-        }
-
+        const updateData = parsePlanDataFromRequest(req);
         await DailyPlan.findByIdAndUpdate(req.params.id, updateData);
         
         res.status(200).json({ success: true, message: 'Daily plan updated successfully!', redirectUrl: '/planning/my-plans' });
@@ -253,6 +116,16 @@ exports.getDailyPlanForm = async (req, res) => {
     }
 };
 
+exports.getMyPlans = async (req, res) => {
+    try {
+        const dailyPlans = await DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 });
+        const weeklyItineraries = await WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 });
+        res.render('my-plans', { dailyPlans, weeklyItineraries });
+    } catch (err) {
+        req.flash('error_msg', 'Could not load your plans.');
+        res.redirect('/dashboard');
+    }
+};
 
 exports.getPlanDetails = async (req, res) => {
     try {
@@ -282,18 +155,117 @@ exports.addComment = async (req, res) => {
         const Model = planType === 'daily' ? DailyPlan : WeeklyItinerary;
         const plan = await Model.findByIdAndUpdate(planId, { $push: { comments: comment } }, { new: true });
 
-        // --- Create Notification for the plan owner ---
         if (plan && plan.user.toString() !== req.user.id.toString()) {
             const io = req.app.get('io');
-            const notificationText = `${req.user.firstName} commented on your ${planType} plan.`;
-            const notificationLink = `/planning/view/${planType}/${planId}`;
-            await createNotification(io, plan.user, notificationText, notificationLink);
+            await createNotification(io, {
+                recipient: plan.user,
+                sender: req.user.id,
+                type: 'PLAN_COMMENT',
+                message: `${req.user.firstName} commented on your ${planType} plan.`,
+                link: `/planning/view/${planType}/${planId}`
+            });
         }
 
         req.flash('success_msg', 'Comment added.');
         res.redirect(`/planning/view/${planType}/${planId}`);
     } catch (err) {
         req.flash('error_msg', 'Failed to add comment.');
+        res.redirect('back');
+    }
+};
+
+exports.markPlanAsRead = async (req, res) => {
+    try {
+        const planId = req.params.id;
+        await DailyPlan.findByIdAndUpdate(planId, { isNew: false });
+        res.status(200).json({ success: true, message: 'Plan marked as read.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error.' });
+    }
+};
+
+exports.getWeeklyItineraryForm = async (req, res) => {
+    try {
+        const today = new Date();
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
+        const startOfWeek = new Date(today.setDate(diff));
+        startOfWeek.setHours(0, 0, 0, 0);
+        const weekStartDate = startOfWeek.toISOString().split('T')[0];
+        res.render('weekly-itinerary-form', { 
+            weekStartDate, 
+            itinerary: { dailyPlans: [] }
+        });
+    } catch (err) {
+        req.flash('error_msg', 'Could not load the itinerary form.');
+        res.redirect('/planning/my-plans');
+    }
+};
+
+exports.getWeeklyItineraryForEdit = async (req, res) => {
+    try {
+        const itinerary = await WeeklyItinerary.findById(req.params.id);
+        if (!itinerary || itinerary.user.toString() !== req.user.id) {
+            req.flash('error_msg', 'Itinerary not found or you do not have permission to edit it.');
+            return res.redirect('/planning/my-plans');
+        }
+        const weekStartDate = itinerary.weekStartDate.toISOString().split('T')[0];
+        res.render('weekly-itinerary-form', { weekStartDate, itinerary });
+    } catch (err) {
+        req.flash('error_msg', 'Could not load the itinerary form.');
+        res.redirect('/planning/my-plans');
+    }
+};
+
+exports.submitWeeklyItinerary = async (req, res) => {
+    try {
+        const { weekPeriod, dailyPlans } = req.body;
+        if (!dailyPlans || !dailyPlans.some(d => d && d.date)) {
+             req.flash('error_msg', 'Please provide a date for at least one day in the plan.');
+             return res.redirect('back');
+        }
+        const firstDate = new Date(dailyPlans.find(d => d && d.date).date);
+        const dayOfWeek = firstDate.getUTCDay();
+        const diff = firstDate.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        const weekStartDate = new Date(firstDate.setUTCDate(diff));
+        weekStartDate.setUTCHours(0, 0, 0, 0);
+        let totalTargetSales = 0;
+        let totalTargetCollections = 0;
+        const processedDailyPlans = (dailyPlans || []).map(day => {
+            if (!day || !day.date) return null;
+            (day.salesObjectives || []).forEach(obj => totalTargetSales += parseFloat(obj.amount || 0));
+            (day.collectionObjectives || []).forEach(obj => totalTargetCollections += parseFloat(obj.amount || 0));
+            return {
+                date: new Date(day.date),
+                area: day.area,
+                salesObjectives: (day.salesObjectives || []).filter(o => o.client && o.client.trim() !== ''),
+                collectionObjectives: (day.collectionObjectives || []).filter(o => o.client && o.client.trim() !== ''),
+                placesToVisit: (day.placesToVisit || []).filter(p => p.place && p.place.trim() !== '').map(p => ({
+                    place: p.place,
+                    doctors: (p.doctors || []).filter(d => d && d.trim() !== '')
+                }))
+            };
+        }).filter(p => p !== null);
+        const weekData = {
+            user: req.user.id, weekStartDate, weekPeriod, dailyPlans: processedDailyPlans, totalTargetSales, totalTargetCollections
+        };
+        const savedItinerary = await WeeklyItinerary.findOneAndUpdate(
+            { user: req.user.id, weekStartDate: weekData.weekStartDate },
+            weekData,
+            { new: true, upsert: true, runValidators: true }
+        );
+        const io = req.app.get('io');
+        const adminIds = await getAdminAndITIds();
+        await createNotificationsForGroup(io, {
+            recipients: adminIds, sender: req.user.id, type: 'NEW_WEEKLY_ITINERARY',
+            message: `${req.user.firstName} submitted a weekly itinerary for the week of ${weekStartDate.toLocaleDateString()}.`,
+            link: `/planning/view/weekly/${savedItinerary._id}`
+        });
+        req.flash('success_msg', 'Weekly itinerary saved successfully!');
+        res.redirect('/planning/my-plans');
+    } catch (err) {
+        console.error("Error submitting weekly itinerary:", err);
+        req.flash('error_msg', 'An error occurred while saving your itinerary.');
         res.redirect('back');
     }
 };
@@ -331,10 +303,7 @@ exports.getWeeklyCoverageReport = async (req, res) => {
             if (!checkIn.user) return acc;
             const userId = checkIn.user._id.toString();
             if (!acc[userId]) {
-                acc[userId] = {
-                    user: checkIn.user,
-                    checkIns: []
-                };
+                acc[userId] = { user: checkIn.user, checkIns: [] };
             }
             acc[userId].checkIns.push(checkIn);
             return acc;
@@ -389,33 +358,5 @@ exports.exportWeeklyCoverageReport = async (req, res) => {
     } catch (err) {
         console.error("Error exporting weekly coverage report:", err);
         res.status(500).send("Error generating report");
-    }
-};
-
-exports.markPlanAsRead = async (req, res) => {
-    try {
-        const planId = req.params.id;
-        await DailyPlan.findByIdAndUpdate(planId, { isNew: false });
-        res.status(200).json({ success: true, message: 'Plan marked as read.' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error.' });
-    }
-}
-
-exports.getDailyPlanForEdit = async (req, res) => {
-    try {
-        const plan = await DailyPlan.findById(req.params.id);
-        if (!plan) {
-            req.flash('error_msg', 'Daily plan not found.');
-            return res.redirect('/planning/my-plans');
-        }
-        res.render('daily-plan-form', {
-            plan,
-            planDate: plan.planDate ? plan.planDate.toISOString().split('T')[0] : ''
-        });
-    } catch (err) {
-        console.error('Error loading daily plan for edit:', err);
-        req.flash('error_msg', 'Could not load daily plan for editing.');
-        res.redirect('/planning/my-plans');
     }
 };

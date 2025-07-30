@@ -9,25 +9,39 @@ exports.uploadProofImage = upload.single('proof');
 
 exports.createCheckIn = async (req, res) => {
     try {
-        const { hospitalName, doctorName, activity, notes, proof_base64, signature } = req.body;
+        const { hospitalName, doctorName, activity, notes, lat, lng, proof_base64, signature } = req.body;
 
         if (!hospitalName || !doctorName || !activity) {
             return res.status(400).json({ success: false, message: 'Hospital, Doctor, and Activity are required.' });
         }
 
-        let hospital = await Hospital.findOneAndUpdate(
-            { name: hospitalName.trim(), createdBy: req.user.id },
-            { $setOnInsert: { name: hospitalName.trim(), createdBy: req.user.id } },
-            { upsert: true, new: true }
-        );
+        let hospital = await Hospital.findOne({ name: hospitalName.trim(), createdBy: req.user.id });
+        if (!hospital) {
+            return res.status(400).json({ success: false, message: 'Selected hospital not found.' });
+        }
 
-        let doctor = await Doctor.findOneAndUpdate(
-            { name: doctorName.trim(), hospital: hospital._id, createdBy: req.user.id },
-            { $setOnInsert: { name: doctorName.trim(), hospital: hospital._id, createdBy: req.user.id } },
-            { upsert: true, new: true }
-        );
+        let doctor = await Doctor.findOne({ name: doctorName.trim(), hospital: hospital._id, createdBy: req.user.id });
+        if (!doctor) {
+            return res.status(400).json({ success: false, message: 'Selected doctor not found.' });
+        }
 
-        const newCheckInData = { user: req.user.id, hospital: hospital.id, doctor: doctor.id, activity, notes };
+        const newCheckInData = {
+            user: req.user.id,
+            hospital: hospital.id,
+            doctor: doctor.id,
+            activity,
+            notes,
+        };
+
+        if (lat && lng) {
+            const latitude = parseFloat(lat);
+            const longitude = parseFloat(lng);
+            newCheckInData.location = { lat: latitude, lng: longitude };
+            const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+            if (mapboxToken) {
+                newCheckInData.mapImageUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-marker+f74e4e(${longitude},${latitude})/${longitude},${latitude},15,0/600x300?access_token=${mapboxToken}`;
+            }
+        }
         
         if (req.file) {
             newCheckInData.proof = req.file.path;
@@ -69,7 +83,7 @@ exports.createCheckIn = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Check-in submitted! Capturing location in the background...',
+            message: 'Check-in submitted!',
             checkIn: newCheckIn
         });
 
@@ -88,7 +102,7 @@ exports.updateLocation = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Check-in record not found.' });
         }
 
-        if (checkIn.location && checkIn.location.coordinates && checkIn.location.coordinates[0] !== 0) {
+        if (checkIn.location && checkIn.location.lat) {
             return res.status(400).json({ success: false, message: 'Location is already set for this check-in.' });
         }
 
@@ -110,20 +124,8 @@ exports.updateLocation = async (req, res) => {
         });
 
         res.status(200).json({ success: true, message: 'Location updated successfully.' });
-
     } catch (error) {
         console.error("Location Update Error:", error);
         res.status(500).json({ success: false, message: 'Server error while updating location.' });
-    }
-};
-
-exports.getCheckIns = async (req, res) => {
-    try {
-        const checkIns = await CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 });
-        res.render('checkin-history', { checkIns });
-    } catch (err) {
-        console.error("Get check-ins error:", err);
-        req.flash('error_msg', 'Failed to load check-ins.');
-        res.redirect('/dashboard');
     }
 };

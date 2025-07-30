@@ -15,7 +15,6 @@ router.get('/coverage-report', ensureAuthenticated, planningController.getWeekly
 
 // --- ACTIONS (POST routes) ---
 router.post('/daily', ensureAuthenticated, planningController.uploadDailyPlanAttachments, planningController.submitDailyPlan);
-// ADDED: New route for updating a daily plan
 router.post('/daily/:id', ensureAuthenticated, planningController.uploadDailyPlanAttachments, planningController.updateDailyPlan);
 router.post('/weekly', ensureAuthenticated, planningController.submitWeeklyItinerary);
 router.post('/comment', ensureAuthenticated, planningController.addComment);

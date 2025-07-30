@@ -1,7 +1,6 @@
 const Hospital = require('../models/Hospital');
 const Doctor = require('../models/Doctor');
 const User = require('../models/User');
-const Conversation = require('../models/Conversation'); // Added
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
@@ -9,57 +8,12 @@ const fs = require('fs');
 const upload = multer({ dest: 'temp-uploads/' });
 exports.uploadCsv = upload.single('clientCsv');
 
-// ADDED: New function to create a support chat
-exports.createSupportChat = async (req, res) => {
-    try {
-        const requestingUser = req.user;
-
-        // Find all users with the IT role
-        const itUsers = await User.find({ role: 'IT' }).select('_id');
-        if (itUsers.length === 0) {
-            return res.status(404).json({ success: false, message: 'No IT support staff are available.' });
-        }
-
-        const itUserIds = itUsers.map(user => user._id);
-        const participants = [requestingUser._id, ...itUserIds];
-
-        // Create a new group conversation for this support request
-        const newConversation = new Conversation({
-            participants,
-            isGroup: true,
-            groupName: `Support: ${requestingUser.firstName} ${requestingUser.lastName}`,
-            groupAdmin: requestingUser._id
-        });
-
-        await newConversation.save();
-        
-        // Populate participants' details for the frontend
-        const populatedConvo = await Conversation.findById(newConversation._id).populate('participants');
-
-        // Notify all IT users in real-time that a new support chat has been created
-        const io = req.app.get('io');
-        itUserIds.forEach(id => {
-            io.to(id.toString()).emit('newConversation', populatedConvo);
-        });
-
-        res.status(201).json({ success: true, conversation: populatedConvo });
-    } catch (error) {
-        console.error("Error creating support chat:", error);
-        res.status(500).json({ success: false, message: 'Could not create support chat.' });
-    }
-};
-
-
-
 exports.updateLocation = async (req, res) => {
     try {
         const { lat, lng } = req.body;
         if (lat && lng) {
             await User.findByIdAndUpdate(req.user.id, {
-                lastLocation: {
-                    type: 'Point',
-                    coordinates: [lng, lat]
-                },
+                lastLocation: { type: 'Point', coordinates: [lng, lat] },
                 lastLocationUpdate: Date.now()
             });
             const io = req.app.get('io');
@@ -68,44 +22,48 @@ exports.updateLocation = async (req, res) => {
         }
         res.status(200).json({ success: true });
     } catch (err) {
-        res.status(500).json({ success: false });
+        res.status(500).json({ success: false, message: 'Server error.' });
     }
 };
 
 exports.addHospital = async (req, res) => {
     try {
         const { name } = req.body;
+        if (!name || name.trim() === '') {
+            return res.status(400).json({ success: false, message: 'Hospital name cannot be empty.' });
+        }
         const hospital = new Hospital({ name, createdBy: req.user.id });
         await hospital.save();
-
-        // ** FIX: Return the new hospital object in the JSON response **
-        res.json({ success: true, message: 'Hospital added successfully!', hospital: hospital });
+        
+        res.status(201).json({ success: true, hospital: hospital });
     } catch (error) {
-        res.status(400).json({ success: false, message: 'A hospital with this name may already exist in your list.' });
+        const errorMessage = 'A hospital with this name may already exist in your list.';
+        res.status(400).json({ success: false, message: errorMessage });
     }
 };
 
 exports.addDoctor = async (req, res) => {
     try {
         const { name, hospitalId } = req.body;
+        if (!name || name.trim() === '' || !hospitalId) {
+            return res.status(400).json({ success: false, message: 'Doctor name and hospital are required.' });
+        }
         const doctor = new Doctor({ name, hospital: hospitalId, createdBy: req.user.id });
         await doctor.save();
 
-        // ** FIX: Return the new doctor object in the JSON response **
-        res.json({ success: true, message: 'Doctor added successfully!', doctor: doctor });
+        const populatedDoctor = await Doctor.findById(doctor._id).populate('hospital');
+
+        res.status(201).json({ success: true, doctor: populatedDoctor });
     } catch (error) {
-        res.status(400).json({ success: false, message: 'This doctor may already exist for the selected hospital.' });
+        const errorMessage = 'This doctor may already exist for the selected hospital.';
+        res.status(400).json({ success: false, message: errorMessage });
     }
 };
 
 exports.deleteHospital = async (req, res) => {
     try {
-        const hospital = await Hospital.findOne({ _id: req.params.id, createdBy: req.user.id });
-        if (!hospital) {
-            return res.status(404).json({ success: false, message: 'Hospital not found.' });
-        }
         await Doctor.deleteMany({ hospital: req.params.id, createdBy: req.user.id });
-        await hospital.deleteOne();
+        await Hospital.deleteOne({ _id: req.params.id, createdBy: req.user.id });
         res.json({ success: true });
     } catch(err){
         res.status(500).json({ success: false, message: 'Server error.' });
@@ -114,11 +72,7 @@ exports.deleteHospital = async (req, res) => {
 
 exports.deleteDoctor = async (req, res) => {
     try {
-        const doctor = await Doctor.findOne({ _id: req.params.id, createdBy: req.user.id });
-        if (!doctor) {
-            return res.status(404).json({ success: false, message: 'Doctor not found.' });
-        }
-        await doctor.deleteOne();
+        await Doctor.deleteOne({ _id: req.params.id, createdBy: req.user.id });
         res.json({ success: true });
     } catch(err){
         res.status(500).json({ success: false, message: 'Server error.' });
@@ -130,7 +84,6 @@ exports.importClients = (req, res) => {
         req.flash('error_msg', 'Please upload a CSV file.');
         return res.redirect('/manage-entries');
     }
-
     const results = [];
     fs.createReadStream(req.file.path)
         .pipe(csv({ headers: ['Hospital', 'Doctor'], skipLines: 0 }))
@@ -139,35 +92,30 @@ exports.importClients = (req, res) => {
             fs.unlinkSync(req.file.path);
             let successCount = 0;
             let errorCount = 0;
-
             for (const row of results) {
                 try {
                     const hospitalName = row.Hospital?.trim();
                     const doctorName = row.Doctor?.trim();
-
                     if (!hospitalName || !doctorName) {
                         errorCount++;
                         continue;
                     }
-
                     let hospital = await Hospital.findOneAndUpdate(
                         { name: hospitalName, createdBy: req.user.id },
                         { $setOnInsert: { name: hospitalName, createdBy: req.user.id } },
                         { upsert: true, new: true }
                     );
-
                     await Doctor.findOneAndUpdate(
                         { name: doctorName, hospital: hospital._id, createdBy: req.user.id },
                         { $setOnInsert: { name: doctorName, hospital: hospital._id, createdBy: req.user.id } },
                         { upsert: true }
                     );
-
                     successCount++;
                 } catch (err) {
                     errorCount++;
                 }
             }
-            req.flash('success_msg', `${successCount} clients imported successfully. ${errorCount > 0 ? `${errorCount} rows failed or were duplicates.` : ''}`);
+            req.flash('success_msg', `${successCount} clients imported. ${errorCount > 0 ? `${errorCount} failed.` : ''}`);
             res.redirect('/manage-entries');
         });
 };

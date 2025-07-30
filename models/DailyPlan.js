@@ -8,9 +8,7 @@ const commentSchema = new Schema({
 });
 
 const salesObjectiveSchema = new Schema({
-    objective: String,
-    client: String,
-    product: String
+    objective: String
 });
 
 const currentCollectionSchema = new Schema({
@@ -36,11 +34,9 @@ const dailyPlanSchema = new Schema({
         current: [currentCollectionSchema],
         overdue: [overdueCollectionSchema]
     },
-    // --- ADDED NEW FIELDS ---
     startingOdometer: { type: Number },
     startingOdometerPhoto: { type: String },
     startingOdometerNote: { type: String },
-    // -------------------
     comments: [commentSchema],
     isNew: { type: Boolean, default: true }
 }, { timestamps: true });
