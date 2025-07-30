@@ -22,7 +22,7 @@ exports.getProductGallery = async (req, res) => {
 };
 
 // MODIFIED: Now only manages ACTIVE products
-xports.getProductGallery = async (req, res) => {
+exports.getProductGallery = async (req, res) => {
     try {
         const products = await Product.find({ isActive: true }).sort({ category: 1, name: 1 });
         res.render('product-gallery', { products });
