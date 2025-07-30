@@ -2,48 +2,48 @@
   "name": "vme-app",
   "version": "1.0.0",
   "description": "",
-  "main": "api/app.js",
+  "main": "app.js",
   "engines": {
     "node": "18.x"
   },
   "scripts": {
-    "build": "workbox-cli generateSW workbox-config.js",
-    "start": "npm run build && node app.js"
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@sendgrid/mail": "^8.1.5",
-    "axiom": "^0.1.6",
-    "bcryptjs": "^2.4.3",
-    "body-parser": "^1.20.3",
+    "axios": "^1.7.2",
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^2.2.0",
     "chart.js": "^4.5.0",
-    "cloudinary": "^1.41.3",
+    "cloudinary": "^2.7.0",
     "connect-flash": "^0.1.1",
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "crypto": "^1.0.1",
     "csv-parser": "^3.2.0",
-    "dotenv": "^16.6.1",
+    "dotenv": "^17.2.1",
     "ejs": "^3.1.10",
-    "express": "^4.21.2",
+    "express": "^5.1.0",
     "express-session": "^1.18.2",
     "express-validator": "^7.2.1",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.6.0",
-    "mongoose": "^8.16.4",
-    "multer": "^1.4.5-lts.1",
+    "mongoose": "^8.16.5",
+    "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^7.0.5",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "passport-local-mongoose": "^8.0.0",
     "socket.io": "^4.8.1",
     "web-push": "^3.6.7"
   },
-  "devDependencies": {
-    "workbox-cli": "^7.3.0"
+  "overrides": {
+    "cloudinary": "^2.7.0"
   }
 }
