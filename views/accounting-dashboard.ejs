@@ -12,6 +12,7 @@
     <main class="container-fluid" style="padding: 0 2rem;">
         <header class="page-header">
             <div>
+             <button id="enable-notifications-btn" class="btn btn-outline-primary"><i class="fas fa-bell"></i> Enable Notifications</button>
                 <h1 style="font-size: 1.875rem;">Accounting Dashboard</h1>
                 <p style="margin: 0;">System overview and financial management.</p>
             </div>
@@ -384,6 +385,36 @@
           setupSearch('dailyPlanSearch', 'dailyPlanTable');
           setupSearch('weeklyItinerarySearch', 'weeklyItineraryTable');
       });
+    </script>
+      <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const notificationButton = document.getElementById('enable-notifications-btn');
+
+        // Check if notifications are supported and permission is not yet granted or denied
+        if ('Notification' in window && notificationButton) {
+            if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+                // If permission is already granted or denied, hide the button
+                notificationButton.style.display = 'none';
+            }
+
+            notificationButton.addEventListener('click', () => {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        alert('Notifications have been enabled!');
+                        notificationButton.style.display = 'none';
+                        // You might want to initialize your push subscription here
+                        // by calling a function from your push-client.js
+                    } else if (permission === 'denied') {
+                        alert('You have blocked notifications. You can enable them in your browser settings.');
+                        notificationButton.style.display = 'none';
+                    }
+                });
+            });
+        } else if (notificationButton) {
+            // Hide button if notifications are not supported by the browser
+            notificationButton.style.display = 'none';
+        }
+    });
     </script>
        <%- include('partials/chat-widget.ejs') %>
     <script src="/js/chat-widget.js"></script>
