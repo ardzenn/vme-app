@@ -45,5 +45,8 @@
   },
   "overrides": {
     "cloudinary": "^2.7.0"
+  },
+  "devDependencies": {
+    "workbox-cli": "^7.3.0"
   }
 }

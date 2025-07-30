@@ -1,8 +1,9 @@
+
 module.exports = {
   globDirectory: 'public/',
   globPatterns: [
-    '**/*.{js,css,png,html,ejs,json,ico}'
+    '**/*.{js,css,png,jpg,jpeg,gif,html,json,ico}'
   ],
-  swDest: 'public/sw.js',
-  swSrc: 'public/sw-src.js' // Our source service worker file
+  swDest: 'sw.js',
+  swSrc: 'sw-src.js'
 };
