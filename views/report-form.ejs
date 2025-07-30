@@ -77,7 +77,7 @@
                     <div class="row mb-3 align-items-end">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Starting Odometer</label>
-                            <input type="number" name="startingOdometer" id="startingOdometer" class="form-control" value="<%= typeof startingOdometer !== 'undefined' ? startingOdometer : '' %>" readonly>
+                            <input type="number" name="startingOdometer" id="startingOdometer" class="form-control" value="<%= Number(startingOdometer || 0) %>" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Ending Odometer</label>
@@ -184,15 +184,13 @@
             const totalKmInput = document.getElementById('totalKmReading');
             const startingInput = document.getElementById('startingOdometer');
             
-            function updateTotalKm() {
-                const start = parseFloat(startingInput.value) || 0;
-                const end = parseFloat(endingInput.value) || 0;
-                if (end > start) {
-                    totalKmInput.value = end - start;
-                } else {
-                    totalKmInput.value = '';
-                }
-            }
+    function updateTotalKm() {
+    const start = parseFloat(startingInput.value) || 0;
+    const end = parseFloat(endingInput.value) || 0;
+
+    totalKmInput.value = start + end;
+}
+            
             endingInput.addEventListener('input', updateTotalKm);
             
             document.getElementById('endingOdometerPhoto').addEventListener('change', function(e) {

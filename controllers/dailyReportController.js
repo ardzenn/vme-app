@@ -52,7 +52,7 @@ exports.submitReport = async (req, res) => {
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         // Fetch the Daily Plan again to get a reliable starting odometer
         const plan = await DailyPlan.findOne({ user: req.user.id, planDate: today });
         const startingOdometer = plan ? plan.startingOdometer : 0;
@@ -60,41 +60,66 @@ exports.submitReport = async (req, res) => {
         const {
             lastClientVisited, accomplishments, pharmacists, accountingStaff, sales,
             collectionsCurrent, collectionsOverdue, meal, transportation, toll, parking, lodging,
-            mtdNotes, endingOdometer, endingOdometerNote
+            mtdNotes, endingOdometer, endingOdometerNote, totalKmReading // <- totalKmReading added here
         } = req.body;
 
         const endingOdometerNum = endingOdometer ? Number(endingOdometer) : 0;
-        const totalKmReading = (startingOdometer && endingOdometerNum && endingOdometerNum >= startingOdometer) ? (endingOdometerNum - startingOdometer) : 0;
+        const totalKmReadingNum = totalKmReading ? Number(totalKmReading) : 0;
 
         const newReportData = {
             user: req.user.id,
             lastClientVisited,
-            visitedCalls: req.body.hospitals ? req.body.hospitals.map((h, i) => ({ hospital: h, doctor: req.body.doctors[i] })) : [],
+            visitedCalls: req.body.hospitals
+                ? req.body.hospitals.map((h, i) => ({
+                    hospital: h,
+                    doctor: req.body.doctors[i]
+                }))
+                : [],
             callSummary: {
-                hospitals: req.body.hospitals ? [...new Set(req.body.hospitals)].length : 0,
+                hospitals: req.body.hospitals
+                    ? [...new Set(req.body.hospitals)].length
+                    : 0,
                 mds: req.body.doctors ? req.body.doctors.length : 0,
-                pharmacists, accountingStaff,
+                pharmacists,
+                accountingStaff
             },
             accomplishments,
             dailySales: sales ? Object.values(sales) : [],
-            dailyCollections: { current: collectionsCurrent, overdue: collectionsOverdue },
-            expenses: { meal, transportation, toll, parking, lodging },
-            attachments: req.files && req.files['attachments'] ? req.files['attachments'].map(file => file.path) : [],
+            dailyCollections: {
+                current: collectionsCurrent,
+                overdue: collectionsOverdue
+            },
+            expenses: {
+                meal,
+                transportation,
+                toll,
+                parking,
+                lodging
+            },
+            attachments:
+                req.files && req.files['attachments']
+                    ? req.files['attachments'].map((file) => file.path)
+                    : [],
             mtdNotes,
-            startingOdometer: startingOdometer,
+            startingOdometer,
             endingOdometer: endingOdometerNum,
-            endingOdometerPhoto: req.files && req.files['endingOdometerPhoto'] ? req.files['endingOdometerPhoto'][0].path : undefined,
+            endingOdometerPhoto:
+                req.files && req.files['endingOdometerPhoto']
+                    ? req.files['endingOdometerPhoto'][0].path
+                    : undefined,
             endingOdometerNote,
-            totalKmReading
+            totalKmReading: totalKmReadingNum
         };
 
         const newReport = new DailyReport(newReportData);
         await newReport.save();
-        
+
         const io = req.app.get('io');
         const adminIds = await getAdminAndITIds();
         await createNotificationsForGroup(io, {
-            recipients: adminIds, sender: req.user.id, type: 'NEW_REPORT',
+            recipients: adminIds,
+            sender: req.user.id,
+            type: 'NEW_REPORT',
             message: `${req.user.firstName} ${req.user.lastName} submitted their End of Day Report.`,
             link: `/report/${newReport._id}`
         });
