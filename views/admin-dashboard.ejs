@@ -321,30 +321,170 @@
 </div>
 
 <div class="tab-pane fade" id="users-panel" role="tabpanel">
-    </main>
-
-    <% if (currentUser && currentUser.role === 'Admin') { %>
-    <div class="modal fade" id="announcementModal" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Make an Announcement</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <form action="/admin/announce" method="POST">
-            <div class="modal-body">
-                <p class="text-muted small">This message will be sent as a notification to every user in the system.</p>
-                <textarea name="message" class="form-control" rows="4" placeholder="Type your announcement here..." required></textarea>
+    <div class="card card-tab">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">User Management</h5>
+                <% if (currentUser && currentUser.role === 'Admin') { %>
+                <% } %>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary">Send to Everyone</button>
+            
+            <input type="text" id="userSearch" class="form-control mb-3" placeholder="Search users by name or email...">
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach(user => { %>
+                            <tr data-search="<%= `${user.firstName} ${user.lastName} ${user.username}`.toLowerCase() %>" data-user-id="<%= user._id %>">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="<%= user.profilePicture || '/images/default-profile.png' %>" 
+                                             class="rounded-circle me-2" width="40" height="40" 
+                                             style="object-fit: cover;">
+                                        <div>
+                                            <div class="fw-medium"><%= user.firstName %> <%= user.lastName %></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><%= user.username %></td>
+                                <td>
+                                    <% if (user.role === 'Pending') { %>
+                                        <span class="badge bg-warning">Pending Approval</span>
+                                    <% } else { %>
+                                        <span class="badge bg-<%= user.role === 'Admin' ? 'danger' : user.role === 'IT' ? 'info' : user.role === 'Accounting' ? 'success' : 'primary' %>">
+                                            <%= user.role %>
+                                        </span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (user.role === 'Pending') { %>
+                                        <span class="text-warning"><i class="fas fa-clock"></i> Awaiting Approval</span>
+                                    <% } else { %>
+                                        <span class="text-success"><i class="fas fa-check-circle"></i> Active</span>
+                                    <% } %>
+                                </td>
+                                <td><%= new Date(user.createdAt).toLocaleDateString() %></td>
+                                <td>
+                                    <% if (currentUser && currentUser.role === 'Admin') { %>
+                                        <% if (user.role === 'Pending') { %>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-success approve-user-btn" 
+                                                        data-user-id="<%= user._id %>" 
+                                                        data-user-name="<%= user.firstName %> <%= user.lastName %>">
+                                                    <i class="fas fa-check"></i> Approve
+                                                </button>
+                                                <button class="btn btn-sm btn-danger reject-user-btn" 
+                                                        data-user-id="<%= user._id %>" 
+                                                        data-user-name="<%= user.firstName %> <%= user.lastName %>">
+                                                    <i class="fas fa-times"></i> Reject
+                                                </button>
+                                            </div>
+                                        <% } else if (user._id.toString() !== currentUser._id.toString()) { %>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary edit-user-btn" 
+                                                        data-user-id="<%= user._id %>">
+                                                    <i class="fas fa-edit"></i> Edit Role
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger delete-user-btn" 
+                                                        data-user-id="<%= user._id %>" 
+                                                        data-user-name="<%= user.firstName %> <%= user.lastName %>">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </div>
+                                        <% } else { %>
+                                            <span class="text-muted small">Current User</span>
+                                        <% } %>
+                                    <% } else { %>
+                                        <span class="text-muted small">No Actions</span>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
             </div>
-          </form>
         </div>
-      </div>
     </div>
-    <% } %>
+</div>
+
+<!-- User Approval Modal -->
+<div class="modal fade" id="userApprovalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Approve User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="userApprovalForm">
+                <div class="modal-body">
+                    <p>Select a role for <strong id="approvalUserName"></strong>:</p>
+                    <input type="hidden" id="approvalUserId">
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select class="form-select" id="userRole" required>
+                            <option value="">-- Select Role --</option>
+                            <option value="MSR">MSR (Medical Sales Representative)</option>
+                            <option value="KAS">KAS (Key Account Specialist)</option>
+                            <option value="Sales Manager">Sales Manager</option>
+                            <option value="Accounting">Accounting</option>
+                            <option value="Inventory">Inventory</option>
+                            <option value="IT">IT</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Approve User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Role Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editUserForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId">
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select class="form-select" id="editUserRole" required>
+                            <option value="MSR">MSR (Medical Sales Representative)</option>
+                            <option value="KAS">KAS (Key Account Specialist)</option>
+                            <option value="Sales Manager">Sales Manager</option>
+                            <option value="Accounting">Accounting</option>
+                            <option value="Inventory">Inventory</option>
+                            <option value="IT">IT</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Role</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
     <%- include('partials/order-detail-modal') %>
     <%- include('partials/image-zoom-modal') %>
@@ -354,6 +494,133 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="/js/dashboard-main.js"></script>
     <script src="/js/push-client.js"></script>
+    <script>      // User Management
+        document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const userSearch = document.getElementById('userSearch');
+    if (userSearch) {
+        userSearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            document.querySelectorAll('#userTable tbody tr').forEach(row => {
+                row.style.display = (row.dataset.search || '').includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+
+    // User approval
+    const userApprovalModal = new bootstrap.Modal(document.getElementById('userApprovalModal'));
+    const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+
+    // Approve user buttons
+    document.querySelectorAll('.approve-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const userName = this.dataset.userName;
+            document.getElementById('approvalUserId').value = userId;
+            document.getElementById('approvalUserName').textContent = userName;
+            userApprovalModal.show();
+        });
+    });
+
+    // Edit user buttons
+    document.querySelectorAll('.edit-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            document.getElementById('editUserId').value = userId;
+            editUserModal.show();
+        });
+    });
+
+    // Reject user buttons
+    document.querySelectorAll('.reject-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const userName = this.dataset.userName;
+            if (confirm(`Are you sure you want to reject ${userName}'s account?`)) {
+                fetch(`/admin/users/${userId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error rejecting user');
+                    }
+                });
+            }
+        });
+    });
+
+    // Delete user buttons
+    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const userName = this.dataset.userName;
+            if (confirm(`Are you sure you want to delete ${userName}'s account? This action cannot be undone.`)) {
+                fetch(`/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error deleting user');
+                    }
+                });
+            }
+        });
+    });
+
+    // User approval form
+    document.getElementById('userApprovalForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const userId = document.getElementById('approvalUserId').value;
+        const role = document.getElementById('userRole').value;
+        
+        fetch(`/admin/users/${userId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                userApprovalModal.hide();
+                location.reload();
+            } else {
+                alert('Error approving user');
+            }
+        });
+    });
+
+    // Edit user form
+    document.getElementById('editUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const userId = document.getElementById('editUserId').value;
+        const role = document.getElementById('editUserRole').value;
+        
+        fetch(`/admin/users/${userId}/role`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                editUserModal.hide();
+                location.reload();
+            } else {
+                alert('Error updating user role');
+            }
+        });
+    });
+});
+
+</script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const activateTabFromHash = () => {
