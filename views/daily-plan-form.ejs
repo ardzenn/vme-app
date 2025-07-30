@@ -30,19 +30,19 @@
 
                     <h5 class="mt-4">1. Hospitals & Capitol to Visit</h5>
                     <div id="itinerary-container"></div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItineraryItem()">+ Add Place</button>
+                    <button type="button" id="add-itinerary-btn" class="btn btn-sm btn-outline-primary">+ Add Place</button>
 
                     <h5 class="mt-4">2. Sales Objectives for the Day</h5>
                     <div id="sales-objectives-container"></div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addSalesObjective()">+ Add Objective</button>
+                    <button type="button" id="add-sales-objective-btn" class="btn btn-sm btn-outline-primary">+ Add Objective</button>
 
                     <h5 class="mt-4">3. Target Collections (90 Days and Below)</h5>
                     <div id="current-collections-container"></div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCurrentCollection()">+ Add Target</button>
+                    <button type="button" id="add-current-collection-btn" class="btn btn-sm btn-outline-primary">+ Add Target</button>
 
                     <h5 class="mt-4">4. Target Collections (Overdue)</h5>
                     <div id="overdue-collections-container"></div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOverdueCollection()">+ Add Overdue Target</button>
+                    <button type="button" id="add-overdue-collection-btn" class="btn btn-sm btn-outline-primary">+ Add Overdue Target</button>
                     
                     <h5 class="mt-4">Odometer Reading</h5>
                     <div class="row g-3">
@@ -67,47 +67,50 @@
             </div>
         </form>
     </main>
+
     <script>
-        function addItineraryItem(value = '') {
-            const container = document.getElementById('itinerary-container');
-            const index = container.children.length;
-            const div = document.createElement('div');
-            div.className = 'input-group mb-2';
-            div.innerHTML = `<span class="input-group-text">${index + 1}.</span><input type="text" class="form-control" placeholder="Place Name" value="${value}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
-            container.appendChild(div);
-        }
-
-        function addSalesObjective(value = { objective: '' }) {
-            const container = document.getElementById('sales-objectives-container');
-            const index = container.children.length;
-            const div = document.createElement('div');
-            div.className = 'input-group mb-2';
-            div.innerHTML = `<input type="text" class="form-control" placeholder="Objective description" value="${value.objective}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
-            container.appendChild(div);
-        }
-
-        function addCurrentCollection(value = { client: '', amount: '' }) {
-            const container = document.getElementById('current-collections-container');
-            const index = container.children.length;
-            const div = document.createElement('div');
-            div.className = 'input-group mb-2';
-            div.innerHTML = `<input type="text" class="form-control" placeholder="Client Name" value="${value.client || ''}"><span class="input-group-text">₱</span><input type="number" class="form-control" placeholder="Amount" step="0.01" value="${value.amount || ''}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
-            container.appendChild(div);
-        }
-
-        function addOverdueCollection(value = { client: '', siDrNumber: '', date: '', amount: '' }) {
-            const container = document.getElementById('overdue-collections-container');
-            const index = container.children.length;
-            const div = document.createElement('div');
-            const dateValue = value.date ? new Date(value.date).toISOString().split('T')[0] : '';
-            div.className = 'card bg-light p-3 mb-2';
-            div.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-2"><h6>Overdue Target ${index + 1}</h6><button class="btn btn-sm btn-danger" type="button" onclick="this.closest('.card').remove()">Remove</button></div><input type="text" class="form-control mb-2" placeholder="Client Name" value="${value.client || ''}"><input type="text" class="form-control mb-2" placeholder="SI / DR Number" value="${value.siDrNumber || ''}"><input type="date" class="form-control mb-2" value="${dateValue}"><input type="number" class="form-control" placeholder="Amount" step="0.01" value="${value.amount || ''}">`;
-            container.appendChild(div);
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             const planData = <%- JSON.stringify(plan || {}) %>;
-            if (planData && planData._id) {
+            const isEditMode = !!planData._id;
+
+            const itineraryContainer = document.getElementById('itinerary-container');
+            const salesObjectivesContainer = document.getElementById('sales-objectives-container');
+            const currentCollectionsContainer = document.getElementById('current-collections-container');
+            const overdueCollectionsContainer = document.getElementById('overdue-collections-container');
+
+            function addItineraryItem(value = '') {
+                const index = itineraryContainer.children.length;
+                const div = document.createElement('div');
+                div.className = 'input-group mb-2';
+                div.innerHTML = `<span class="input-group-text">${index + 1}.</span><input type="text" class="form-control" placeholder="Place Name" value="${value}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
+                itineraryContainer.appendChild(div);
+            }
+
+            function addSalesObjective(value = { objective: '' }) {
+                const div = document.createElement('div');
+                div.className = 'input-group mb-2';
+                div.innerHTML = `<input type="text" class="form-control" placeholder="Objective description" value="${value.objective}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
+                salesObjectivesContainer.appendChild(div);
+            }
+
+            function addCurrentCollection(value = { client: '', amount: '' }) {
+                const div = document.createElement('div');
+                div.className = 'input-group mb-2';
+                div.innerHTML = `<input type="text" class="form-control" placeholder="Client Name" value="${value.client || ''}"><span class="input-group-text">₱</span><input type="number" class="form-control" placeholder="Amount" step="0.01" value="${value.amount || ''}"><button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()">X</button>`;
+                currentCollectionsContainer.appendChild(div);
+            }
+
+            function addOverdueCollection(value = { client: '', siDrNumber: '', date: '', amount: '' }) {
+                const index = overdueCollectionsContainer.children.length;
+                const div = document.createElement('div');
+                const dateValue = value.date ? new Date(value.date).toISOString().split('T')[0] : '';
+                div.className = 'card bg-light p-3 mb-2';
+                div.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-2"><h6>Overdue Target ${index + 1}</h6><button class="btn btn-sm btn-danger" type="button" onclick="this.closest('.card').remove()">Remove</button></div><input type="text" class="form-control mb-2" placeholder="Client Name" value="${value.client || ''}"><input type="text" class="form-control mb-2" placeholder="SI / DR Number" value="${value.siDrNumber || ''}"><input type="date" class="form-control mb-2" value="${dateValue}"><input type="number" class="form-control" placeholder="Amount" step="0.01" value="${value.amount || ''}">`;
+                overdueCollectionsContainer.appendChild(div);
+            }
+
+            // Populate form if in edit mode
+            if (isEditMode) {
                 if (planData.itinerary) planData.itinerary.forEach(item => addItineraryItem(item));
                 if (planData.salesObjectives) planData.salesObjectives.forEach(item => addSalesObjective(item));
                 if (planData.targetCollections) {
@@ -115,49 +118,55 @@
                     if (planData.targetCollections.overdue) planData.targetCollections.overdue.forEach(item => addOverdueCollection(item));
                 }
             }
-        });
+            
+            // Attach event listeners to buttons
+            document.getElementById('add-itinerary-btn').addEventListener('click', () => addItineraryItem());
+            document.getElementById('add-sales-objective-btn').addEventListener('click', () => addSalesObjective());
+            document.getElementById('add-current-collection-btn').addEventListener('click', () => addCurrentCollection());
+            document.getElementById('add-overdue-collection-btn').addEventListener('click', () => addOverdueCollection());
 
-        document.getElementById('dailyPlanForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const isEditMode = !!<%- JSON.stringify(plan._id || null) %>;
-            const actionUrl = isEditMode ? `/planning/daily/${<%- JSON.stringify(plan._id) %>}` : '/planning/daily';
-            const submitBtn = document.getElementById('submitBtn');
-            const notificationArea = document.getElementById('notification-area');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Submitting...`;
-            notificationArea.innerHTML = '';
+            // Handle form submission
+            document.getElementById('dailyPlanForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const actionUrl = isEditMode ? `/planning/daily/${planData._id}` : '/planning/daily';
+                const submitBtn = document.getElementById('submitBtn');
+                const notificationArea = document.getElementById('notification-area');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Submitting...`;
+                notificationArea.innerHTML = '';
 
-            try {
-                const formData = new FormData(e.target);
-                
-                const itinerary = Array.from(document.querySelectorAll('#itinerary-container input')).map(input => input.value).filter(val => val.trim() !== '');
-                const salesObjectives = Array.from(document.querySelectorAll('#sales-objectives-container input')).map(input => ({ objective: input.value })).filter(val => val.objective.trim() !== '');
-                const targetCollections = {
-                    current: Array.from(document.querySelectorAll('#current-collections-container .input-group')).map(item => ({ client: item.children[0].value, amount: item.children[2].value })).filter(val => val.client.trim() !== ''),
-                    overdue: Array.from(document.querySelectorAll('#overdue-collections-container .card')).map(item => ({ client: item.children[1].value, siDrNumber: item.children[2].value, date: item.children[3].value, amount: item.children[4].value })).filter(val => val.client.trim() !== '')
-                };
+                try {
+                    const formData = new FormData(e.target);
+                    
+                    const itinerary = Array.from(document.querySelectorAll('#itinerary-container input')).map(input => input.value).filter(val => val.trim() !== '');
+                    const salesObjectives = Array.from(document.querySelectorAll('#sales-objectives-container input')).map(input => ({ objective: input.value })).filter(val => val.objective.trim() !== '');
+                    const targetCollections = {
+                        current: Array.from(document.querySelectorAll('#current-collections-container .input-group')).map(item => ({ client: item.children[0].value, amount: item.children[2].value })).filter(val => val.client.trim() !== ''),
+                        overdue: Array.from(document.querySelectorAll('#overdue-collections-container .card')).map(item => ({ client: item.children[1].value, siDrNumber: item.children[2].value, date: item.children[3].value, amount: item.children[4].value })).filter(val => val.client.trim() !== '')
+                    };
 
-                formData.append('itinerary', JSON.stringify(itinerary));
-                formData.append('salesObjectives', JSON.stringify(salesObjectives));
-                formData.append('targetCollections', JSON.stringify(targetCollections));
-                
-                const response = await fetch(actionUrl, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.message || 'An unknown server error occurred.');
+                    formData.append('itinerary', JSON.stringify(itinerary));
+                    formData.append('salesObjectives', JSON.stringify(salesObjectives));
+                    formData.append('targetCollections', JSON.stringify(targetCollections));
+                    
+                    const response = await fetch(actionUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    if (!response.ok) {
+                        throw new Error(result.message || 'An unknown server error occurred.');
+                    }
+                    
+                    window.location.href = result.redirectUrl || '/planning/my-plans';
+
+                } catch (error) {
+                    notificationArea.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = isEditMode ? 'Update Plan' : 'Submit Plan';
                 }
-                
-                window.location.href = result.redirectUrl || '/planning/my-plans';
-
-            } catch (error) {
-                notificationArea.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = isEditMode ? 'Update Plan' : 'Submit Plan';
-            }
+            });
         });
     </script>
 </body>
