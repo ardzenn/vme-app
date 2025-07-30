@@ -25,6 +25,14 @@
     <%- include('partials/navbar') %>
 
     <main class="container-fluid" style="padding: 0 2rem;">
+        
+        <div id="update-notification" class="alert alert-info alert-dismissible fade show m-3" role="alert" style="display: none; cursor: pointer;">
+          A new version of the app is available. <strong>Click here to update!</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div id="notification-permission-banner" class="alert alert-warning m-3" role="alert" style="display: none;">
+        </div>
+        
         <header class="page-header">
             <div>
                 <h1 style="font-size: 1.875rem;">Admin Dashboard</h1>
@@ -336,29 +344,28 @@
         </div>
     </main>
 
-<% if (currentUser && currentUser.role === 'Admin') { %>
-<div class="modal fade" id="announcementModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Make an Announcement</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <% if (currentUser && currentUser.role === 'Admin') { %>
+    <div class="modal fade" id="announcementModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Make an Announcement</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <form action="/admin/announce" method="POST">
+            <div class="modal-body">
+                <p class="text-muted small">This message will be sent as a notification to every user in the system.</p>
+                <textarea name="message" class="form-control" rows="4" placeholder="Type your announcement here..." required></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Send to Everyone</button>
+            </div>
+          </form>
+        </div>
       </div>
-      <form action="/admin/announce" method="POST">
-        <div class="modal-body">
-            <p class="text-muted small">This message will be sent as a notification to every user in the system.</p>
-            <textarea name="message" class="form-control" rows="4" placeholder="Type your announcement here..." required></textarea>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Send to Everyone</button>
-        </div>
-      </form>
     </div>
-  </div>
-</div>
-<% } %>
-
+    <% } %>
 
     <%- include('partials/order-detail-modal') %>
     <%- include('partials/image-zoom-modal') %>
@@ -370,6 +377,19 @@
     <script src="/js/push-client.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const activateTabFromHash = () => {
+                const hash = window.location.hash;
+                if (hash) {
+                    const tabTrigger = document.querySelector(`button[data-bs-toggle="tab"][data-bs-target="${hash}"]`);
+                    if (tabTrigger) {
+                        const tab = new bootstrap.Tab(tabTrigger);
+                        tab.show();
+                    }
+                }
+            };
+            activateTabFromHash();
+            window.addEventListener('hashchange', activateTabFromHash);
+
             const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
             const modalZoomImage = document.getElementById('modalZoomImage');
             window.showImageInModal = function(src) {
@@ -398,7 +418,7 @@
             setupSearch('dailyPlanSearch', 'dailyPlanTable');
             setupSearch('weeklyItinerarySearch', 'weeklyItineraryTable');
             setupSearch('dailyReportSearch', 'dailyReportTable');
-            setupSearch('locationLogSearch', 'locationLogTable'); // Added search for new log
+            setupSearch('locationLogSearch', 'locationLogTable');
             
             const socket = io();
             const onlineUsersCountEl = document.getElementById('online-users-count');
@@ -416,10 +436,8 @@
                 });
             }
             
-            // MODIFIED: This now updates map markers AND the location log
             const updateUserListAndMap = (users) => {
                 if(onlineUsersCountEl) onlineUsersCountEl.textContent = users.length;
-                
                 const onlineUserIds = new Set(users.map(u => u._id));
                 for (const userId in userMarkers) {
                     if (!onlineUserIds.has(userId)) {
@@ -432,8 +450,6 @@
                     if (user.lastLocation && user.lastLocation.coordinates.length === 2) {
                         const [lng, lat] = user.lastLocation.coordinates;
                         const address = user.lastKnownAddress || 'Getting address...';
-
-                        // Update Map
                         if (map && lat !== 0 && lng !== 0) {
                             const popupContent = `<b>${user.firstName} ${user.lastName}</b><br>${address}`;
                             if (userMarkers[user._id]) {
@@ -449,8 +465,7 @@
             socket.on('updateUserList', (onlineUsers) => {
                 updateUserListAndMap(onlineUsers);
             });
-
-            // MODIFIED: This now updates map marker AND the location log
+            
             socket.on('locationUpdate', (user) => {
                 if (!user) return;
                 
@@ -458,7 +473,6 @@
                 const address = user.lastKnownAddress || 'Address not available';
                 const updateTime = new Date(user.lastLocationUpdate).toLocaleString();
 
-                // Update Map
                 if (map && lat !== 0 && lng !== 0) {
                     const popupContent = `<b>${user.firstName} ${user.lastName}</b><br>${address}`;
                     if (userMarkers[user._id]) {
@@ -468,7 +482,6 @@
                     }
                 }
 
-                // Update Location Log Table
                 const logRow = document.getElementById(`location-row-${user._id}`);
                 if (logRow) {
                     const addressCell = logRow.querySelector('.location-address');
@@ -552,17 +565,7 @@
                     }
                 });
             }
-
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js')
-                    .then(registration => console.log('Service Worker registered successfully.'))
-                    .catch(error => console.log('Service Worker registration failed:', error));
-                });
-            }
         });
-
-        
     </script>
     <%- include('partials/chat-widget.ejs') %>
     <script src="/js/chat-widget.js"></script>

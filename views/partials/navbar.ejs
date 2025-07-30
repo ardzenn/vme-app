@@ -1,32 +1,26 @@
 <style>
-    #update-notification {
-        display: none; position: fixed; bottom: 20px; left: 50%;
-        transform: translateX(-50%); z-index: 1050; cursor: pointer;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    .navbar-non-collapsing {
+        display: flex;
+        align-items: center;
     }
 </style>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/dashboard">VINTEL MED ENTERPRISES</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <a class="navbar-brand" href="/dashboard"><img src="/images/logo.png" alt="VME" style="height: 80px; width: 70px;"><span style="padding:0.5em;">Dashboard</span></a>
+        
+        <span><a class="nav-link" href="/feed"><i class="fas fa-newspaper me-1"></i>Company Feed</a></span>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavCollapsible">
             <span class="navbar-toggler-icon"></span>
         </button>
-       
-    <div id="update-notification" class="alert alert-info alert-dismissible fade show" role="alert">
-      A new version of the app is available. <strong>Click here to update!</strong>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-                
-                <li class="nav-item">
-                    <a class="nav-link" href="/feed">Feed</a>
-                </li>
 
+
+        <div class="navbar-non-collapsing">
+            <ul class="navbar-nav flex-row align-items-center">
                 <% if (currentUser && currentUser.role === 'Admin') { %>
                     <li class="nav-item">
-                        <button class="btn btn-danger btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#announcementModal">
+                        <button class="btn btn-danger btn-sm me-2" data-bs-toggle="modal" data-bs-target="#announcementModal">
                             <i class="fas fa-bullhorn"></i> Announce
                         </button>
                     </li>
@@ -35,17 +29,17 @@
                 <li class="nav-item dropdown">
                     <a class="nav-link" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.2rem; position: relative;">
                         <i class="fas fa-bell"></i>
-                        <span class="badge rounded-pill bg-danger" id="notification-badge" style="position: absolute; top: -5px; right: -10px; font-size: 0.6em; padding: 0.3em 0.5em; display: none;"></span>
+                        <span class="badge rounded-pill bg-danger" id="notification-badge" style="position: absolute; top: 0px; right: -5px; font-size: 0.6em; padding: 0.3em 0.5em; display: none;"></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" id="notification-list" style="width: 350px; max-height: 400px; overflow-y: auto;">
                         <li class="p-3 text-center text-muted">Loading notifications...</li>
                     </ul>
                 </li>
           
-                <li class="nav-item dropdown">
+                <li class="nav-item dropdown ms-2">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <img src="<%= currentUser.profilePicture || '/images/default-profile.png' %>" class="rounded-circle me-2" width="30" height="30" style="object-fit: cover;">
-                        Hello, <%= currentUser.firstName %>
+                        <span class="d-none d-lg-inline">Hello, <%= currentUser.firstName %></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                         <li><a class="dropdown-item" href="/profile">Profile</a></li>
