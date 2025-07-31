@@ -3,6 +3,20 @@ const { Schema } = mongoose;
 const passportLocalMongoose = require('passport-local-mongoose');
 
 const userSchema = new Schema({
+  pushSubscription: {
+    type:Object,
+    default: null,
+    endpoint: String,
+    expirationTime: Number,
+    keys: {
+        p256dh: String,
+        auth: String
+    }
+},
+pushEnabled: {
+    type: Boolean,
+    default: false
+},
   firstName: { type: String, required: true, trim: true },
   lastName: { type: String, required: true, trim: true },
   birthdate: { type: Date },
@@ -38,5 +52,6 @@ userSchema.methods.toJSON = function() {
   delete userObject.password;
   return userObject;
 }
+
 
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);
