@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>IT Dashboard - VME App</title>
+    <%- include('partials/header-meta') %>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+     integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" 
+     crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        .is-new td {
+            font-weight: bold;
+        }
+        .new-entry-flash {
+            animation: flash-bg 2s ease-out;
+        }
+        @keyframes flash-bg {
+            0% { background-color: #f5c400; }
+            100% { background-color: transparent; }
+        }
+        .it-system-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .it-badge {
+            background-color: #4CAF50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
+    <%- include('partials/navbar') %>
+    <%- include('partials/splash-screen.ejs') %>
+
+    <main class="container-fluid" style="padding: 0 2rem;">
+        
+        <div id="update-notification" class="alert alert-info alert-dismissible fade show m-3" role="alert" style="display: none; cursor: pointer;">
+          A new version of the app is available. <strong>Click here to update!</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div id="notification-permission-banner" class="alert alert-warning m-3" role="alert" style="display: none;">
+        </div>
+        
+        <header class="page-header">
+            <div>
+                <h1 style="font-size: 1.875rem;">IT System Dashboard</h1>
+                <p style="margin: 0;">Technical overview and system management.</p>
+             </div>
+              <div class="d-flex align-items-center gap-2">
+                <a href="/report/check-ins" class="btn btn-success">Daily Check-in Report</a>
+                <a href="/planning/coverage-report" class="btn btn-info">Weekly Check In Report</a>
+                <a href="/analytics" class="btn btn-warning">View Analytics</a>
+                <a href="/products" class="btn btn-dark">View Product Gallery</a>
+                <span class="it-badge"><i class="fas fa-cogs"></i> IT Access</span>
+              </div>
+        </header>
+
+        <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
+
+        <div class="row mb-4">
+            <%- include('partials/dashboard-card', { title: 'Total Users', value: stats.totalUsers, cardClass: '', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'System Status', value: 'Operational', cardClass: 'it-system-card', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'Pending Approvals', value: stats.pendingUsers, cardClass: '', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'Check-ins (Today)', value: stats.checkInsToday, cardClass: '', actions: [], subtitle: '' }) %>
+        </div>
+
+        <ul class="nav nav-tabs" id="itTab" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#orders-panel"><i class="fas fa-shopping-cart"></i> Sales Orders</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel"><i class="fas fa-money-bill-wave"></i> Collections</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel"><i class="fas fa-map-marker-alt"></i> Check-in History</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel"><i class="fas fa-calendar-day"></i> Daily Itinerary</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel"><i class="fas fa-calendar-week"></i> Weekly Itineraries</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-reports-panel"><i class="fas fa-file-alt"></i> End of day Report</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#location-log-panel"><i class="fas fa-route"></i> Location Log</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#map-panel"><i class="fas fa-map"></i> Live Map</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#users-panel"><i class="fas fa-users-cog"></i> User Management</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#system-panel"><i class="fas fa-server"></i> System Monitor</button></li>
+        </ul>
+
+        <div class="tab-content pt-3" id="itTabContent">
+            <!-- Sales Orders Panel (Same as Admin) -->
+            <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
+              <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search orders...">
+                    <%- include('partials/dashboard-table', {
+    tableClass: 'align-middle',
+    columns: [
+        { label: 'User', key: 'userName' },
+        { label: 'Reference', key: 'reference' },
+        { label: 'Customer', key: 'customerName' },
+        { label: 'Actions', key: 'actions' }
+    ],
+    rows: orders.map(order => ({
+        userName: order.user ? `${order.user.firstName} ${order.user.lastName}` : '[User Deleted]',
+        reference: order.reference,
+        customerName: order.customerName,
+        actions: `<a href='#' class='btn btn-sm btn-primary view-order-details' data-order-id='${order._id}'>View Details</a>`
+    }))
+}) %>
+                </div></div>
+             </div>
+
+            <!-- Collections Panel -->
+            <div class="tab-pane fade" id="transactions-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="transactionSearch" class="form-control mb-3" placeholder="Search transactions...">
+                    <div class="table-responsive"><table class="table table-hover" id="transactionTable">
+                        <thead><tr><th>Collected By</th><th>Customer</th><th>Amount</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% transactions.forEach(transaction => { %>
+                                <tr data-search="<%= (transaction.user ? `${transaction.user.firstName} ${transaction.user.lastName}`.toLowerCase() : '') %> <%= (transaction.customerName || '').toLowerCase() %>">
+                                    <td><%= transaction.user ? `${transaction.user.firstName} ${transaction.user.lastName}` : '[User Deleted]' %></td>
+                                     <td><%= transaction.customerName || 'N/A' %></td>
+                                     <td>₱<%= (transaction.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></td>
+                                     <td><a href="#" class="btn btn-sm btn-primary view-collection-details" data-transaction-id="<%= transaction._id %>">View Details</a></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
+             </div>
+
+            <!-- Check-ins Panel -->
+            <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search check-ins...">
+                    <div class="table-responsive"><table class="table table-hover" id="checkinTable">
+                        <thead><tr><th>User</th><th>Hospital/Clinic</th><th>Doctor</th><th>Date</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% checkins.forEach(checkin => { %>
+                                <tr data-search="<%= (checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}`.toLowerCase() : '') %> <%= (checkin.hospital ? checkin.hospital.name.toLowerCase() : '') %> <%= (checkin.doctor ? checkin.doctor.name.toLowerCase() : '') %>">
+                                    <td><%= checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : '[User Deleted]' %></td>
+                                    <td><%= checkin.hospital ? checkin.hospital.name : '[Hospital Deleted]' %></td>
+                                    <td><%= checkin.doctor ? checkin.doctor.name : '[Doctor Deleted]' %></td>
+                                    <td><%= checkin.createdAtFormatted %></td>
+                                    <td><a href="#" class="btn btn-sm btn-primary view-checkin-details" data-checkin-id="<%= checkin._id %>">View Details</a></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
+             </div>
+
+            <!-- Daily Plans Panel -->
+            <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="dailyPlanSearch" class="form-control mb-3" placeholder="Search daily plans...">
+                    <div class="table-responsive"><table class="table table-hover" id="dailyPlanTable">
+                        <thead><tr><th>Submitted By</th><th>Plan Date</th><th>First Client Call</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% dailyPlans.forEach(plan => { %>
+                                <% if (plan.user) { %>
+                                    <tr data-plan-id="<%= plan._id %>" data-search="<%= `${plan.user.firstName} ${plan.user.lastName}`.toLowerCase() %> <%= plan.planDateFormatted %>">
+                                        <td><%= plan.user.firstName %> <%= plan.user.lastName %></td>
+                                        <td><%= plan.planDateFormatted %></td>
+                                        <td><%= plan.firstClientCall %></td>
+                                        <td><a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-primary view-details-link">View Details</a></td>
+                                    </tr>
+                                <% } %>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
+             </div>
+
+            <!-- Weekly Itineraries Panel -->
+            <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="weeklyItinerarySearch" class="form-control mb-3" placeholder="Search weekly itineraries...">
+                     <div class="table-responsive"><table class="table table-hover" id="weeklyItineraryTable">
+                         <thead><tr><th>Submitted By</th><th>Week Start Date</th><th>Actions</th></tr></thead>
+                         <tbody>
+                            <% weeklyItineraries.forEach(itinerary => { %>
+                                <% if (itinerary.user) { %>
+                                    <tr data-search="<%= `${itinerary.user.firstName} ${itinerary.user.lastName}`.toLowerCase() %> <%= itinerary.weekStartDateFormatted %>">
+                                        <td><%= itinerary.user.firstName %> <%= itinerary.user.lastName %></td>
+                                        <td><%= itinerary.weekStartDateFormatted %></td>
+                                        <td><a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                    </tr>
+                                <% } %>
+                            <% }) %>
+                         </tbody>
+                     </table></div>
+                </div></div>
+             </div>
+
+            <!-- Daily Reports Panel -->
+            <div class="tab-pane fade" id="daily-reports-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="dailyReportSearch" class="form-control mb-3" placeholder="Search daily reports...">
+                    <div class="table-responsive"><table class="table table-hover" id="dailyReportTable">
+                        <thead><tr><th>Submitted By</th><th>Report Date</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% dailyReports.forEach(report => { %>
+                                <% if (report.user) { %>
+                                    <tr data-search="<%= `${report.user.firstName} ${report.user.lastName}`.toLowerCase() %> <%= report.reportDateFormatted %>">
+                                        <td><%= report.user.firstName %> <%= report.user.lastName %></td>
+                                        <td><%= report.reportDateFormatted %></td>
+                                        <td><a href="/report/view/<%= report._id %>" class="btn btn-sm btn-primary">View Details</a></td>
+                                    </tr>
+                                <% } %>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
+             </div>
+
+            <!-- Location Log Panel -->
+            <div class="tab-pane fade" id="location-log-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <h5>Location Tracking History</h5>
+                    <div class="table-responsive"><table class="table table-hover">
+                        <thead><tr><th>User</th><th>Location</th><th>Last Updated</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% users.filter(u => u.lastKnownAddress).forEach(user => { %>
+                                <tr>
+                                    <td><%= user.firstName %> <%= user.lastName %></td>
+                                    <td><%= user.lastKnownAddress %></td>
+                                    <td><%= user.lastLocationUpdate ? new Date(user.lastLocationUpdate).toLocaleString() : 'Never' %></td>
+                                    <td><button class="btn btn-sm btn-info" onclick="showUserOnMap('<%= user._id %>')">Show on Map</button></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
+             </div>
+
+            <!-- Live Map Panel -->
+            <div class="tab-pane fade" id="map-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <div id="liveMap" style="height: 500px; width: 100%;"></div>
+                </div></div>
+             </div>
+
+            <!-- User Management Panel -->
+            <div class="tab-pane fade" id="users-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="userSearch" class="form-control mb-3" placeholder="Search users...">
+                    <div class="table-responsive"><table class="table table-hover" id="userTable">
+                        <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Area</th><th>Actions</th></tr></thead>
+                        <tbody>
+                            <% users.forEach(user => { %>
+                                <tr data-search="<%= `${user.firstName} ${user.lastName}`.toLowerCase() %> <%= user.username.toLowerCase() %> <%= user.role.toLowerCase() %>">
+                                    <td><%= user.firstName %> <%= user.lastName %></td>
+                                    <td><%= user.username %></td>
+                                    <td><span class="badge bg-<%= user.role === 'Admin' ? 'danger' : user.role === 'Pending' ? 'warning' : 'success' %>"><%= user.role %></span></td>
+                                    <td><%= user.area || 'N/A' %></td>
+                                    <td>
+                                        <% if (user.role === 'Pending') { %>
+                                            <button class="btn btn-sm btn-success approve-user" data-user-id="<%= user._id %>">Approve</button>
+                                            <button class="btn btn-sm btn-danger reject-user" data-user-id="<%= user._id %>">Reject</button>
+                                        <% } else { %>
+                                            <button class="btn btn-sm btn-primary edit-user" data-user-id="<%= user._id %>">Edit</button>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table></div>
+                </div></div>
+             </div>
+
+            <!-- NEW: System Monitor Panel (IT Specific) -->
+            <div class="tab-pane fade" id="system-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <h5><i class="fas fa-tachometer-alt"></i> System Performance Monitor</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6>Server Uptime</h6>
+                                    <p class="fs-4 text-success" id="server-uptime">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6>Active Sessions</h6>
+                                    <p class="fs-4 text-info" id="active-sessions">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6>Database Status</h6>
+                                    <p class="fs-4 text-success">Connected</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h6>App Version</h6>
+                                    <p class="fs-4 text-primary">v2.1.0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6><i class="fas fa-exclamation-triangle"></i> System Alerts</h6>
+                    <div class="alert alert-info">
+                        <strong>Info:</strong> All systems operational. Last backup completed successfully.
+                    </div>
+                    
+                    <h6><i class="fas fa-tools"></i> IT Quick Actions</h6>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-warning" onclick="clearCache()">Clear Cache</button>
+                        <button type="button" class="btn btn-info" onclick="runMaintenance()">Run Maintenance</button>
+                        <button type="button" class="btn btn-secondary" onclick="viewLogs()">View Logs</button>
+                        <button type="button" class="btn btn-primary" onclick="backupDatabase()">Backup DB</button>
+                    </div>
+                </div></div>
+             </div>
+        </div>
+    </main>
+
+    <%- include('partials/chat-widget') %>
+    <%- include('partials/order-detail-modal') %>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/dashboard-main.js"></script>
+    <script src="/js/push-client.js"></script>
+    <script src="/js/chat-widget.js"></script>
+    <script src="/js/app-init.js"></script>
+
+    <script>
+        // IT-specific functionality
+        async function clearCache() {
+        if(confirm('Clear application cache? This may temporarily slow down the app.')) {
+            try {
+                const response = await fetch('/api/admin/clear-cache', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                alert(data.message || 'Cache cleared successfully!');
+            } catch(err) {
+                alert('Error clearing cache: ' + err.message);
+            }
+        }
+    }
+
+    async function runMaintenance() {
+        if(confirm('Run system maintenance? This may take a few minutes.')) {
+            try {
+                const response = await fetch('/api/admin/run-maintenance', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                alert(data.message || 'Maintenance completed successfully!');
+            } catch(err) {
+                alert('Error running maintenance: ' + err.message);
+            }
+        }
+    }
+
+    function viewLogs() {
+        window.open('/api/admin/logs', '_blank');
+    }
+
+    async function backupDatabase() {
+        if(confirm('Create database backup now?')) {
+            try {
+                const response = await fetch('/api/admin/backup-db', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                alert(data.message || 'Backup created successfully!');
+            } catch(err) {
+                alert('Error creating backup: ' + err.message);
+            }
+        }
+    }
+
+    // Update server uptime
+    async function updateServerUptime() {
+        try {
+            const response = await fetch('/health');
+            const data = await response.json();
+            const uptimeSeconds = data.uptime;
+            const hours = Math.floor(uptimeSeconds / 3600);
+            const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+            document.getElementById('server-uptime').textContent = `${hours}h ${minutes}m`;
+            
+            // Update active sessions if available
+            if (data.activeSessions !== undefined) {
+                document.getElementById('active-sessions').textContent = data.activeSessions;
+            }
+        } catch(err) {
+            console.error('Error fetching uptime:', err);
+            document.getElementById('server-uptime').textContent = 'Error';
+        }
+    }
+
+    // Update every 30 seconds
+    setInterval(updateServerUptime, 30000);
+    updateServerUptime(); // Initial load
+    </script>
+</body>
+</html>

@@ -35,12 +35,53 @@ const formatDates = (items) => {
 // MODIFIED: This now redirects the new roles to the correct dashboard
 exports.getDashboard = (req, res) => {
     const userRole = req.user.role;
-    if (userRole === 'Admin' || userRole === 'IT') {
+    if (userRole === 'Admin') {
         return res.redirect('/admin-dashboard');
-    } else if (['Accounting', 'Sales Manager', 'Inventory'].includes(userRole)) {
+    } else if (userRole === 'IT') {
+        return res.redirect('/it-dashboard');
+    } else if (userRole === 'Inventory') {
+        return res.redirect('/inventory-dashboard');
+    } else if (userRole === 'Sales Manager') {
+        return res.redirect('/sales-manager-dashboard');
+    } else if (userRole === 'Accounting') {
         return res.redirect('/accounting-dashboard');
     } else {
         return exports.getMSRDashboard(req, res);
+    }
+};
+
+// IT Dashboard
+exports.getITDashboard = async (req, res) => {
+    try {
+        const stats = {
+            totalUsers: await User.countDocuments(),
+            pendingUsers: await User.countDocuments({ role: 'Pending' }),
+            checkInsToday: await CheckIn.countDocuments({ createdAt: { $gte: new Date().setHours(0, 0, 0, 0) } }),
+        };
+        let [users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
+            User.find(),
+            Order.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
+            Transaction.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }),
+            CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
+            DailyPlan.find().populate('user').sort({ planDate: -1 }),
+            WeeklyItinerary.find().populate('user').sort({ weekStartDate: -1 }),
+            DailyReport.find().populate('user').sort({ reportDate: -1 })
+        ]);
+        res.render('it-dashboard', { 
+            stats, 
+            users, 
+            orders: formatDates(orders), 
+            transactions: formatDates(transactions), 
+            checkins: formatDates(checkins), 
+            dailyPlans: formatDates(dailyPlans), 
+            weeklyItineraries: formatDates(weeklyItineraries), 
+            dailyReports: formatDates(dailyReports), 
+            currentUser: req.user 
+        });
+    } catch (err) {
+        console.error("IT Dashboard Error:", err);
+        req.flash('error_msg', 'Could not load IT dashboard.');
+        res.redirect('/dashboard');
     }
 };
 
@@ -119,13 +160,129 @@ exports.getAdminDashboard = async (req, res) => {
     }
 };
 
-exports.getAccountingDashboard = async (req, res) => {
+exports.getInventoryDashboard = async (req, res) => {
     try {
         const stats = {
             totalUsers: await User.countDocuments(),
             pendingUsers: await User.countDocuments({ role: 'Pending' }),
             checkInsToday: await CheckIn.countDocuments({ createdAt: { $gte: new Date().setHours(0, 0, 0, 0) } }),
         };
+        // Inventory-specific data
+        // Fetch all products and map to expected fields for the dashboard
+        const products = await Product.find();
+        const inventoryData = products.map(product => {
+            const totalStock = typeof product.stock === 'number' ? product.stock : 0;
+            return {
+                _id: product._id,
+                name: product.name,
+                category: product.category,
+                imageUrl: product.imageUrl,
+                totalStock,
+                stockItems: product.stockHistory || [],
+                expiringSoonCount: 0, // No expiration logic in schema
+                status: totalStock === 0 ? 'Out of Stock' : (totalStock <= 10 ? 'Low Stock' : 'In Stock'),
+            };
+        });
+        // Fetch accounting tab panel data
+        const [orders, transactions, checkins, dailyPlans, hospitals, doctors] = await Promise.all([
+            Order.find().populate('user', 'firstName lastName profilePicture').sort({ createdAt: -1 }).limit(50),
+            Transaction.find().populate('user', 'firstName lastName profilePicture role').sort({ createdAt: -1 }).limit(50),
+            CheckIn.find().populate('user', 'firstName lastName profilePicture').populate('hospital').populate('doctor').sort({ createdAt: -1 }).limit(50),
+            DailyPlan.find().populate('user', 'firstName lastName').sort({ createdAt: -1 }).limit(50),
+            Hospital.find().sort({ name: 1 }),
+            Doctor.find().sort({ name: 1 })
+        ]);
+        allHospitals = hospitals;
+        allDoctors = doctors;
+        res.render('inventory-dashboard', {
+            stats,
+            inventoryData: Array.isArray(inventoryData) ? inventoryData : [],
+            recentMovements: [],
+            orders,
+            transactions,
+            checkins,
+            dailyPlans,
+            currentUser: req.user
+        });
+    } catch (err) {
+        console.error('Inventory Dashboard Error:', err);
+        // Always pass all variables to prevent EJS ReferenceError
+        res.render('inventory-dashboard', {
+            stats: {},
+            inventoryData: [],
+            recentMovements: [],
+            orders: [],
+            transactions: [],
+            checkins: [],
+            dailyPlans: [],
+            currentUser: req.user
+        });
+    }
+};
+
+exports.getSalesManagerDashboard = async (req, res) => {
+    let allHospitals = [];
+    let allDoctors = [];
+    try {
+        const stats = {
+            totalUsers: await User.countDocuments(),
+            pendingUsers: await User.countDocuments({ role: 'Pending' }),
+            checkInsToday: await CheckIn.countDocuments({ createdAt: { $gte: new Date().setHours(0, 0, 0, 0) } }),
+        };
+        let [users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
+            User.find(),
+            Order.find().populate('user').sort({ createdAt: -1 }),
+            Transaction.find().populate('user').sort({ createdAt: -1 }),
+            CheckIn.find().populate('user hospital doctor').sort({ createdAt: -1 }),
+            DailyPlan.find().populate('user').sort({ planDate: -1 }),
+            WeeklyItinerary.find().populate('user').sort({ weekStartDate: -1 }),
+            DailyReport.find().populate('user').sort({ reportDate: -1 })
+        ]);
+        // Fetch hospitals and doctors for check-in modal
+        allHospitals = await Hospital.find().sort({ name: 1 });
+        allDoctors = await Doctor.find().sort({ name: 1 });
+        res.render('sales-manager-dashboard', {
+            stats,
+            users,
+            orders: formatDates(orders),
+            transactions: formatDates(transactions),
+            checkins: formatDates(checkins),
+            dailyPlans: formatDates(dailyPlans),
+            weeklyItineraries: formatDates(weeklyItineraries),
+            dailyReports: formatDates(dailyReports),
+            allHospitals,
+            allDoctors,
+            currentUser: req.user
+        });
+    } catch (err) {
+        console.error('Sales Manager Dashboard Error:', err);
+        // Always pass all variables to prevent EJS ReferenceError
+        res.render('sales-manager-dashboard', {
+            stats: {},
+            salesStats: {},
+            orders: [],
+            transactions: [],
+            checkins: [],
+            dailyPlans: [],
+            users: [],
+            allHospitals: allHospitals,
+            allDoctors: allDoctors,
+            currentUser: req.user
+        });
+    }
+};
+
+exports.getAccountingDashboard = async (req, res) => {
+    try {
+        console.log('getAccountingDashboard - Starting...');
+        console.log('getAccountingDashboard - Current user:', req.user);
+        
+        const stats = {
+            totalUsers: await User.countDocuments(),
+            pendingUsers: await User.countDocuments({ role: 'Pending' }),
+            checkInsToday: await CheckIn.countDocuments({ createdAt: { $gte: new Date().setHours(0, 0, 0, 0) } }),
+        };
+        console.log('getAccountingDashboard - Stats calculated:', stats);
         let [users, orders, transactions, checkins, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
             User.find(),
             Order.find().populate('user').sort({ createdAt: -1 }),

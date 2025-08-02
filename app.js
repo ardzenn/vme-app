@@ -61,7 +61,17 @@ async function startServer() {
         // --- MIDDLEWARE ---
         app.use(express.json({ limit: '50mb' }));
         app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+        
+        // Serve static files
         app.use(express.static(path.join(__dirname, 'public')));
+        
+        // Serve uploaded files from the uploads directory
+        app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
+            setHeaders: (res, path) => {
+                // Set cache control headers for uploaded files (cache for 1 day)
+                res.setHeader('Cache-Control', 'public, max-age=86400');
+            }
+        }));
 
         app.set('view engine', 'ejs');
         app.set('views', path.join(__dirname, 'views'));
@@ -89,9 +99,76 @@ async function startServer() {
         app.use(passport.initialize());
         app.use(passport.session());
 
-        passport.use(new LocalStrategy(User.authenticate()));
-        passport.serializeUser(User.serializeUser());
-        passport.deserializeUser(User.deserializeUser());
+        // Debug logging for session and authentication
+        app.use((req, res, next) => {
+            console.log('Session:', req.session);
+            console.log('User:', req.user);
+            next();
+        });
+
+        // Configure Passport with debug logging
+        passport.use(new LocalStrategy(
+            { usernameField: 'username' },
+            async (username, password, done) => {
+                try {
+                    console.log('LocalStrategy - Authenticating user:', username);
+                    const user = await User.findOne({ username: username });
+                    
+                    if (!user) {
+                        console.log('LocalStrategy - User not found:', username);
+                        return done(null, false, { message: 'Incorrect username.' });
+                    }
+                    
+                    const isMatch = await user.authenticate(password);
+                    if (!isMatch) {
+                        console.log('LocalStrategy - Incorrect password for user:', username);
+                        return done(null, false, { message: 'Incorrect password.' });
+                    }
+                    
+                    console.log('LocalStrategy - Authentication successful for user:', user);
+                    return done(null, user);
+                } catch (err) {
+                    console.error('LocalStrategy - Error during authentication:', err);
+                    return done(err);
+                }
+            }
+        ));
+        
+        passport.serializeUser((user, done) => {
+            console.log('Serializing user:', user.id);
+            done(null, user.id);
+        });
+        
+        const mongoose = require('mongoose');
+        passport.deserializeUser(async (id, done) => {
+            try {
+                console.log('Deserializing user with ID:', id);
+                let user = null;
+                // Check if id is a valid ObjectId
+                if (mongoose.Types.ObjectId.isValid(id)) {
+                    user = await User.findById(id);
+                }
+                // If not found or not valid ObjectId, try to find by email
+                if (!user) {
+                    console.log('User not found by _id or id is not ObjectId, trying email...');
+                    user = await User.findOne({ email: id });
+                }
+                if (!user) {
+                    console.error('User not found with id/email:', id);
+                    return done(null, false);
+                }
+                console.log('Successfully deserialized user:', { 
+                    id: user._id, 
+                    email: user.email, 
+                    username: user.username, 
+                    role: user.role 
+                });
+                return done(null, user);
+            } catch (err) {
+                console.error('Error deserializing user:', err);
+                return done(err);
+            }
+        });
 
         app.use((req, res, next) => {
             res.locals.currentUser = req.user;
@@ -121,6 +198,11 @@ async function startServer() {
         app.use('/feed', require('./routes/feed'));
         app.use('/admin', require('./routes/admin'));
         app.use('/location', locationRoutes);
+
+// Redirect /my-weekly-itineraries to the correct planning route for user convenience
+app.get('/my-weekly-itineraries', (req, res) => {
+    res.redirect(301, '/planning/my-weekly-itineraries');
+});
 
 
         // --- HEALTH CHECK ROUTES ---

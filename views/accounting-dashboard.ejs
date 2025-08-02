@@ -5,9 +5,8 @@
     <%- include('partials/header-meta') %>
 </head>
 <body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
-    <%- include('partials/splash-screen.ejs') %>
-    
     <%- include('partials/navbar') %>
+    <%- include('partials/splash-screen.ejs') %>
 
     <main class="container-fluid" style="padding: 0 2rem;">
         <header class="page-header">
@@ -28,10 +27,10 @@
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
         <div class="row mb-4">
-            <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Total Users</h5><p class="card-text fs-2 fw-bold"><%= stats.totalUsers %></p></div></div></div>
-            <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Pending Approvals</h5><p class="card-text fs-2 fw-bold"><%= stats.pendingUsers %></p></div></div></div>
-            <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Check-ins (Today)</h5><p class="card-text fs-2 fw-bold"><%= stats.checkInsToday %></p></div></div></div>
-            <div class="col-xl-3 col-md-6 mb-4"><div class="card h-100"><div class="card-body"><h5 class="card-title">Online Now</h5><p class="card-text fs-2 fw-bold" id="online-users-count">0</p></div></div></div>
+            <%- include('partials/dashboard-card', { title: 'Total Users', value: stats.totalUsers, cardClass: '', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'Pending Approvals', value: stats.pendingUsers, cardClass: '', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'Check-ins (Today)', value: stats.checkInsToday, cardClass: '', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'Online Now', value: 0, subtitle: '', cardClass: '' }) %>
         </div>
 
         <ul class="nav nav-tabs" id="accountingTab" role="tablist">
@@ -166,7 +165,7 @@
                     </td>
                     <td>
                       <strong class="text-<%= txn.type === 'Collection' ? 'success' : 'primary' %>">
-                        ₱<%= (txn.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %>
+                        ₱<%= (txn.type === 'Collection' ? (txn.amount || 0) : (txn.totalAmountDeposited || 0)).toLocaleString('en-US', {minimumFractionDigits: 2}) %>
                       </strong>
                       <% if (txn.paymentMethod) { %>
                       <br><small class="badge bg-light text-dark"><%= txn.paymentMethod %></small>
@@ -342,11 +341,15 @@
 
     <%- include('partials/order-detail-modal') %>
     <%- include('partials/image-zoom-modal') %>
+    <%- include('partials/checkin-modal.ejs', { allHospitals: allHospitals, allDoctors: allDoctors }) %>
+    <%- include('partials/chat-widget.ejs') %>
 
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="/js/dashboard-main.js"></script>
     <script src="/js/push-client.js"></script>
+    <script src="/js/chat-widget.js"></script>
+    <script src="/js/app-init.js"></script>
     <script>
       // product hover
       document.addEventListener('DOMContentLoaded', function() {
@@ -416,10 +419,5 @@
         }
     });
     </script>
-       <%- include('partials/chat-widget.ejs') %>
-    <script src="/js/chat-widget.js"></script>
-    <script src="/js/notifications.js"></script>
-    <script src="/js/app-init.js"></script>
-
 </body>
 </html>

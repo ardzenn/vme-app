@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const chatController = require('../controllers/chatController');
+const chatUploadController = require('../controllers/chatUploadController');
 const { ensureAuthenticated } = require('../middleware/auth');
 
 // GET all conversations for the logged-in user
@@ -28,6 +29,22 @@ router.patch('/:conversationId/hide', ensureAuthenticated, chatController.hideCo
 router.delete('/:conversationId', ensureAuthenticated, chatController.deleteGroup);
 
 // DELETE a participant from a group (only by admin)
-router.delete('/:conversationId/participants/:participantId', ensureAuthenticated, chatController.removeParticipant);
+router.delete('/:conversationId/participants/:userId', ensureAuthenticated, chatController.removeParticipant);
+
+// File upload endpoints for chat
+router.post(
+  '/:conversationId/upload', 
+  ensureAuthenticated, 
+  chatUploadController.chatUploadMiddleware, 
+  chatUploadController.uploadChatFile
+);
+
+// Multiple file upload endpoint for chat
+router.post(
+  '/:conversationId/upload-multiple', 
+  ensureAuthenticated, 
+  (req, res, next) => chatUploadController.uploadMultipleChatFiles(req, res, next),
+  chatUploadController.handleMultipleFileUpload
+);
 
 module.exports = router;

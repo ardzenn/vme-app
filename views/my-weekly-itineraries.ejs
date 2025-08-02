@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Weekly Itineraries - VME App</title>
+    <%- include('partials/header-meta') %>
+</head>
+<body>
+    <%- include('partials/navbar') %>
+    <main class="container my-5" style="max-width: 1000px;">
+        <header class="page-header mb-4">
+            <h1>My Weekly Itineraries</h1>
+            <a href="/planning/weekly-itinerary-form" class="btn btn-success">+ New Weekly Itinerary</a>
+        </header>
+        <% if (weeklyItineraries && weeklyItineraries.length > 0) { %>
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Submitted</th>
+                            <th>Total Sales</th>
+                            <th>Total Collections</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% weeklyItineraries.forEach(function(itinerary) { %>
+                            <tr>
+                                <td><%= itinerary.weekPeriod || (itinerary.weekStartDate ? new Date(itinerary.weekStartDate).toLocaleDateString() : '-') %></td>
+                                <td><%= itinerary.createdAt ? new Date(itinerary.createdAt).toLocaleString() : '-' %></td>
+                                <td>₱<%= itinerary.totalTargetSales ? itinerary.totalTargetSales.toLocaleString('en-US', {minimumFractionDigits:2}) : '0.00' %></td>
+                                <td>₱<%= itinerary.totalTargetCollections ? itinerary.totalTargetCollections.toLocaleString('en-US', {minimumFractionDigits:2}) : '0.00' %></td>
+                                <td>
+                                    <a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-primary btn-sm">View</a>
+                                    <% if (currentUser && currentUser._id.toString() === itinerary.user._id.toString()) { %>
+                                        <a href="/planning/weekly-itinerary-form/<%= itinerary._id %>" class="btn btn-warning btn-sm ms-1">Edit</a>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } else { %>
+            <div class="alert alert-info">You have not submitted any weekly itineraries yet.</div>
+        <% } %>
+    </main>
+</body>
+</html>

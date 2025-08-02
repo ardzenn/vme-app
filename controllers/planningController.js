@@ -108,6 +108,18 @@ exports.getDailyPlanForm = async (req, res) => {
     }
 };
 
+exports.getMyWeeklyItineraries = async (req, res) => {
+    try {
+        const weeklyItineraries = await WeeklyItinerary.find({ user: req.user.id })
+            .populate('user', 'firstName lastName _id')
+            .sort({ weekStartDate: -1 });
+        res.render('my-weekly-itineraries', { weeklyItineraries, currentUser: req.user });
+    } catch (err) {
+        req.flash('error_msg', 'Could not load your weekly itineraries.');
+        res.redirect('/dashboard');
+    }
+};
+
 exports.getMyPlans = async (req, res) => {
     try {
         const dailyPlans = await DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 });

@@ -68,8 +68,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const salesChartData = <%- JSON.stringify(analyticsData.charts.salesByUser) %>;
-            const checkInsChartData = <%- JSON.stringify(analyticsData.charts.checkInsByUser) %>;
+            const salesChartData = <%= JSON.stringify(analyticsData.charts.salesByUser) %>;
+            const checkInsChartData = <%= JSON.stringify(analyticsData.charts.checkInsByUser) %>;
 
             // Sales by User Bar Chart
             new Chart(document.getElementById('salesByUserChart'), {

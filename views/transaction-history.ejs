@@ -39,7 +39,7 @@
                                             <span class="badge bg-<%= txn.type === 'Collection' ? 'info' : 'success' %>"><%= txn.type %></span>
                                         </td>
                                         <td><%= txn.customer || txn.hospital || 'N/A' %></td>
-                                        <td>₱<%= ((txn.amount || txn.totalAmountDeposited) || 0).toLocaleString() %></td>
+                                        <td>₱<%= (txn.type === 'Collection' ? (txn.amount || 0) : (txn.totalAmountDeposited || 0)).toLocaleString('en-US', {minimumFractionDigits: 2}) %></td>
                                         <td><%= new Date(txn.createdAt).toLocaleDateString() %></td>
                                         <td>
                                             <a href="/transactions/<%= txn._id %>" class="btn btn-sm btn-primary">View Details</a>

@@ -5,6 +5,7 @@ const { ensureAuthenticated } = require('../middleware/auth');
 
 // --- VIEWS ---
 router.get('/my-plans', ensureAuthenticated, planningController.getMyPlans);
+router.get('/my-weekly-itineraries', ensureAuthenticated, planningController.getMyWeeklyItineraries);
 router.get('/daily-plan-form', ensureAuthenticated, planningController.getDailyPlanForm);
 router.get('/daily-plan-form/:id', ensureAuthenticated, planningController.getDailyPlanForEdit);
 router.get('/weekly-itinerary-form', ensureAuthenticated, planningController.getWeeklyItineraryForm);

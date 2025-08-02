@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Sales Manager Dashboard - VME App</title>
+    <%- include('partials/header-meta') %>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+     integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" 
+     crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        .stat-card {
+            border-left: 4px solid #0d6efd;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #fff;
+            border-radius: .25rem;
+        }
+        .stat-title {
+            font-size: .875rem;
+            color: #6c757d;
+            margin-bottom: .5rem;
+        }
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        .expiring-card { border-left-color: #fd7e14; }
+        .table-responsive { max-height: 400px; }
+        .progress { height: 20px; }
+        .sales-badge {
+            background-color: #FF9800;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+    </style>
+</head>
+<body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
+    <%- include('partials/splash-screen.ejs') %>
+    <%- include('partials/navbar') %>
+
+    <main class="container-fluid" style="padding: 0 2rem;">
+        
+        <div id="update-notification" class="alert alert-info alert-dismissible fade show m-3" role="alert" style="display: none; cursor: pointer;">
+          A new version of the app is available. <strong>Click here to update!</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        
+        <header class="page-header">
+            <div>
+                <h1 style="font-size: 1.875rem;">Sales Manager Dashboard</h1>
+                <p style="margin: 0;">Sales performance and team management overview.</p>
+             </div>
+              <div class="d-flex align-items-center gap-2">
+                <a href="/report/check-ins" class="btn btn-success">Daily Reports</a>
+                <a href="/planning/coverage-report" class="btn btn-info">Coverage Reports</a>
+                <a href="/analytics" class="btn btn-warning">Sales Analytics</a>
+                <a href="/products" class="btn btn-dark">Product Catalog</a>
+                <span class="sales-badge"><i class="fas fa-chart-line"></i> Sales Manager</span>
+              </div>
+        </header>
+
+        <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
+        <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
+
+        <div class="row mb-4">
+            <%- include('partials/dashboard-card', { title: 'Total Sales', value: '₱' + orders.reduce((sum, order) => sum + (order.subtotal || 0), 0).toLocaleString(), cardClass: 'sales-performance-card', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'Active Orders', value: orders.filter(o => o.status !== 'Delivered').length, cardClass: '', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'Check-ins (Today)', value: stats.checkInsToday, cardClass: '', actions: [], subtitle: '' }) %>
+            <%- include('partials/dashboard-card', { title: 'Online Now', value: 0, cardClass: '', actions: [], subtitle: '' }) %>
+        </div>
+
+        <ul class="nav nav-tabs" id="salesManagerTab" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#orders-panel"><i class="fas fa-shopping-cart"></i> Sales Orders</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel"><i class="fas fa-money-bill-wave"></i> Collections</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel"><i class="fas fa-map-marker-alt"></i> Check-in History</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel"><i class="fas fa-calendar-day"></i> Daily Plans</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel"><i class="fas fa-calendar-week"></i> Weekly Itineraries</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#sales-performance-panel"><i class="fas fa-trophy"></i> Sales Performance</button></li>
+        </ul>
+
+        <div class="tab-content pt-3" id="salesManagerTabContent">
+            <!-- Sales Orders Panel -->
+            <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
+              <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search orders...">
+                    <%- include('partials/dashboard-table', {
+                        columns: [
+                            { label: 'MSR', key: 'msr' },
+                            { label: 'Reference', key: 'reference' },
+                            { label: 'Customer', key: 'customer' },
+                            { label: 'Amount', key: 'amount' },
+                            { label: 'Status', key: 'status' },
+                            { label: 'Actions', key: 'actions' }
+                        ],
+                        rows: orders.map(order => ({
+                            msr: order.user ? `${order.user.firstName} ${order.user.lastName}` : '[User Deleted]',
+                            reference: order.reference,
+                            customer: order.customerName,
+                            amount: `<span class=\"fw-bold text-success\">₱${(order.subtotal || 0).toLocaleString()}</span>`,
+                            status: `<span class=\"badge bg-${order.status === 'Delivered' ? 'success' : order.status === 'Pending' ? 'warning' : 'info'}\">${order.status}</span>`,
+                            actions: `<a href=\"#\" class=\"btn btn-sm btn-primary view-order-details\" data-order-id=\"${order._id}\">View Details</a>`
+                        })),
+                        tableClass: 'align-middle',
+                        tableId: 'orderTable'
+                    }) %>
+                </div></div>
+             </div>
+
+            <!-- Collections Panel -->
+            <div class="tab-pane fade" id="transactions-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="transactionSearch" class="form-control mb-3" placeholder="Search collections...">
+                    <%- include('partials/dashboard-table', {
+                        columns: [
+                            { label: 'Collected By', key: 'collectedBy' },
+                            { label: 'Customer', key: 'customer' },
+                            { label: 'Amount', key: 'amount' },
+                            { label: 'Date', key: 'date' },
+                            { label: 'Actions', key: 'actions' }
+                        ],
+                        rows: transactions.map(transaction => ({
+                            collectedBy: transaction.user ? `${transaction.user.firstName} ${transaction.user.lastName}` : '[User Deleted]',
+                            customer: transaction.customerName || 'N/A',
+                            amount: `<span class=\"fw-bold text-success\">₱${(transaction.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>`,
+                            date: transaction.createdAtFormatted,
+                            actions: `<a href=\"#\" class=\"btn btn-sm btn-primary view-collection-details\" data-transaction-id=\"${transaction._id}\">View Details</a>`
+                        })),
+                        tableClass: '',
+                        tableId: 'transactionTable'
+                    }) %>
+                </div></div>
+             </div>
+
+            <!-- Check-ins Panel -->
+            <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search check-ins...">
+                    <%- include('partials/dashboard-table', {
+                        columns: [
+                            { label: 'MSR', key: 'msr' },
+                            { label: 'Hospital/Clinic', key: 'hospital' },
+                            { label: 'Doctor', key: 'doctor' },
+                            { label: 'Date', key: 'date' },
+                            { label: 'Actions', key: 'actions' }
+                        ],
+                        rows: checkins.map(checkin => ({
+                            msr: checkin.user ? `${checkin.user.firstName} ${checkin.user.lastName}` : '[User Deleted]',
+                            hospital: checkin.hospital ? checkin.hospital.name : '[Hospital Deleted]',
+                            doctor: checkin.doctor ? checkin.doctor.name : '[Doctor Deleted]',
+                            date: checkin.createdAtFormatted,
+                            actions: `<a href=\"#\" class=\"btn btn-sm btn-primary view-checkin-details\" data-checkin-id=\"${checkin._id}\">View Details</a>`
+                        })),
+                        tableClass: '',
+                        tableId: 'checkinTable'
+                    }) %>
+                </div></div>
+             </div>
+
+            <!-- Daily Plans Panel -->
+            <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="dailyPlanSearch" class="form-control mb-3" placeholder="Search daily plans...">
+                    <%- include('partials/dashboard-table', {
+                        columns: [
+                            { label: 'MSR', key: 'msr' },
+                            { label: 'Plan Date', key: 'planDate' },
+                            { label: 'First Client Call', key: 'firstClientCall' },
+                            { label: 'Actions', key: 'actions' }
+                        ],
+                        rows: dailyPlans.filter(plan => plan.user).map(plan => ({
+                            msr: `${plan.user.firstName} ${plan.user.lastName}`,
+                            planDate: plan.planDateFormatted,
+                            firstClientCall: plan.firstClientCall,
+                            actions: `<a href=\"/planning/view/daily/${plan._id}\" class=\"btn btn-sm btn-primary view-details-link\">View Details</a>`
+                        })),
+                        tableClass: '',
+                        tableId: 'dailyPlanTable'
+                    }) %>
+                </div></div>
+             </div>
+
+            <!-- Weekly Itineraries Panel -->
+            <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="weeklyItinerarySearch" class="form-control mb-3" placeholder="Search weekly itineraries...">
+                    <%- include('partials/dashboard-table', {
+                        columns: [
+                            { label: 'MSR', key: 'msr' },
+                            { label: 'Week Start Date', key: 'weekStartDate' },
+                            { label: 'Actions', key: 'actions' }
+                        ],
+                        rows: weeklyItineraries.filter(itinerary => itinerary.user).map(itinerary => ({
+                            msr: `${itinerary.user.firstName} ${itinerary.user.lastName}`,
+                            weekStartDate: itinerary.weekStartDateFormatted,
+                            actions: `<a href=\"/planning/view/weekly/${itinerary._id}\" class=\"btn btn-sm btn-primary\">View Details</a>`
+                        })),
+                        tableClass: '',
+                        tableId: 'weeklyItineraryTable'
+                    }) %>
+                </div></div>
+             </div>
+
+            <!-- NEW: Sales Performance Panel -->
+            <div class="tab-pane fade" id="sales-performance-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <h5><i class="fas fa-trophy"></i> Sales Team Performance</h5>
+                    
+                    <!-- Performance Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card sales-metric">
+                                <div class="card-body text-center">
+                                    <h6>Monthly Target</h6>
+                                    <p class="fs-4">₱2,500,000</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card sales-metric">
+                                <div class="card-body text-center">
+                                    <h6>Current Sales</h6>
+                                    <p class="fs-4">₱<%= orders.reduce((sum, order) => sum + (order.subtotal || 0), 0).toLocaleString() %></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card sales-metric">
+                                <div class="card-body text-center">
+                                    <h6>Achievement</h6>
+                                    <p class="fs-4"><%= Math.round((orders.reduce((sum, order) => sum + (order.subtotal || 0), 0) / 2500000) * 100) %>%</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card sales-metric">
+                                <div class="card-body text-center">
+                                    <h6>Active MSRs</h6>
+                                    <p class="fs-4"><%= users.filter(u => ['MSR', 'KAS'].includes(u.role)).length %></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Performers -->
+                    <h6><i class="fas fa-star"></i> Top Performing MSRs</h6>
+                    <%- (() => {
+                        const msrPerformance = {};
+                        orders.forEach(order => {
+                            if (order.user) {
+                                const msrName = `${order.user.firstName} ${order.user.lastName}`;
+                                if (!msrPerformance[msrName]) {
+                                    msrPerformance[msrName] = { sales: 0, orders: 0 };
+                                }
+                                msrPerformance[msrName].sales += order.subtotal || 0;
+                                msrPerformance[msrName].orders += 1;
+                            }
+                        });
+                        const sortedMSRs = Object.entries(msrPerformance).sort((a, b) => b[1].sales - a[1].sales).slice(0, 10);
+                        return include('partials/dashboard-table', {
+                            columns: [
+                                { label: 'Rank', key: 'rank' },
+                                { label: 'MSR', key: 'msr' },
+                                { label: 'Total Sales', key: 'totalSales' },
+                                { label: 'Orders', key: 'orders' },
+                                { label: 'Performance', key: 'performance' }
+                            ],
+                            rows: sortedMSRs.map((msr, index) => ({
+                                rank: `<span class=\"badge bg-${index === 0 ? 'warning' : index === 1 ? 'secondary' : index === 2 ? 'warning' : 'primary'}\">${index + 1}</span>`,
+                                msr: msr[0],
+                                totalSales: `<span class=\"fw-bold text-success\">₱${msr[1].sales.toLocaleString()}</span>`,
+                                orders: msr[1].orders,
+                                performance: (() => {
+                                const percentage = Math.min((msr[1].sales / 500000) * 100, 100);
+                                return `<div class="progress" style="height: 20px;"><div class="progress-bar bg-success" style="width: ${percentage}%;"></div></div>`;
+                            })()
+                            })),
+                            tableClass: '',
+                        });
+                    })() %>
+
+                    <!-- Sales Actions -->
+                    <h6><i class="fas fa-tools"></i> Sales Management Actions</h6>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-success" onclick="exportSalesReport()">Export Sales Report</button>
+                        <button type="button" class="btn btn-info" onclick="sendMotivationalMessage()">Send Team Message</button>
+                        <button type="button" class="btn btn-warning" onclick="setMonthlyTargets()">Set Targets</button>
+                        <button type="button" class="btn btn-primary" onclick="scheduleTeamMeeting()">Schedule Meeting</button>
+                    </div>
+                </div></div>
+             </div>
+        </div>
+    </main>
+
+    <%- include('partials/chat-widget.ejs') %>
+    <%- include('partials/order-detail-modal') %>
+    <%- include('partials/checkin-modal.ejs', { allHospitals: allHospitals, allDoctors: allDoctors }) %>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/dashboard-main.js"></script>
+    <script src="/js/push-client.js"></script>
+    <script src="/js/chat-widget.js"></script>
+    <script src="/js/sales-manager-dashboard.js"></script>
+    <script src="/js/app-init.js"></script>
+</body>
+</html>

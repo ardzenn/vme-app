@@ -34,9 +34,9 @@
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
         <div class="row g-4 mb-4">
-            <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Check-ins Today</div><div class="stat-value"><%= stats.checkinsToday %></div></div></div>
-            <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Pending Orders</div><div class="stat-value"><%= stats.pendingOrders %></div></div></div>
-            <div class="col-lg-4"><div class="card stat-card"><div class="stat-title">Total Sales</div><div class="stat-value">₱<%= stats.totalSales %></div></div></div>
+            <%- include('partials/dashboard-card', { title: 'Check-ins Today', value: stats.checkinsToday, cardClass: 'stat-card' }) %>
+            <%- include('partials/dashboard-card', { title: 'Pending Orders', value: stats.pendingOrders, cardClass: 'stat-card' }) %>
+            <%- include('partials/dashboard-card', { title: 'Total Sales', value: '₱' + stats.totalSales, cardClass: 'stat-card' }) %>
         </div>
 
         <ul class="nav nav-tabs mb-3" id="dashboardTab" role="tablist">
@@ -240,83 +240,20 @@
     <%- include('partials/checkin-modal.ejs', { allHospitals: allHospitals, allDoctors: allDoctors }) %>
     <%- include('partials/order-detail-modal.ejs') %>
     <%- include('partials/image-zoom-modal.ejs') %>
+    <%- include('partials/chat-widget.ejs') %>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/dashboard-main.js"></script>
     <script src="/js/push-client.js"></script>
-    <%- include('partials/chat-widget.ejs') %>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/checkin.js"></script>
     <script src="/js/chat-widget.js"></script>
-    <script src="/js/notifications.js"></script>
+    <script src="/js/dashboard-page.js"></script>
     <script src="/js/app-init.js"></script>
     
     <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
         <script src="/js/location-tracker.js"></script>
     <% } %>
-
-    <script>
-        const imageZoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
-        const modalZoomImage = document.getElementById('modalZoomImage');
-        function showImageInModal(src) {
-            if (modalZoomImage) {
-                modalZoomImage.src = src;
-                imageZoomModal.show();
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            const addTableFilter = (inputId, tableId) => {
-                const searchInput = document.getElementById(inputId);
-                if (searchInput) {
-                     searchInput.addEventListener('input', (e) => {
-                        const searchTerm = e.target.value.toLowerCase();
-                        document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
-                            row.style.display = (row.dataset.search || '').includes(searchTerm) ? '' : 'none';
-                        });
-                    });
-                }
-            };
-            addTableFilter('orderSearch', 'orderTable');
-            addTableFilter('checkinSearch', 'checkinTable');
-
-             if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js')
-                        .then(registration => console.log('Service Worker registered.'))
-                        .catch(error => console.log('Service Worker registration failed:', error));
-                });
-            }
-        });
-    </script>
-          <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const notificationButton = document.getElementById('enable-notifications-btn');
-
-        // Check if notifications are supported and permission is not yet granted or denied
-        if ('Notification' in window && notificationButton) {
-            if (Notification.permission === 'granted' || Notification.permission === 'denied') {
-                // If permission is already granted or denied, hide the button
-                notificationButton.style.display = 'none';
-            }
-
-            notificationButton.addEventListener('click', () => {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        alert('Notifications have been enabled!');
-                        notificationButton.style.display = 'none';
-                        // You might want to initialize your push subscription here
-                        // by calling a function from your push-client.js
-                    } else if (permission === 'denied') {
-                        alert('You have blocked notifications. You can enable them in your browser settings.');
-                        notificationButton.style.display = 'none';
-                    }
-                });
-            });
-        } else if (notificationButton) {
-            // Hide button if notifications are not supported by the browser
-            notificationButton.style.display = 'none';
-        }
-    });
-    </script>
 </body>
 </html>

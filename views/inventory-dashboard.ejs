@@ -8,9 +8,14 @@
         .low-stock-card { border-left: 4px solid #ffc107; }
         .out-stock-card { border-left: 4px solid #dc3545; }
         .expiring-card { border-left: 4px solid #fd7e14; }
+        table {
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
     </style>
 </head>
-<body>
+<body data-user-id="<%= currentUser._id %>" data-current-user='<%- JSON.stringify(currentUser) %>'>
+    <%- include('partials/splash-screen.ejs') %>
     <%- include('partials/navbar') %>
     
     <main class="container-fluid my-4" style="padding: 0 2rem;">
@@ -28,41 +33,223 @@
         </header>
 
         <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card stock-card">
-                    <div class="card-body">
-                        <h5 class="card-title text-success">In Stock</h5>
-                        <h2><%= inventoryData.filter(item => item.totalStock > 10).length %></h2>
-                        <small class="text-muted">Products with good stock</small>
-                    </div>
-                </div>
+            <%- include('partials/dashboard-card', { title: 'In Stock', value: inventoryData.filter(item => item.totalStock > 10).length, subtitle: 'Products with good stock', cardClass: 'stock-card', valueClass: 'text-success', actions: [] }) %>
+            <%- include('partials/dashboard-card', { title: 'Low Stock', value: inventoryData.filter(item => item.totalStock > 0 && item.totalStock <= 10).length, subtitle: 'Products running low', cardClass: 'low-stock-card', valueClass: 'text-warning', actions: [] }) %>
+            <%- include('partials/dashboard-card', { title: 'Out of Stock', value: inventoryData.filter(item => item.totalStock === 0).length, subtitle: 'Products out of stock', cardClass: 'out-stock-card', valueClass: 'text-danger', actions: [] }) %>
+            <%- include('partials/dashboard-card', { title: 'Expiring Soon', value: inventoryData.filter(item => item.expiringSoonCount > 0).length, subtitle: 'Products with batches expiring in 30 days', cardClass: 'expiring-card', valueClass: 'text-warning', actions: [] }) %>
+        </div>
+
+        <!-- ACCOUNTING TAB PANEL (NO WEEKLY ITINERARIES TAB) -->
+        <ul class="nav nav-tabs" id="accountingTab" role="tablist">
+            <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#orders-panel">Sales Orders</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel">Collections</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel">Check-in History</button></li>
+            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#daily-plans-panel">Daily Plans</button></li>
+        </ul>
+        <div class="tab-content pt-3" id="accountingTabContent">
+            <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="orderSearch" class="form-control mb-3" placeholder="Search orders...">
+                    <% if (orders && orders.length > 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="orderTable">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Reference</th>
+                                        <th>Customer</th>
+                                        <th>Order Status</th>
+                                        <th>Payment Status</th>
+                                        <th>Products</th>
+                                        <th>Total Amount</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% orders.forEach(order => { %>
+                                    <tr>
+                                        <td>
+                                            <% if (order.user) { %>
+                                            <div class="d-flex align-items-center">
+                                                <img src="<%= order.user.profilePicture || '/images/default-profile.png' %>" class="rounded-circle me-2" width="32" height="32" style="object-fit: cover;">
+                                                <%= order.user.firstName %> <%= order.user.lastName %>
+                                            </div>
+                                            <% } else { %>
+                                            <span class="text-muted">[User Deleted]</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <strong><%= order.reference %></strong>
+                                            <br><small class="text-muted"><%= new Date(order.createdAt).toLocaleDateString() %></small>
+                                        </td>
+                                        <td><%= order.customerName %></td>
+                                        <td>
+                                            <% let statusClass='secondary' ; switch(order.status) { case 'Pending' : statusClass='warning' ; break; case 'Processing' : statusClass='info' ; break; case 'Order Shipped' : statusClass='primary' ; break; case 'Delivered' : statusClass='success' ; break; case 'Rejected' : statusClass='danger' ; break; case 'Cancelled' : statusClass='dark' ; break; default: statusClass='secondary' ; } %>
+                                            <span class="badge bg-<%= statusClass %>"><%= order.status || 'Pending' %></span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-<%= order.paymentStatus === 'Paid' ? 'success' : 'warning' %>">
+                                                <i class="fas fa-<%= order.paymentStatus === 'Paid' ? 'check-circle' : 'clock' %>"></i>
+                                                <%= order.paymentStatus || 'Unpaid' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <% if (order.products && order.products.length > 0) { %>
+                                            <div class="product-preview" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" title="<% order.products.forEach((product, index) => { %><%= product.product || 'Unknown Product' %> (Qty: <%= product.quantity || 0 %>)<% if (index < order.products.length - 1) { %><br><% } %><% }) %>">
+                                                <span class="badge bg-primary me-1">
+                                                    <%= order.products[0].product || 'Unknown Product' %>
+                                                </span>
+                                                <% if (order.products.length > 1) { %>
+                                                <span class="badge bg-secondary">+<%= order.products.length - 1 %> more</span>
+                                                <% } %>
+                                            </div>
+                                            <% } else { %>
+                                            <span class="text-muted">No products</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <strong>₱<%= (order.subtotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></strong>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary view-order-btn" data-order-id="<%= order._id %>">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <div class="alert alert-info">No orders found.</div>
+                    <% } %>
+                </div></div>
             </div>
-            <div class="col-md-3">
-                <div class="card low-stock-card">
-                    <div class="card-body">
-                        <h5 class="card-title text-warning">Low Stock</h5>
-                        <h2><%= inventoryData.filter(item => item.totalStock > 0 && item.totalStock <= 10).length %></h2>
-                        <small class="text-muted">Products running low</small>
-                    </div>
-                </div>
+            <div class="tab-pane fade" id="transactions-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="txnSearch" class="form-control mb-3" placeholder="Search transactions...">
+                    <% if (transactions && transactions.length > 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="txnTable">
+                                <thead>
+                                    <tr>
+                                        <th>Submitted By</th>
+                                        <th>Type</th>
+                                        <th>Customer/Hospital</th>
+                                        <th>Amount</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% transactions.forEach(txn => { %>
+                                    <tr>
+                                        <td>
+                                            <% if (txn.user) { %>
+                                            <div class="d-flex align-items-center">
+                                                <img src="<%= txn.user.profilePicture || '/images/default-profile.png' %>" class="rounded-circle me-2" width="32" height="32" style="object-fit: cover;">
+                                                <div>
+                                                    <%= txn.user.firstName %> <%= txn.user.lastName %>
+                                                    <br><small class="text-muted"><%= txn.user.role || 'N/A' %></small>
+                                                </div>
+                                            </div>
+                                            <% } else { %>
+                                            <span class="text-muted">[User Deleted]</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-<%= txn.type === 'Collection' ? 'info' : 'success' %>">
+                                                <i class="fas fa-<%= txn.type === 'Collection' ? 'hand-holding-usd' : 'university' %>"></i>
+                                                <%= txn.type %>
+                                            </span>
+                                        </td>
+                                        <td><%= txn.customer || txn.hospital || 'N/A' %></td>
+                                        <td><strong>₱<%= (txn.amount || txn.totalAmountDeposited || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %></strong></td>
+                                        <td><%= new Date(txn.createdAt).toLocaleDateString() %></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary view-txn-btn" data-txn-id="<%= txn._id %>">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <div class="alert alert-info">No transactions found.</div>
+                    <% } %>
+                </div></div>
             </div>
-            <div class="col-md-3">
-                <div class="card out-stock-card">
-                    <div class="card-body">
-                        <h5 class="card-title text-danger">Out of Stock</h5>
-                        <h2><%= inventoryData.filter(item => item.totalStock === 0).length %></h2>
-                        <small class="text-muted">Products out of stock</small>
-                    </div>
-                </div>
+            <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="checkinSearch" class="form-control mb-3" placeholder="Search check-ins...">
+                    <% if (checkins && checkins.length > 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="checkinTable">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Hospital/Clinic</th>
+                                        <th>Doctor</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% checkins.forEach(checkin => { %>
+                                    <tr>
+                                        <td><%= checkin.user ? checkin.user.firstName + ' ' + checkin.user.lastName : '[User Deleted]' %></td>
+                                        <td><%= checkin.hospital ? checkin.hospital.name : '[Hospital Deleted]' %></td>
+                                        <td><%= checkin.doctor ? checkin.doctor.name : '[Doctor Deleted]' %></td>
+                                        <td><%= new Date(checkin.createdAt).toLocaleDateString() %></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary view-checkin-btn" data-checkin-id="<%= checkin._id %>">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <div class="alert alert-info">No check-ins found.</div>
+                    <% } %>
+                </div></div>
             </div>
-            <div class="col-md-3">
-                <div class="card expiring-card">
-                    <div class="card-body">
-                        <h5 class="card-title text-warning">Expiring Soon</h5>
-                        <h2><%= inventoryData.filter(item => item.expiringSoonCount > 0).length %></h2>
-                        <small class="text-muted">Products with batches expiring in 30 days</small>
-                    </div>
-                </div>
+            <div class="tab-pane fade" id="daily-plans-panel" role="tabpanel">
+                <div class="card card-tab"><div class="card-body">
+                    <input type="text" id="dailyPlanSearch" class="form-control mb-3" placeholder="Search daily plans...">
+                    <% if (dailyPlans && dailyPlans.length > 0) { %>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="dailyPlanTable">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Plan Date</th>
+                                        <th>First Client Call</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% dailyPlans.filter(plan => plan.user).forEach(plan => { %>
+                                    <tr>
+                                        <td><%= plan.user.firstName %> <%= plan.user.lastName %></td>
+                                        <td><%= plan.planDateFormatted || (plan.planDate ? new Date(plan.planDate).toLocaleDateString() : '') %></td>
+                                        <td><%= plan.firstClientCall || '-' %></td>
+                                        <td>
+                                            <a href="/planning/view/daily/<%= plan._id %>" class="btn btn-sm btn-outline-primary view-details-link">View Details</a>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } else { %>
+                        <div class="alert alert-info">No daily plans found.</div>
+                    <% } %>
+                </div></div>
             </div>
         </div>
 
@@ -71,57 +258,25 @@
                 <h5 class="mb-0">Product Inventory</h5>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>Total Stock</th>
-                                <th>Batches</th>
-                                <th>Status</th>
-                                <th>Expiring Soon</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% inventoryData.forEach(item => { %>
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="<%= item.imageUrl || '/images/default-product.png' %>" class="rounded me-2" width="40" height="40" style="object-fit: cover;" alt="<%= item.name %>">
-                                        <div>
-                                            <strong><%= item.name %></strong>
-                                            <br>
-                                            <small class="text-muted"><%= item.category %></small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><strong><%= item.totalStock %></strong></td>
-                                <td><%= item.stockItems.length %></td>
-                                <td>
-                                    <% if (item.totalStock === 0) { %>
-                                        <span class="badge bg-secondary">Out of Stock</span>
-                                    <% } else if (item.totalStock <= 10) { %>
-                                        <span class="badge bg-danger">Low Stock</span>
-                                    <% } else { %>
-                                        <span class="badge bg-success">In Stock</span>
-                                    <% } %>
-                                </td>
-                                <td>
-                                    <% if (item.expiringSoonCount > 0) { %>
-                                        <span class="badge bg-warning"><%= item.expiringSoonCount %></span>
-                                    <% } else { %>
-                                        <span class="text-muted">-</span>
-                                    <% } %>
-                                </td>
-                                <td>
-                                    <a href="/products/inventory/<%= item._id %>" class="btn btn-sm btn-outline-primary">Details</a>
-                                </td>
-                            </tr>
-                            <% }) %>
-                        </tbody>
-                    </table>
-                </div>
+                <%- include('partials/dashboard-table', {
+                    columns: [
+                        { label: 'Product', key: 'product' },
+                        { label: 'Total Stock', key: 'totalStock' },
+                        { label: 'Batches', key: 'batches' },
+                        { label: 'Status', key: 'status' },
+                        { label: 'Expiring Soon', key: 'expiringSoon' },
+                        { label: 'Actions', key: 'actions' }
+                    ],
+                    rows: inventoryData.map(item => ({
+                        product: `<div class=\"d-flex align-items-center\"><img src=\"${item.imageUrl || '/images/default-product.png'}\" class=\"rounded me-2\" width=\"40\" height=\"40\" style=\"object-fit: cover;\" alt=\"${item.name}\"><div><strong>${item.name}</strong><br><small class=\"text-muted\">${item.category}</small></div></div>`,
+                        totalStock: `<strong>${item.totalStock}</strong>`,
+                        batches: item.stockItems.length,
+                        status: item.totalStock === 0 ? '<span class="badge bg-secondary">Out of Stock</span>' : (item.totalStock <= 10 ? '<span class="badge bg-danger">Low Stock</span>' : '<span class="badge bg-success">In Stock</span>'),
+                        expiringSoon: item.expiringSoonCount > 0 ? `<span class=\"badge bg-warning\">${item.expiringSoonCount}</span>` : '<span class="text-muted">-</span>',
+                        actions: `<a href=\"/products/inventory/${item._id}\" class=\"btn btn-sm btn-outline-primary\">Details</a>`
+                    })),
+                    tableClass: ''
+                }) %>
             </div>
         </div>
 
@@ -209,7 +364,14 @@
         </div>
     </div>
     
+    <%- include('partials/chat-widget.ejs') %>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/dashboard-main.js"></script>
+    <script src="/js/push-client.js"></script>
+    <script src="/js/chat-widget.js"></script>
+    <script src="/js/app-init.js"></script>
     
 </body>
 </html>

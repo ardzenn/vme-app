@@ -231,7 +231,7 @@
                                 </td>
                                 <td>
                                     <strong class="text-<%= txn.type === 'Collection' ? 'success' : 'primary' %>">
-                                        ₱<%= (txn.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) %>
+                                        ₱<%= (txn.type === 'Collection' ? (txn.amount || 0) : (txn.totalAmountDeposited || 0)).toLocaleString('en-US', {minimumFractionDigits: 2}) %>
                                     </strong>
                                     <% if (txn.paymentMethod) { %>
                                         <br><small class="badge bg-light text-dark"><%= txn.paymentMethod %></small>
@@ -1269,9 +1269,54 @@ debugLocationSystem();
         }
     });
     </script>
-    <%- include('partials/chat-widget.ejs') %>
-    <script src="/js/chat-widget.js"></script>
-    <script src="/js/notifications.js"></script>
+    <!-- Include chat widget HTML first -->
+    <%- include('partials/chat-widget') %>
+    
+    <!-- Load chat widget scripts -->
+    <script src="/js/push-client.js"></script>
+    <script src="/js/chat-widget-fixed.js"></script>
+    
+    <!-- Initialize chat widget -->
+    <script>
+        // Initialize chat widget when DOM is ready
+        function initializeChatWidget() {
+            console.log('Initializing chat widget...');
+            
+            // Check if chat widget container exists
+            const chatContainer = document.getElementById('chat-widget-container');
+            if (!chatContainer) {
+                console.error('Chat widget container not found');
+                return;
+            }
+            
+            // Initialize the chat widget with user data
+            if (typeof initChatWidget === 'function') {
+                initChatWidget({
+                    currentUserId: '<%= currentUser._id %>',
+                    currentUserName: '<%= currentUser.firstName %> <%= currentUser.lastName %>',
+                    currentUserAvatar: '<%= currentUser.profilePicture || "/images/default-profile.png" %>'
+                });
+                
+                // Make sure the chat toggler is visible
+                const toggler = document.getElementById('chat-widget-toggler');
+                if (toggler) {
+                    toggler.style.display = 'flex';
+                }
+            } else {
+                console.error('initChatWidget function not found. Make sure chat-widget.js is loaded correctly.');
+            }
+        }
+        
+        // Initialize when DOM is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeChatWidget);
+        } else {
+            // DOM is already loaded
+            setTimeout(initializeChatWidget, 0);
+        }
+    </script>
+    
+    <!-- Load app initialization last -->
     <script src="/js/app-init.js"></script>
 </body>
 </html>

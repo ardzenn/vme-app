@@ -30,11 +30,25 @@ module.exports.ensureAdmin = (req, res, next) => {
     res.redirect('/dashboard');
 };
 
-// This middleware checks if the logged-in user has 'Accounting' or 'Admin' role.
+// This middleware checks if the logged-in user has 'Accounting', 'Sales Manager', 'Inventory' or 'Admin' role.
 module.exports.ensureAccounting = (req, res, next) => {
-    if (req.user.role === 'Accounting' || req.user.role === 'Admin') {
+    console.log('ensureAccounting - Checking authentication...');
+    
+    if (!req.isAuthenticated()) {
+        console.log('ensureAccounting - User not authenticated, redirecting to login');
+        req.flash('error_msg', 'Please log in to view this resource.');
+        return res.redirect('/login');
+    }
+    
+    console.log('ensureAccounting - User authenticated, role:', req.user.role);
+    
+    const allowedRoles = ['Accounting', 'Sales Manager', 'Inventory', 'Admin'];
+    if (allowedRoles.includes(req.user.role)) {
+        console.log('ensureAccounting - Access granted, role allowed');
         return next();
     }
+    
+    console.log('ensureAccounting - Access denied, role not allowed');
     req.flash('error_msg', 'You do not have permission to view this page.');
     res.redirect('/dashboard');
 };

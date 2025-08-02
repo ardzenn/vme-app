@@ -89,21 +89,43 @@ exports.getMessagesByConversation = async (req, res) => {
 
 exports.addMessageToConversation = async (req, res) => {
     try {
-        const { text } = req.body;
+        const { text, attachments, type = 'text', tempMessageId } = req.body;
         const { conversationId } = req.params;
         const sender = req.user;
 
-        if (!text || text.trim() === '') {
-             return res.status(400).json({ success: false, message: 'Message text cannot be empty.' });
+        // Check if message has either text or attachments
+        if ((!text || text.trim() === '') && (!attachments || attachments.length === 0)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Message must contain either text or an attachment.' 
+            });
         }
 
-        const message = new Message({
+        // Prepare message data
+        const messageData = {
             conversation: conversationId,
             sender: sender._id,
-            text: text
-        });
+            text: text ? text.trim() : '',
+            messageType: type,
+            attachments: []
+        };
+
+        // Process attachments if any
+        if (attachments && attachments.length > 0) {
+            messageData.attachments = attachments.map(attachment => ({
+                url: attachment.url,
+                type: attachment.type || 'file',
+                name: attachment.name || 'file',
+                size: attachment.size
+            }));
+        }
+
+        // Create and save the message
+        const message = new Message(messageData);
         await message.save();
 
+        // Populate sender info for the response
+        await message.populate('sender', 'firstName lastName profilePicture');
         await Conversation.findByIdAndUpdate(conversationId, { 
             lastMessage: message._id
         });

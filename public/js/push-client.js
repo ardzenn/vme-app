@@ -1,9 +1,14 @@
 // public/js/push-client.js
 // This handles push notification subscription on the client side
 
-const VAPID_PUBLIC_KEY = 'BOx_pjFO7MNmFE1HyoXGbdGwPZixbbrFtA5dIAL2K1cdwjGJU0k7buGeKOgDuQasuhamK174AoV_ROq_nTi2bPo'; // You need to generate this
+// Check if VAPID_PUBLIC_KEY is already defined (prevent duplicate declaration)
+if (typeof window.VAPID_PUBLIC_KEY === 'undefined') {
+    window.VAPID_PUBLIC_KEY = 'BOx_pjFO7MNmFE1HyoXGbdGwPZixbbrFtA5dIAL2K1cdwjGJU0k7buGeKOgDuQasuhamK174AoV_ROq_nTi2bPo';
+}
 
-class PushManager {
+// Only define PushManager if it doesn't already exist
+if (typeof window.PushManager === 'undefined') {
+    window.PushManager = class PushManager {
     constructor() {
         this.swRegistration = null;
         this.isSubscribed = false;
@@ -36,7 +41,7 @@ class PushManager {
         }
     }
 }
- async function subscribeUser() {
+async function subscribeUser() {
     try {
         const registration = await navigator.serviceWorker.ready;
         let subscription = await registration.pushManager.getSubscription();
@@ -44,7 +49,7 @@ class PushManager {
         if (!subscription) {
             subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: VAPID_PUBLIC_KEY
+                applicationServerKey: window.VAPID_PUBLIC_KEY
             });
         }
 
@@ -122,7 +127,7 @@ async function testPushNotification() {
     } catch (error) {
         console.error('Test push error:', error);
         alert(`Failed to send test push: ${error.message}`);
-    }
+    };
 }
 
 // Initialize when DOM is ready
@@ -165,3 +170,5 @@ window.checkPushStatus = async function() {
         console.error('Error checking push status:', error);
     }
 };
+
+// Ensure file ends with a newline and all blocks are closed

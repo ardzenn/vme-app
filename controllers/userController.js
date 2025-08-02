@@ -49,11 +49,11 @@ exports.updateUserRole = async (req, res) => {
         const userId = req.params.id;
         await User.findByIdAndUpdate(userId, { role });
         req.flash('success_msg', 'User role updated successfully.');
-        res.redirect('/admin-dashboard');
+        res.redirect('/dashboard'); // Redirect to dashboard for correct role-based routing
     } catch (err) {
         console.error("Role update error:", err);
         req.flash('error_msg', 'Failed to update user role.');
-        res.redirect('/admin-dashboard');
+        res.redirect('/dashboard');
     }
 };
 

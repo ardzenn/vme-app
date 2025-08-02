@@ -29,3 +29,13 @@ if ('serviceWorker' in navigator && window.workbox) {
 
     wb.register();
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize the chat widget if the function exists
+    if (typeof window.initChatWidget === 'function') {
+        console.log('app-init: Initializing chat widget.');
+        window.initChatWidget();
+    } else {
+        console.error('app-init: initChatWidget not found, skipping initialization.');
+    }
+});
