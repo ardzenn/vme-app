@@ -87,14 +87,23 @@ exports.getITDashboard = async (req, res) => {
 
 exports.getMSRDashboard = async (req, res) => {
     try {
+        let totalSales = '0.00';
+        try {
+            const agg = await Order.aggregate([
+                { $match: { user: req.user.id, status: 'Delivered' } },
+                { $group: { _id: null, total: { $sum: '$subtotal' } } }
+            ]);
+            totalSales = agg[0] && agg[0].total ? agg[0].total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+        } catch (err) {
+            console.error('Error aggregating totalSales for MSR/KAS dashboard:', err);
+            totalSales = '0.00';
+        }
         const stats = {
             checkinsToday: await CheckIn.countDocuments({ user: req.user.id, createdAt: { $gte: new Date().setHours(0, 0, 0, 0) } }),
             pendingOrders: await Order.countDocuments({ user: req.user.id, status: 'Pending' }),
-            totalSales: await Order.aggregate([
-                { $match: { user: req.user.id, status: 'Delivered' } },
-                { $group: { _id: null, total: { $sum: '$subtotal' } } }
-            ]).then(result => result[0] ? result[0].total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')
+            totalSales
         };
+
 
         // Defensive fetching and logging
         let checkins = [], orders = [], allHospitals = [], allDoctors = [], dailyPlans = [], weeklyItineraries = [], dailyReports = [];
