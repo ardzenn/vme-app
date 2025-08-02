@@ -26,4 +26,16 @@ router.get('/check-ins/export', ensureAuthenticated, dailyReportController.expor
 // Show specific report details
 router.get('/:id', ensureAuthenticated, dailyReportController.getReportDetails);
 
+// View report (alias for getReportDetails)
+router.get('/view/:id', ensureAuthenticated, dailyReportController.getReportDetails);
+
+// Edit report form
+router.get('/edit/:id', ensureAuthenticated, dailyReportController.getReportEditForm);
+
+// Update report
+router.put('/:id', ensureAuthenticated, dailyReportController.uploadReportAttachments, dailyReportController.updateReport);
+
+// POST route for update (fallback for forms that don't support PUT)
+router.post('/:id', ensureAuthenticated, dailyReportController.uploadReportAttachments, dailyReportController.updateReport);
+
 module.exports = router;

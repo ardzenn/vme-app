@@ -22,7 +22,7 @@
         <% if (locals.success_msg && success_msg.length > 0) { %><div class="alert alert-success"><%= success_msg %></div><% } %>
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
-        <form action="/report" method="POST" enctype="multipart/form-data">
+        <form action="<%= isEditing ? `/report/${report._id}` : '/report' %>" method="POST" enctype="multipart/form-data">
             <div class="card">
                 <div class="card-body">
                     <div class="mb-4">
@@ -46,13 +46,13 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-3"><label class="form-label">A. No. of Hospitals</label><input type="number" id="hospital-summary" class="form-control" value="0" readonly></div>
                         <div class="col-md-3"><label class="form-label">B. No. of MDs</label><input type="number" id="md-summary" class="form-control" value="0" readonly></div>
-                        <div class="col-md-3"><label class="form-label">C. No. of Pharmacists</label><input type="number" name="pharmacists" class="form-control" value="0" min="0"></div>
-                        <div class="col-md-3"><label class="form-label">D. No. of Acctg Staff</label><input type="number" name="accountingStaff" class="form-control" value="0" min="0"></div>
+                        <div class="col-md-3"><label class="form-label">C. No. of Pharmacists</label><input type="number" name="pharmacists" class="form-control" value="<%= isEditing ? (report.callSummary?.pharmacists || 0) : 0 %>" min="0"></div>
+                        <div class="col-md-3"><label class="form-label">D. No. of Acctg Staff</label><input type="number" name="accountingStaff" class="form-control" value="<%= isEditing ? (report.callSummary?.accountingStaff || 0) : 0 %>" min="0"></div>
                     </div>
 
                     <div class="mb-4">
                         <label for="accomplishments" class="form-label fw-bold">*** ACCOMPLISHMENTS AND FEEDBACKS:</label>
-                         <textarea id="accomplishments" name="accomplishments" class="form-control" rows="8" placeholder="Please provide a comprehensive narrative report..."></textarea>
+                         <textarea id="accomplishments" name="accomplishments" class="form-control" rows="8" placeholder="Please provide a comprehensive narrative report..."><%= isEditing ? (report.accomplishments || '') : '' %></textarea>
                     </div>
 
                     <div class="row g-4">
@@ -63,13 +63,13 @@
                         </div>
                         <div class="col-md-6 mb-3">
                              <label class="form-label fw-bold">3.) Collections (90 Days & Below):</label>
-                             <input type="number" name="collectionsCurrent" class="form-control" placeholder="Amount" value="0" min="0" step="0.01">
+                             <input type="number" name="collectionsCurrent" class="form-control" placeholder="Amount" value="<%= isEditing ? (report.dailyCollections?.current || 0) : 0 %>" min="0" step="0.01">
                              <label class="form-label fw-bold mt-2">4.) Collections (Overdue):</label>
-                             <input type="number" name="collectionsOverdue" class="form-control" placeholder="90 Days and Up" value="0" min="0" step="0.01">
+                             <input type="number" name="collectionsOverdue" class="form-control" placeholder="90 Days and Up" value="<%= isEditing ? (report.dailyCollections?.overdue || 0) : 0 %>" min="0" step="0.01">
                         </div>
                          <div class="col-12 mb-3">
                              <label class="form-label fw-bold">Month To Date (MTD):</label>
-                             <textarea name="mtdNotes" class="form-control" rows="3" placeholder="Enter MTD Sales and Collections summary..."></textarea>
+                             <textarea name="mtdNotes" class="form-control" rows="3" placeholder="Enter MTD Sales and Collections summary..."><%= isEditing ? (report.mtdNotes || '') : '' %></textarea>
                          </div>
                     </div>
 
@@ -81,7 +81,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Ending Odometer</label>
-                            <input type="number" name="endingOdometer" id="endingOdometer" class="form-control" min="0">
+                            <input type="number" name="endingOdometer" id="endingOdometer" class="form-control" min="0" value="<%= isEditing ? (report.endingOdometer || '') : '' %>">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Total Kms Used</label>
@@ -95,16 +95,16 @@
                     </div>
                     <div class="mb-4">
                         <label class="form-label">Note</label>
-                        <textarea name="endingOdometerNote" class="form-control" rows="2"></textarea>
+                        <textarea name="endingOdometerNote" class="form-control" rows="2"><%= isEditing ? (report.endingOdometerNote || '') : '' %></textarea>
                     </div>
 
                     <h5 class="mt-4">Expense Report for the Day:</h5>
                      <div class="row g-3 mb-4 align-items-end">
-                        <div class="col-md-3"><label class="form-label">A.) Meal</label><input type="number" name="meal" class="form-control expense-input" value="0" min="0" step="0.01"></div>
-                        <div class="col-md-3"><label class="form-label">B.) Transportation</label><input type="number" name="transportation" class="form-control expense-input" value="0" min="0" step="0.01"></div>
-                        <div class="col-md-3"><label class="form-label">C.) Toll Fees</label><input type="number" name="toll" class="form-control expense-input" value="0" min="0" step="0.01"></div>
-                        <div class="col-md-3"><label class="form-label">D.) Parking Fees</label><input type="number" name="parking" class="form-control expense-input" value="0" min="0" step="0.01"></div>
-                        <div class="col-md-3"><label class="form-label">E.) Lodging</label><input type="number" name="lodging" class="form-control expense-input" value="0" min="0" step="0.01"></div>
+                        <div class="col-md-3"><label class="form-label">A.) Meal</label><input type="number" name="meal" class="form-control expense-input" value="<%= isEditing ? (report.expenses?.meal || 0) : 0 %>" min="0" step="0.01"></div>
+                        <div class="col-md-3"><label class="form-label">B.) Transportation</label><input type="number" name="transportation" class="form-control expense-input" value="<%= isEditing ? (report.expenses?.transportation || 0) : 0 %>" min="0" step="0.01"></div>
+                        <div class="col-md-3"><label class="form-label">C.) Toll Fees</label><input type="number" name="toll" class="form-control expense-input" value="<%= isEditing ? (report.expenses?.toll || 0) : 0 %>" min="0" step="0.01"></div>
+                        <div class="col-md-3"><label class="form-label">D.) Parking Fees</label><input type="number" name="parking" class="form-control expense-input" value="<%= isEditing ? (report.expenses?.parking || 0) : 0 %>" min="0" step="0.01"></div>
+                        <div class="col-md-3"><label class="form-label">E.) Lodging</label><input type="number" name="lodging" class="form-control expense-input" value="<%= isEditing ? (report.expenses?.lodging || 0) : 0 %>" min="0" step="0.01"></div>
                         <div class="col-md-9 text-md-end">
                             <h4 class="mb-0">Total Expenses: <span id="total-expenses-display" class="fw-bold">₱0.00</span></h4>
                         </div>
@@ -117,7 +117,7 @@
                 </div>
                 <div class="card-footer text-end">
                     <a href="/dashboard" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Submit Report</button>
+                    <button type="submit" class="btn btn-primary"><%= isEditing ? 'Update Report' : 'Submit Report' %></button>
                 </div>
             </div>
         </form>

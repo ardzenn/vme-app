@@ -11,6 +11,7 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const socketio = require('socket.io');
 const MongoStore = require('connect-mongo');
+const methodOverride = require('method-override');
 
 // --- 2. LOCAL IMPORTS ---
 const dbConnect = require('./dbConnect');
@@ -61,6 +62,7 @@ async function startServer() {
         // --- MIDDLEWARE ---
         app.use(express.json({ limit: '50mb' }));
         app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+        app.use(methodOverride('_method'));
         
         // Serve static files
         app.use(express.static(path.join(__dirname, 'public')));

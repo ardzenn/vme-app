@@ -152,6 +152,111 @@ exports.getReportDetails = async (req, res) => {
     }
 };
 
+exports.getReportEditForm = async (req, res) => {
+    try {
+        const report = await DailyReport.findById(req.params.id);
+        if (!report) {
+            req.flash('error_msg', 'Report not found.');
+            return res.redirect('/dashboard');
+        }
+
+        // Check if user owns this report or is admin
+        if (report.user.toString() !== req.user.id && req.user.role !== 'Admin') {
+            req.flash('error_msg', 'You can only edit your own reports.');
+            return res.redirect('/dashboard');
+        }
+
+        // Prepare data for the form
+        const prefilledData = {
+            lastClientVisited: report.lastClientVisited || '',
+            visitedCalls: report.visitedCalls || [],
+            callSummary: report.callSummary || { hospitals: 0, mds: 0 }
+        };
+
+        res.render('report-form', { 
+            prefilledData, 
+            startingOdometer: report.startingOdometer || '',
+            report: report, // Pass the existing report for editing
+            isEditing: true
+        });
+    } catch (err) {
+        console.error('Error loading report edit form:', err);
+        req.flash('error_msg', 'Failed to load report for editing.');
+        res.redirect('/dashboard');
+    }
+};
+
+exports.updateReport = async (req, res) => {
+    try {
+        const report = await DailyReport.findById(req.params.id);
+        if (!report) {
+            req.flash('error_msg', 'Report not found.');
+            return res.redirect('/dashboard');
+        }
+
+        // Check if user owns this report or is admin
+        if (report.user.toString() !== req.user.id && req.user.role !== 'Admin') {
+            req.flash('error_msg', 'You can only edit your own reports.');
+            return res.redirect('/dashboard');
+        }
+
+        const {
+            lastClientVisited, accomplishments, pharmacists, accountingStaff, sales,
+            collectionsCurrent, collectionsOverdue, meal, transportation, toll, parking, lodging,
+            mtdNotes, endingOdometer, endingOdometerNote
+        } = req.body;
+
+        const endingOdometerNum = Number(endingOdometer) || 0;
+        const totalKmReading = endingOdometerNum >= report.startingOdometer
+            ? endingOdometerNum - report.startingOdometer
+            : 0;
+
+        const updateData = {
+            lastClientVisited,
+            visitedCalls: req.body.hospitals?.map((h, i) => ({
+                hospital: h,
+                doctor: req.body.doctors[i]
+            })) || [],
+            callSummary: {
+                hospitals: req.body.hospitals
+                    ? [...new Set(req.body.hospitals)].length
+                    : 0,
+                mds: req.body.doctors?.length || 0,
+                pharmacists,
+                accountingStaff
+            },
+            accomplishments,
+            dailySales: sales ? Object.values(sales) : [],
+            dailyCollections: {
+                current: collectionsCurrent,
+                overdue: collectionsOverdue
+            },
+            expenses: { meal, transportation, toll, parking, lodging },
+            mtdNotes,
+            endingOdometer: endingOdometerNum,
+            endingOdometerNote,
+            totalKmReading
+        };
+
+        // Handle file uploads if new files are provided
+        if (req.files?.['attachments']) {
+            updateData.attachments = req.files['attachments'].map(f => f.path);
+        }
+        if (req.files?.['endingOdometerPhoto']) {
+            updateData.endingOdometerPhoto = req.files['endingOdometerPhoto'][0].path;
+        }
+
+        await DailyReport.findByIdAndUpdate(req.params.id, updateData);
+
+        req.flash('success_msg', 'Daily report updated successfully!');
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error("Error updating report:", err);
+        req.flash('error_msg', 'Failed to update report.');
+        res.redirect('/report');
+    }
+};
+
 exports.getDailyCheckInReport = async (req, res) => {
     try {
         const today = new Date();
