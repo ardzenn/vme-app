@@ -106,16 +106,17 @@ exports.getMSRDashboard = async (req, res) => {
 
 
         // Defensive fetching and logging
-        let checkins = [], orders = [], allHospitals = [], allDoctors = [], dailyPlans = [], weeklyItineraries = [], dailyReports = [];
+        let checkins = [], orders = [], allHospitals = [], allDoctors = [], dailyPlans = [], weeklyItineraries = [], dailyReports = [], transactions = [];
         try {
-            [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
+            [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries, dailyReports, transactions] = await Promise.all([
                 CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10).populate('hospital doctor'),
                 Order.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10),
                 Hospital.find({ createdBy: req.user.id }),
                 Doctor.find({ createdBy: req.user.id }).populate('hospital'),
                 DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 }).limit(10),
                 WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 }).limit(10),
-                DailyReport.find({ user: req.user.id }).sort({ reportDate: -1 }).limit(10)
+                DailyReport.find({ user: req.user.id }).sort({ reportDate: -1 }).limit(10),
+                Transaction.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10)
             ]);
         } catch (fetchErr) {
             console.error(`Dashboard DB fetch error for user ${req.user && req.user.id}:`, fetchErr);
@@ -127,6 +128,7 @@ exports.getMSRDashboard = async (req, res) => {
             dailyPlans = dailyPlans || [];
             weeklyItineraries = weeklyItineraries || [];
             dailyReports = dailyReports || [];
+            transactions = transactions || [];
         }
 
         // Guarantee arrays for EJS
@@ -137,6 +139,7 @@ exports.getMSRDashboard = async (req, res) => {
         dailyPlans = Array.isArray(dailyPlans) ? dailyPlans : [];
         weeklyItineraries = Array.isArray(weeklyItineraries) ? weeklyItineraries : [];
         dailyReports = Array.isArray(dailyReports) ? dailyReports : [];
+        transactions = Array.isArray(transactions) ? transactions : [];
 
         // Fetch all EOD reports for the current user for the new dashboard tab
         let reports = [];
@@ -158,6 +161,7 @@ exports.getMSRDashboard = async (req, res) => {
             dailyPlans: formatDates(dailyPlans),
             weeklyItineraries: formatDates(weeklyItineraries),
             dailyReports: formatDates(dailyReports),
+            transactions: formatDates(transactions),
             reports,
             currentUser: req.user
         });
@@ -174,6 +178,7 @@ exports.getMSRDashboard = async (req, res) => {
             dailyPlans: [],
             weeklyItineraries: [],
             dailyReports: [],
+            transactions: [],
             reports: [],
             currentUser: req.user
         });

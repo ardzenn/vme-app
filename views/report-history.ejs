@@ -35,17 +35,17 @@
                             <% if(reports.length > 0) { %>
                                 <% reports.forEach(report => { %>
                                     <% if (report.user) { %>
-                                        <tr data-search="<%= report.user.firstName.toLowerCase() %> <%= report.user.lastName.toLowerCase() %> <%= new Date(report.reportDate).toLocaleDateString().toLowerCase() %> <%= report.lastClientVisited.toLowerCase() %>">
-                                            <td><%= report.user.firstName %> <%= report.user.lastName %></td>
-                                            <td><%= new Date(report.reportDate).toLocaleDateString() %></td>
-                                            <td><%= report.lastClientVisited %></td>
+                                        <tr data-search="<%= (report.user.firstName || '').toLowerCase() %> <%= (report.user.lastName || '').toLowerCase() %> <%= report.reportDate ? new Date(report.reportDate).toLocaleDateString().toLowerCase() : '' %> <%= (report.lastClientVisited || '').toLowerCase() %>">
+                                            <td><%= report.user.firstName || '[No Name]' %> <%= report.user.lastName || '' %></td>
+                                            <td><%= report.reportDate ? new Date(report.reportDate).toLocaleDateString() : 'N/A' %></td>
+                                            <td><%= report.lastClientVisited || 'N/A' %></td>
                                             <td><a href="/report/<%= report._id %>" class="btn btn-sm btn-primary">View Details</a></td>
                                         </tr>
                                     <% } else { %>
                                         <tr class="table-warning">
                                             <td>[User Deleted]</td>
-                                            <td><%= new Date(report.reportDate).toLocaleDateString() %></td>
-                                            <td><%= report.lastClientVisited %></td>
+                                            <td><%= report.reportDate ? new Date(report.reportDate).toLocaleDateString() : 'N/A' %></td>
+                                            <td><%= report.lastClientVisited || 'N/A' %></td>
                                             <td><a href="/report/<%= report._id %>" class="btn btn-sm btn-secondary">View Details</a></td>
                                         </tr>
                                     <% } %>

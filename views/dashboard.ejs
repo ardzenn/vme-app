@@ -41,13 +41,11 @@
         </div>
 
         <ul class="nav nav-tabs mb-3" id="dashboardTab" role="tablist">
-            <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="eod-report-history-tab" data-bs-toggle="tab" data-bs-target="#eod-report-history-panel" type="button" role="tab">End of Day Reports</button>
-            </li>
-            <% } %>
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">My Sales Orders</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="collections-tab" data-bs-toggle="tab" data-bs-target="#collections-panel" type="button" role="tab">Collections</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="checkins-tab" data-bs-toggle="tab" data-bs-target="#checkins-panel" type="button" role="tab">My Check-in History</button>
@@ -58,22 +56,14 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="weekly-itineraries-tab" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel" type="button" role="tab">My Weekly Itineraries</button>
             </li>
+            <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
             <li class="nav-item" role="presentation">
-            <a class="nav-link" id="dailyReports-tab" data-bs-toggle="tab" href="#dailyReports" role="tab">End of Day Reports</a>
-        </li>
+                <button class="nav-link" id="eod-report-history-tab" data-bs-toggle="tab" data-bs-target="#eod-report-history-panel" type="button" role="tab">End of Day Reports</button>
+            </li>
+            <% } %>
         </ul>
 
         <div class="tab-content" id="dashboardTabContent">
-            <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
-            <div class="tab-pane fade" id="eod-report-history-panel" role="tabpanel">
-                <div class="card card-tab">
-                    <div class="card-body">
-                        <a href="/report/new" class="btn btn-primary mb-3">Submit End of Day Report</a>
-                        <%- include('report-history', { reports: reports || [] }) %>
-                    </div>
-                </div>
-            </div>
-            <% } %>
             <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
                 <div class="card card-tab">
                     <div class="card-body">
@@ -102,6 +92,46 @@
                 </div>
             </div>      
                         
+            <div class="tab-pane fade" id="collections-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <input type="text" id="collectionSearch" class="form-control mb-3" placeholder="Search your collections...">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="collectionTable">
+                                <thead>
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Amount</th>
+                                        <th>Payment Method</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if(transactions && transactions.length > 0) { %>
+                                        <% transactions.forEach(transaction => { %>
+                                            <tr data-search="<%= (transaction.customerName || '').toLowerCase() %> <%= (transaction.paymentMethod || '').toLowerCase() %> <%= (transaction.status || '').toLowerCase() %>">
+                                                <td><%= transaction.customerName || 'N/A' %></td>
+                                                <td>₱<%= (transaction.amount || 0).toLocaleString() %></td>
+                                                <td><%= transaction.paymentMethod || 'N/A' %></td>
+                                                <td><span class="badge bg-<%= transaction.status === 'Completed' ? 'success' : transaction.status === 'Pending' ? 'warning' : 'secondary' %>"><%= transaction.status || 'N/A' %></span></td>
+                                                <td><%= transaction.createdAtFormatted || new Date(transaction.createdAt).toLocaleDateString() %></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary view-transaction-btn" data-transaction-id="<%= transaction._id %>">View</button>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr><td colspan="6" class="text-center p-4">No collections found.</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="tab-pane fade" id="checkins-panel" role="tabpanel">
                <div class="card card-tab">
                     <div class="card-body">
@@ -182,59 +212,31 @@
                         </div>
                     </div>
                 </div>
-             </div>
-             <div class="tab-pane fade" id="dailyReports" role="tabpanel">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Report Date</th>
-                            <th>Last Client Visited</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% if (dailyReports.length > 0) { %>
-                            <% dailyReports.forEach(report => { %>
-                                <tr>
-                                    <td><%= report.reportDateFormatted %></td>
-                                    <td><%= report.lastClientVisited || 'N/A' %></td>
-                                    <td>
-                                        <a href="/report/<%= report._id %>" class="btn btn-sm btn-primary">View Details</a>
-                                    </td>
-                                </tr>
-                            <% }); %>
-                        <% } else { %>
-                            <tr>
-                                <td colspan="3">No reports have been submitted yet.</td>
-                            </tr>
-                        <% } %>
-                    </tbody>
-                </table>
             </div>
-        </div>
-    </div>
             
             <div class="tab-pane fade" id="weekly-itineraries-panel" role="tabpanel">
                 <div class="card card-tab">
                     <div class="card-body">
-                         <div class="table-responsive">
-                            <table class="table table-hover">
+                        <input type="text" id="weeklyItinerarySearch" class="form-control mb-3" placeholder="Search your weekly itineraries...">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="weeklyItineraryTable">
                                 <thead>
-                                     <tr>
+                                    <tr>
                                         <th>Week Period</th>
                                         <th>Total Sales Target</th>
                                         <th>Total Collection Target</th>
+                                        <th>Date</th>
                                         <th>Actions</th>
-                                     </tr>
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                     <% if(weeklyItineraries && weeklyItineraries.length > 0) { %>
+                                    <% if(weeklyItineraries && weeklyItineraries.length > 0) { %>
                                         <% weeklyItineraries.forEach(itinerary => { %>
-                                             <tr>
+                                            <tr data-search="<%= (itinerary.weekPeriod || '').toLowerCase() %>">
                                                 <td><%= itinerary.weekPeriod || itinerary.weekStartDateFormatted %></td>
                                                 <td>₱<%= (itinerary.totalTargetSales || 0).toLocaleString() %></td>
                                                 <td>₱<%= (itinerary.totalTargetCollections || 0).toLocaleString() %></td>
+                                                <td><%= itinerary.createdAtFormatted || new Date(itinerary.createdAt).toLocaleDateString() %></td>
                                                 <td>
                                                     <a href="/planning/view/weekly/<%= itinerary._id %>" class="btn btn-sm btn-outline-primary">View</a>
                                                     <a href="/planning/weekly-itinerary-form/<%= itinerary._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
@@ -242,7 +244,7 @@
                                             </tr>
                                         <% }) %>
                                     <% } else { %>
-                                        <tr><td colspan="4" class="text-center p-4">No weekly itineraries found.</td></tr>
+                                        <tr><td colspan="5" class="text-center p-4">No weekly itineraries found.</td></tr>
                                     <% } %>
                                 </tbody>
                             </table>
@@ -250,6 +252,48 @@
                     </div>
                 </div>
             </div>
+            <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
+            <div class="tab-pane fade" id="eod-report-history-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <input type="text" id="reportSearch" class="form-control mb-3" placeholder="Search your daily reports...">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="reportTable">
+                                <thead>
+                                    <tr>
+                                        <th>Report Date</th>
+                                        <th>Last Client Visited</th>
+                                        <th>Hospitals Visited</th>
+                                        <th>Doctors Met</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if(reports && reports.length > 0) { %>
+                                        <% reports.forEach(report => { %>
+                                            <tr data-search="<%= (report.lastClientVisited || '').toLowerCase() %> <%= (report.callSummary ? report.callSummary.hospitals : '').toString() %> <%= (report.callSummary ? report.callSummary.mds : '').toString() %>">
+                                                <td><%= report.reportDateFormatted || new Date(report.reportDate).toLocaleDateString() %></td>
+                                                <td><%= report.lastClientVisited || 'N/A' %></td>
+                                                <td><%= report.callSummary ? report.callSummary.hospitals : 0 %></td>
+                                                <td><%= report.callSummary ? report.callSummary.mds : 0 %></td>
+                                                <td><%= report.createdAtFormatted || new Date(report.createdAt).toLocaleDateString() %></td>
+                                                <td>
+                                                    <a href="/report/view/<%= report._id %>" class="btn btn-sm btn-outline-primary">View</a>
+                                                    <a href="/report/edit/<%= report._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <tr><td colspan="6" class="text-center p-4">No daily reports found.</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <% } %>
         </div>
     </main>
 
@@ -267,6 +311,27 @@
     <script src="/js/chat-widget.js"></script>
     <script src="/js/dashboard-page.js"></script>
     <script src="/js/app-init.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const setupSearch = (inputId, tableId) => {
+                const searchInput = document.getElementById(inputId);
+                if (searchInput) {
+                    const tableRows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    searchInput.addEventListener('keyup', () => {
+                        const filter = searchInput.value.toLowerCase();
+                        tableRows.forEach(row => {
+                            const searchData = row.dataset.search || '';
+                            row.style.display = searchData.includes(filter) ? '' : 'none';
+                        });
+                    });
+                }
+            };
+            setupSearch('collectionSearch', 'collectionTable');
+            setupSearch('weeklyItinerarySearch', 'weeklyItineraryTable');
+            setupSearch('reportSearch', 'reportTable');
+        });
+    </script>
     
     <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
         <script src="/js/location-tracker.js"></script>
