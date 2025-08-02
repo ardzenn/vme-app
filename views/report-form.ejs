@@ -84,7 +84,7 @@
                             <input type="number" name="endingOdometer" id="endingOdometer" class="form-control" min="0">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">Total Km. Reading</label>
+                            <label class="form-label fw-bold">Total Kms Used</label>
                             <input type="number" id="totalKmReading" name="totalKmReading" class="form-control" readonly>
                         </div>
                     </div>
@@ -185,6 +185,7 @@
     const startingInput = document.getElementById('startingOdometer');
     const endingInput = document.getElementById('endingOdometer');
     const totalKmInput = document.getElementById('totalKmReading');
+    const totalKmUsedInput = document.getElementById('totalKmUsed');
     
     const start = parseFloat(startingInput.value) || 0;
     const end = parseFloat(endingInput.value) || 0;
@@ -194,6 +195,7 @@
     
     // Set the calculated value
     totalKmInput.value = totalKm;
+    if (totalKmUsedInput) totalKmUsedInput.value = totalKm;
     
     // Optional: Add validation to prevent negative values
     if (end < start && end > 0) {
@@ -209,11 +211,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const startingInput = document.getElementById('startingOdometer');
     
     if (endingInput && startingInput) {
-        // Update total when ending odometer changes
-        endingInput.addEventListener('input', updateTotalKm);
+        // Update total when ending odometer loses focus (blur), not on every input
+        endingInput.addEventListener('blur', updateTotalKm);
         
         // Also update when starting odometer changes (in case it gets modified)
-        startingInput.addEventListener('input', updateTotalKm);
+        startingInput.addEventListener('blur', updateTotalKm);
         
         // Calculate initial value if both fields have values
         updateTotalKm();

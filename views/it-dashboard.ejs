@@ -320,6 +320,74 @@
         </div>
     </main>
 
+    <!-- User Approval Modal -->
+    <div class="modal fade" id="userApprovalModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Approve User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="userApprovalForm">
+                    <div class="modal-body">
+                        <p>Select a role for <strong id="approvalUserName"></strong>:</p>
+                        <input type="hidden" id="approvalUserId">
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select class="form-select" id="userRole" required>
+                                <option value="">-- Select Role --</option>
+                                <option value="MSR">MSR (Medical Sales Representative)</option>
+                                <option value="KAS">KAS (Key Account Specialist)</option>
+                                <option value="Sales Manager">Sales Manager</option>
+                                <option value="Accounting">Accounting</option>
+                                <option value="Inventory">Inventory</option>
+                                <option value="IT">IT</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Approve User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Role Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User Role</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editUserForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editUserId">
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select class="form-select" id="editUserRole" required>
+                                <option value="MSR">MSR (Medical Sales Representative)</option>
+                                <option value="KAS">KAS (Key Account Specialist)</option>
+                                <option value="Sales Manager">Sales Manager</option>
+                                <option value="Accounting">Accounting</option>
+                                <option value="Inventory">Inventory</option>
+                                <option value="IT">IT</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Role</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <%- include('partials/chat-widget') %>
     <%- include('partials/order-detail-modal') %>
 

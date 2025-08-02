@@ -1,3 +1,4 @@
+<% var reports = typeof reports !== 'undefined' ? reports : []; %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,12 +35,17 @@
         <% if (locals.error_msg && error_msg.length > 0) { %><div class="alert alert-danger"><%= error_msg %></div><% } %>
 
         <div class="row g-4 mb-4">
-            <%- include('partials/dashboard-card', { title: 'Check-ins Today', value: stats.checkinsToday, cardClass: 'stat-card' }) %>
-            <%- include('partials/dashboard-card', { title: 'Pending Orders', value: stats.pendingOrders, cardClass: 'stat-card' }) %>
-            <%- include('partials/dashboard-card', { title: 'Total Sales', value: '₱' + stats.totalSales, cardClass: 'stat-card' }) %>
+            <%- include('partials/dashboard-card', { title: 'Check-ins Today', value: stats.checkinsToday, cardClass: 'stat-card', actions: [], subtitle: null }) %>
+            <%- include('partials/dashboard-card', { title: 'Pending Orders', value: stats.pendingOrders, cardClass: 'stat-card', actions: [], subtitle: null }) %>
+            <%- include('partials/dashboard-card', { title: 'Total Sales', value: '₱' + stats.totalSales, cardClass: 'stat-card', actions: [], subtitle: null }) %>
         </div>
 
         <ul class="nav nav-tabs mb-3" id="dashboardTab" role="tablist">
+            <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="eod-report-history-tab" data-bs-toggle="tab" data-bs-target="#eod-report-history-panel" type="button" role="tab">End of Day Reports</button>
+            </li>
+            <% } %>
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">My Sales Orders</button>
             </li>
@@ -53,11 +59,21 @@
                 <button class="nav-link" id="weekly-itineraries-tab" data-bs-toggle="tab" data-bs-target="#weekly-itineraries-panel" type="button" role="tab">My Weekly Itineraries</button>
             </li>
             <li class="nav-item" role="presentation">
-            <a class="nav-link" id="dailyReports-tab" data-bs-toggle="tab" href="#dailyReports" role="tab">Daily Reports</a>
+            <a class="nav-link" id="dailyReports-tab" data-bs-toggle="tab" href="#dailyReports" role="tab">End of Day Reports</a>
         </li>
         </ul>
 
         <div class="tab-content" id="dashboardTabContent">
+            <% if (currentUser.role === 'MSR' || currentUser.role === 'KAS') { %>
+            <div class="tab-pane fade" id="eod-report-history-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <a href="/report/new" class="btn btn-primary mb-3">Submit End of Day Report</a>
+                        <%- include('report-history', { reports: reports || [] }) %>
+                    </div>
+                </div>
+            </div>
+            <% } %>
             <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
                 <div class="card card-tab">
                     <div class="card-body">

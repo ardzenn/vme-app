@@ -75,6 +75,11 @@
         </div>
 
         <ul class="nav nav-tabs" id="salesManagerTab" role="tablist">
+            <% if (currentUser.role === 'Sales Manager') { %>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="eod-report-history-tab" data-bs-toggle="tab" data-bs-target="#eod-report-history-panel" type="button" role="tab">End of Day Reports</button>
+            </li>
+            <% } %>
             <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#orders-panel"><i class="fas fa-shopping-cart"></i> Sales Orders</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#transactions-panel"><i class="fas fa-money-bill-wave"></i> Collections</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#checkins-panel"><i class="fas fa-map-marker-alt"></i> Check-in History</button></li>
@@ -84,6 +89,16 @@
         </ul>
 
         <div class="tab-content pt-3" id="salesManagerTabContent">
+            <% if (currentUser.role === 'Sales Manager') { %>
+            <div class="tab-pane fade" id="eod-report-history-panel" role="tabpanel">
+                <div class="card card-tab">
+                    <div class="card-body">
+                        <a href="/report/new" class="btn btn-primary mb-3">Submit End of Day Report</a>
+                        <%- include('report-history', { reports: reports || [] }) %>
+                    </div>
+                </div>
+            </div>
+            <% } %>
             <!-- Sales Orders Panel -->
             <div class="tab-pane fade show active" id="orders-panel" role="tabpanel">
               <div class="card card-tab"><div class="card-body">

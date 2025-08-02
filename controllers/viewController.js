@@ -95,33 +95,79 @@ exports.getMSRDashboard = async (req, res) => {
                 { $group: { _id: null, total: { $sum: '$subtotal' } } }
             ]).then(result => result[0] ? result[0].total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00')
         };
-        
-        let [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
-            CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10).populate('hospital doctor'),
-            Order.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10),
-            Hospital.find({ createdBy: req.user.id }),
-            Doctor.find({ createdBy: req.user.id }).populate('hospital'),
-            DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 }).limit(10),
-            WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 }).limit(10),
-            DailyReport.find({ user: req.user.id }).sort({ reportDate: -1 }).limit(10)
-        ]);
 
-        res.render('dashboard', { 
-            user: req.user, 
-            stats, 
-            checkins: formatDates(checkins), 
-            orders: formatDates(orders), 
-            allHospitals, 
-            allDoctors, 
-            dailyPlans: formatDates(dailyPlans), 
+        // Defensive fetching and logging
+        let checkins = [], orders = [], allHospitals = [], allDoctors = [], dailyPlans = [], weeklyItineraries = [], dailyReports = [];
+        try {
+            [checkins, orders, allHospitals, allDoctors, dailyPlans, weeklyItineraries, dailyReports] = await Promise.all([
+                CheckIn.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10).populate('hospital doctor'),
+                Order.find({ user: req.user.id }).sort({ createdAt: -1 }).limit(10),
+                Hospital.find({ createdBy: req.user.id }),
+                Doctor.find({ createdBy: req.user.id }).populate('hospital'),
+                DailyPlan.find({ user: req.user.id }).sort({ planDate: -1 }).limit(10),
+                WeeklyItinerary.find({ user: req.user.id }).sort({ weekStartDate: -1 }).limit(10),
+                DailyReport.find({ user: req.user.id }).sort({ reportDate: -1 }).limit(10)
+            ]);
+        } catch (fetchErr) {
+            console.error(`Dashboard DB fetch error for user ${req.user && req.user.id}:`, fetchErr);
+            // If any fetch fails, keep arrays empty and continue
+            checkins = checkins || [];
+            orders = orders || [];
+            allHospitals = allHospitals || [];
+            allDoctors = allDoctors || [];
+            dailyPlans = dailyPlans || [];
+            weeklyItineraries = weeklyItineraries || [];
+            dailyReports = dailyReports || [];
+        }
+
+        // Guarantee arrays for EJS
+        checkins = Array.isArray(checkins) ? checkins : [];
+        orders = Array.isArray(orders) ? orders : [];
+        allHospitals = Array.isArray(allHospitals) ? allHospitals : [];
+        allDoctors = Array.isArray(allDoctors) ? allDoctors : [];
+        dailyPlans = Array.isArray(dailyPlans) ? dailyPlans : [];
+        weeklyItineraries = Array.isArray(weeklyItineraries) ? weeklyItineraries : [];
+        dailyReports = Array.isArray(dailyReports) ? dailyReports : [];
+
+        // Fetch all EOD reports for the current user for the new dashboard tab
+        let reports = [];
+        try {
+            reports = await DailyReport.find({ user: req.user.id }).sort({ reportDate: -1 });
+        } catch (e) {
+            console.error('Error fetching EOD reports for dashboard:', e);
+            reports = [];
+        }
+        reports = Array.isArray(reports) ? reports : [];
+
+        res.render('dashboard', {
+            user: req.user,
+            stats,
+            checkins: formatDates(checkins),
+            orders: formatDates(orders),
+            allHospitals,
+            allDoctors,
+            dailyPlans: formatDates(dailyPlans),
             weeklyItineraries: formatDates(weeklyItineraries),
             dailyReports: formatDates(dailyReports),
+            reports,
             currentUser: req.user
         });
     } catch (err) {
-        console.error("Dashboard Error:", err);
-        req.flash('error_msg', 'Could not load dashboard.');
-        res.redirect('/login');
+        console.error(`Dashboard Render Error for user ${req.user && req.user.id}:`, err);
+        // Always pass all variables to prevent EJS ReferenceError
+        res.render('dashboard', {
+            user: req.user,
+            stats: {},
+            checkins: [],
+            orders: [],
+            allHospitals: [],
+            allDoctors: [],
+            dailyPlans: [],
+            weeklyItineraries: [],
+            dailyReports: [],
+            reports: [],
+            currentUser: req.user
+        });
     }
 };
 
@@ -241,6 +287,16 @@ exports.getSalesManagerDashboard = async (req, res) => {
         // Fetch hospitals and doctors for check-in modal
         allHospitals = await Hospital.find().sort({ name: 1 });
         allDoctors = await Doctor.find().sort({ name: 1 });
+        // Fetch all EOD reports for the current user for the new dashboard tab
+        let reports = [];
+        try {
+            reports = await DailyReport.find({ user: req.user.id }).sort({ reportDate: -1 });
+        } catch (e) {
+            console.error('Error fetching EOD reports for sales manager dashboard:', e);
+            reports = [];
+        }
+        reports = Array.isArray(reports) ? reports : [];
+
         res.render('sales-manager-dashboard', {
             stats,
             users,
@@ -250,6 +306,7 @@ exports.getSalesManagerDashboard = async (req, res) => {
             dailyPlans: formatDates(dailyPlans),
             weeklyItineraries: formatDates(weeklyItineraries),
             dailyReports: formatDates(dailyReports),
+            reports,
             allHospitals,
             allDoctors,
             currentUser: req.user
